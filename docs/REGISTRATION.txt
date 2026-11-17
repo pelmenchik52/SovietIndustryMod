@@ -1,0 +1,31 @@
+=== 1) Головний клас мода (preInit) ===
+public static Block lepPole;
+public static Block lepCrossarm;
+
+lepPole     = new BlockLep(BlockLep.POLE).setBlockName("lep_pole");
+lepCrossarm = new BlockLep(BlockLep.CROSSARM).setBlockName("lep_crossarm");
+GameRegistry.registerBlock(lepPole, "lep_pole");
+GameRegistry.registerBlock(lepCrossarm, "lep_crossarm");
+
+proxy.registerRenderers();   // викликається і на сервері, див. нижче
+
+=== 2) CommonProxy ===
+public void registerRenderers() {}
+
+=== 3) ClientProxy (тільки клієнт) ===
+@Override
+public void registerRenderers() {
+    BlockLep.renderId = RenderingRegistry.getNextAvailableRenderId();
+    RenderingRegistry.registerBlockHandler(new LepRenderer());
+}
+
+Увага: registerRenderers() має виконатись ДО того, як блоки вперше малюються
+(preInit або init - нормально), і renderId має бути виставлений до registerBlockHandler.
+
+=== 4) Локалізація (assets/sovietindustry/lang/uk_UA.lang та en_US.lang) ===
+tile.lep_pole.name=Опора ЛЕП СВ-95
+tile.lep_crossarm.name=Опора ЛЕП СВ-95 з траверсою
+(для en_US: Power Line Pole SV-95 / Power Line Pole SV-95 with Crossarm)
+
+=== 5) Текстури ===
+assets/sovietindustry/textures/blocks/: lep_pole_side.png, lep_pole_top.png, lep_arm.png, lep_insulator.png
