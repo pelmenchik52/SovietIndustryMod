@@ -1,0 +1,25 @@
+itemGroup.tabSovietIndustry=Soviet Industry
+
+tile.pdnSlab.name=PDN Concrete Slab
+tile.po2Fence.name=PO-2 Concrete Fence
+tile.sovietTileWhite.name=Soviet Tile (White)
+tile.sovietTileGreen.name=Soviet Tile (Green)
+tile.sovietTileBlue.name=Soviet Tile (Blue)
+tile.sovietTileGrey.name=Soviet Tile (Grey)
+tile.paintedPanel.name=Soviet Painted Wall Panel
+tile.silicateBrick.name=Silicate Brick
+
+tile.glassBlock.name=Industrial Glass Block
+tile.slate.name=Corrugated Slate Roof
+tile.corrugatedIron.name=Rusted Corrugated Iron
+tile.damagedConcrete.name=Damaged Concrete with Rebar
+tile.po2Damaged.name=Damaged PO-2 Fence
+
+tile.knifeSwitch.name=Industrial Knife Switch
+tile.electricalCabinet.name=High Voltage Electrical Cabinet
+tile.industrialLamp.name=Industrial Pendant Lamp (RSP)
+tile.industrialPipe.name=Insulated District Heating Pipe
+
+tile.rustyBarrel.name=Rusted 200L Industrial Barrel
+tile.woodenCrate.name=Industrial Wooden Crate
+tile.warningSign.name=Warning Sign "Danger: High Voltage!"

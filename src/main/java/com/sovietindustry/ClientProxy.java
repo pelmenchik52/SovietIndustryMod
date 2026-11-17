@@ -1,0 +1,25 @@
+package com.sovietindustry;
+
+import com.sovietindustry.render.RenderIndustrialLamp;
+import com.sovietindustry.render.RenderIndustrialPipe;
+import com.sovietindustry.render.RenderKnifeSwitch;
+import com.sovietindustry.render.RenderPO2Fence;
+import com.sovietindustry.tileentities.TileEntityIndustrialLamp;
+import com.sovietindustry.tileentities.TileEntityIndustrialPipe;
+import com.sovietindustry.tileentities.TileEntityKnifeSwitch;
+import com.sovietindustry.tileentities.TileEntityPO2Fence;
+import cpw.mods.fml.client.registry.ClientRegistry;
+import cpw.mods.fml.relauncher.Side;
+import cpw.mods.fml.relauncher.SideOnly;
+
+@SideOnly(Side.CLIENT)
+public class ClientProxy extends CommonProxy {
+    @Override
+    public void registerRenderers() {
+        super.registerRenderers();
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityKnifeSwitch.class, new RenderKnifeSwitch());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityPO2Fence.class, new RenderPO2Fence());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityIndustrialLamp.class, new RenderIndustrialLamp());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityIndustrialPipe.class, new RenderIndustrialPipe());
+    }
+}

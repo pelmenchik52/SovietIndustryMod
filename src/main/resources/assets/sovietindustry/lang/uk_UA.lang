@@ -1,0 +1,25 @@
+itemGroup.tabSovietIndustry=Пострадянський промдекор
+
+tile.pdnSlab.name=Бетонна плита ПДН
+tile.po2Fence.name=Паркан ПО-2
+tile.sovietTileWhite.name=Кахельна плитка (біла)
+tile.sovietTileGreen.name=Кахельна плитка (зелена)
+tile.sovietTileBlue.name=Кахельна плитка (блакитна)
+tile.sovietTileGrey.name=Кахельна плитка (сіра)
+tile.paintedPanel.name=Фарбована стінова панель
+tile.silicateBrick.name=Силікатна цегла
+
+tile.glassBlock.name=Промисловий склоблок (Фальконьє)
+tile.slate.name=Хвилястий шифер
+tile.corrugatedIron.name=Іржавий профнастил
+tile.damagedConcrete.name=Пошкоджений бетон з арматурою
+tile.po2Damaged.name=Пошкоджений паркан ПО-2
+
+tile.knifeSwitch.name=Промисловий рубильник
+tile.electricalCabinet.name=Електрощиток КТП (Висока напруга)
+tile.industrialLamp.name=Світильник РСП «Дзвін»
+tile.industrialPipe.name=Теплотраса в ізоляції
+
+tile.rustyBarrel.name=Іржава 200л бочка
+tile.woodenCrate.name=Заводський дерев'яний ящик
+tile.warningSign.name=Табличка «Не влазь — уб'є!»

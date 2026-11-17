@@ -1,0 +1,18 @@
+package com.sovietindustry;
+
+import com.sovietindustry.tileentities.TileEntityIndustrialLamp;
+import com.sovietindustry.tileentities.TileEntityIndustrialPipe;
+import com.sovietindustry.tileentities.TileEntityKnifeSwitch;
+import com.sovietindustry.tileentities.TileEntityPO2Fence;
+import cpw.mods.fml.common.registry.GameRegistry;
+
+public class CommonProxy {
+    public void registerTileEntities() {
+        GameRegistry.registerTileEntity(TileEntityKnifeSwitch.class, "SovietKnifeSwitch");
+        GameRegistry.registerTileEntity(TileEntityPO2Fence.class, "SovietPO2Fence");
+        GameRegistry.registerTileEntity(TileEntityIndustrialLamp.class, "SovietIndustrialLamp");
+        GameRegistry.registerTileEntity(TileEntityIndustrialPipe.class, "SovietIndustrialPipe");
+    }
+
+    public void registerRenderers() {}
+}
