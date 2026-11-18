@@ -1,0 +1,46 @@
+=== 1) ModBlocks.java: поля ===
+public static Block chimney;
+public static Block lepPole;
+public static Block lepCrossarm;
+
+=== 2) ModBlocks.init(): у кінець ===
+chimney = new BlockChimney()
+    .setBlockName("chimney")
+    .setCreativeTab(SovietIndustryMod.tabSoviet);
+GameRegistry.registerBlock(chimney, ItemBlockChimney.class, "chimney");
+
+// опори ЛЕП із попереднього архіву lep_pack.zip
+lepPole = new BlockLep(BlockLep.POLE)
+    .setBlockName("lepPole")
+    .setCreativeTab(SovietIndustryMod.tabSoviet);
+GameRegistry.registerBlock(lepPole, "lepPole");
+
+lepCrossarm = new BlockLep(BlockLep.CROSSARM)
+    .setBlockName("lepCrossarm")
+    .setCreativeTab(SovietIndustryMod.tabSoviet);
+GameRegistry.registerBlock(lepCrossarm, "lepCrossarm");
+
+(імпорти: ItemBlockChimney, BlockChimney, BlockLep - всі з пакета com.sovietindustry.blocks, тобто вже в одному пакеті з ModBlocks)
+
+=== 3) ClientProxy.registerRenderers() (додати до наявного коду) ===
+BlockLep.renderId = RenderingRegistry.getNextAvailableRenderId();
+RenderingRegistry.registerBlockHandler(new LepRenderer());
+
+BlockChimney.renderId = RenderingRegistry.getNextAvailableRenderId();
+RenderingRegistry.registerBlockHandler(new ChimneyRenderer());
+
+Імпорти: cpw.mods.fml.client.registry.RenderingRegistry,
+com.sovietindustry.blocks.BlockLep, com.sovietindustry.blocks.BlockChimney,
+com.sovietindustry.render.LepRenderer, com.sovietindustry.render.ChimneyRenderer.
+CommonProxy.registerRenderers() лишається порожнім.
+
+=== 4) Локалізація (uk_UA.lang і en_US.lang) ===
+tile.chimney.0.name=Димова труба (нова)
+tile.chimney.1.name=Димова труба (трохи іржава)
+tile.chimney.2.name=Димова труба (дуже іржава)
+tile.lepPole.name=Опора ЛЕП СВ-95
+tile.lepCrossarm.name=Опора ЛЕП СВ-95 з траверсою
+
+=== 5) Текстури (assets/sovietindustry/textures/blocks/) ===
+chimney_0.png, chimney_1.png, chimney_2.png
+(для ЛЕП з lep_pack.zip: lep_pole_side, lep_pole_top, lep_arm, lep_insulator)
