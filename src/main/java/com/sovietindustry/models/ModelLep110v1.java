@@ -31,7 +31,6 @@ public class ModelLep110v1 extends ModelBase {
     public ModelRenderer armLowerMain;
     public ModelRenderer tieLowerLeft;
     public ModelRenderer tieLowerRight;
-    public ModelRenderer braceLowerRight;
 
     // Верхня траверса (19.0 м / ~11 блоків)
     public ModelRenderer armUpperMain;
@@ -108,12 +107,6 @@ public class ModelLep110v1 extends ModelBase {
         tieLowerRight.rotateAngleZ = -0.30F;
         tieLowerRight.addBox(-60.0F, -1.0F, -1.0F, 60, 2, 2);
 
-        // Нижній підкіс справа під довгим вильотом 3.9 м
-        braceLowerRight = new ModelRenderer(this, 64, 0);
-        braceLowerRight.setRotationPoint(4.0F, -128.0F, 0.0F);
-        braceLowerRight.rotateAngleZ = 0.50F;
-        braceLowerRight.addBox(0.0F, -1.0F, -1.0F, 26, 2, 2);
-
         // 4. Верхня траверса (y ~ -176)
         // Одностороння консоль праворуч: довжина 37 px (0..37)
         armUpperMain = new ModelRenderer(this, 0, 80);
@@ -182,7 +175,6 @@ public class ModelLep110v1 extends ModelBase {
         armLowerMain.render(f5);
         tieLowerLeft.render(f5);
         tieLowerRight.render(f5);
-        braceLowerRight.render(f5);
 
         // Верхня траверса
         armUpperMain.render(f5);

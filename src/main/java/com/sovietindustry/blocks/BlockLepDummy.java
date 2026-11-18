@@ -100,4 +100,10 @@ public class BlockLepDummy extends Block {
     public ItemStack getPickBlock(MovingObjectPosition target, World world, int x, int y, int z, EntityPlayer player) {
         return new ItemStack(ModBlocks.lep110v1);
     }
+
+    @Override
+    @cpw.mods.fml.relauncher.SideOnly(cpw.mods.fml.relauncher.Side.CLIENT)
+    public void registerBlockIcons(net.minecraft.client.renderer.texture.IIconRegister reg) {
+        blockIcon = reg.registerIcon("sovietindustry:pdn_slab");
+    }
 }
