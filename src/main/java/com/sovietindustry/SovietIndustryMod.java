@@ -8,7 +8,7 @@ import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import net.minecraft.creativetab.CreativeTabs;
 import com.sovietindustry.blocks.ModBlocks;
 
-@Mod(modid = SovietIndustryMod.MODID, name = "Soviet Industry", version = "1.0.0")
+@Mod(modid = SovietIndustryMod.MODID, name = "Soviet Industry", version = "1.0.0", dependencies = "required-after:hbm")
 public class SovietIndustryMod {
     public static final String MODID = "sovietindustry";
 
