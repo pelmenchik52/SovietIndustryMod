@@ -21,14 +21,15 @@ import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Димова труба котельні. Порожня всередині, три стани іржі (metadata 0..2):
- * 0 - нова, 1 - трохи іржава, 2 - сильно іржава.
- * Рендер: ChimneyRenderer (16-гранна труба). renderId виставляється у ClientProxy.
+ * Димова труба котельні.
+ * Підтримує вертикальне та горизонтальне розміщення (осі Y, X, Z).
+ * Три стани іржі (нижні 2 біти метаданих):
+ * 0 - нова (гладка сталь), 1 - трохи іржава, 2 - сильно іржава.
+ * Біти 2..3 відповідають за вісь: 0 = Y, 1 = X, 2 = Z.
  */
 public class BlockChimney extends Block {
     public static final int VARIANTS = 3;
 
-    /** Заповнюється у ClientProxy через RenderingRegistry.getNextAvailableRenderId(). */
     public static int renderId = 0;
 
     public IIcon[] icons = new IIcon[VARIANTS];
@@ -42,7 +43,6 @@ public class BlockChimney extends Block {
         setBlockBounds(1.5F / 16F, 0F, 1.5F / 16F, 14.5F / 16F, 1F, 14.5F / 16F);
     }
 
-    // ------------------------------------------------------------ вигляд
     @Override
     public int getRenderType() {
         return renderId;
@@ -59,6 +59,20 @@ public class BlockChimney extends Block {
     }
 
     @Override
+    public int onBlockPlaced(World world, int x, int y, int z, int side, float hitX, float hitY, float hitZ, int meta) {
+        int rust = meta & 3;
+        int axis = 0;
+        if (side == 0 || side == 1) {
+            axis = 0; // Вертикальна (Y)
+        } else if (side == 4 || side == 5) {
+            axis = 1; // Горизонтальна вздовж X
+        } else if (side == 2 || side == 3) {
+            axis = 2; // Горизонтальна вздовж Z
+        }
+        return rust | (axis << 2);
+    }
+
+    @Override
     @SideOnly(Side.CLIENT)
     public void registerBlockIcons(IIconRegister reg) {
         for (int i = 0; i < VARIANTS; i++) {
@@ -70,13 +84,12 @@ public class BlockChimney extends Block {
     @Override
     @SideOnly(Side.CLIENT)
     public IIcon getIcon(int side, int meta) {
-        return icons[MathHelper.clamp_int(meta, 0, VARIANTS - 1)];
+        return icons[MathHelper.clamp_int(meta & 3, 0, VARIANTS - 1)];
     }
 
-    // ------------------------------------------------------------ предмет / творчий режим
     @Override
     public int damageDropped(int meta) {
-        return meta;
+        return meta & 3;
     }
 
     @Override
@@ -88,10 +101,16 @@ public class BlockChimney extends Block {
         }
     }
 
-    // ------------------------------------------------------------ форма
     @Override
     public void setBlockBoundsBasedOnState(IBlockAccess world, int x, int y, int z) {
-        setBlockBounds(1.5F / 16F, 0F, 1.5F / 16F, 14.5F / 16F, 1F, 14.5F / 16F);
+        int axis = (world.getBlockMetadata(x, y, z) >> 2) & 3;
+        if (axis == 0) { // Y
+            setBlockBounds(1.5F / 16F, 0F, 1.5F / 16F, 14.5F / 16F, 1F, 14.5F / 16F);
+        } else if (axis == 1) { // X
+            setBlockBounds(0F, 1.5F / 16F, 1.5F / 16F, 1F, 14.5F / 16F, 14.5F / 16F);
+        } else { // Z
+            setBlockBounds(1.5F / 16F, 1.5F / 16F, 0F, 14.5F / 16F, 14.5F / 16F, 1F);
+        }
     }
 
     @Override
@@ -99,19 +118,10 @@ public class BlockChimney extends Block {
         setBlockBounds(1.5F / 16F, 0F, 1.5F / 16F, 14.5F / 16F, 1F, 14.5F / 16F);
     }
 
-    /** Колізія тільки по стінках: всередині труби порожньо, у неї можна впасти зверху. */
     @Override
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public void addCollisionBoxesToList(World world, int x, int y, int z, AxisAlignedBB mask, List list, Entity entity) {
-        float a = 1.5F / 16F, b = 3.0F / 16F, c = 13.0F / 16F, d = 14.5F / 16F;
-        setBlockBounds(a, 0F, a, b, 1F, d); // західна стінка
+        setBlockBoundsBasedOnState(world, x, y, z);
         super.addCollisionBoxesToList(world, x, y, z, mask, list, entity);
-        setBlockBounds(c, 0F, a, d, 1F, d); // східна
-        super.addCollisionBoxesToList(world, x, y, z, mask, list, entity);
-        setBlockBounds(b, 0F, a, c, 1F, b); // північна
-        super.addCollisionBoxesToList(world, x, y, z, mask, list, entity);
-        setBlockBounds(b, 0F, c, c, 1F, d); // південна
-        super.addCollisionBoxesToList(world, x, y, z, mask, list, entity);
-        setBlockBounds(a, 0F, a, d, 1F, d); // повернути рамку виділення
     }
 }

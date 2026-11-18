@@ -16,8 +16,11 @@ public class ModBlocks {
     public static Block paintedPanel;
     public static Block silicateBrick;
     public static Block chimney;
+    public static Block chimneyBase;
     public static Block lepPole;
     public static Block lepCrossarm;
+    public static Block lep110v1;
+    public static Block lep110Dummy;
 
     // Нові будівельні блоки та конструкції
     public static Block glassBlock;
@@ -167,6 +170,11 @@ public class ModBlocks {
             .setCreativeTab(SovietIndustryMod.tabSoviet);
         GameRegistry.registerBlock(chimney, ItemBlockChimney.class, "chimney");
 
+        chimneyBase = new BlockChimneyBase()
+            .setBlockName("chimneyBase")
+            .setCreativeTab(SovietIndustryMod.tabSoviet);
+        GameRegistry.registerBlock(chimneyBase, "chimneyBase");
+
         lepPole = new BlockLep(BlockLep.POLE)
             .setBlockName("lepPole")
             .setCreativeTab(SovietIndustryMod.tabSoviet);
@@ -176,6 +184,17 @@ public class ModBlocks {
             .setBlockName("lepCrossarm")
             .setCreativeTab(SovietIndustryMod.tabSoviet);
         GameRegistry.registerBlock(lepCrossarm, "lepCrossarm");
+
+        // Опора ЛЕП 110 кВ одноланцюгова (мультиблок 13 блоків)
+        lep110Dummy = new BlockLepDummy()
+            .setBlockName("lep110Dummy");
+        GameRegistry.registerBlock(lep110Dummy, "lep110Dummy");
+
+        lep110v1 = new BlockLep110v1()
+            .setBlockName("lep110v1")
+            .setBlockTextureName(SovietIndustryMod.MODID + ":lep110v1")
+            .setCreativeTab(SovietIndustryMod.tabSoviet);
+        GameRegistry.registerBlock(lep110v1, "lep110v1");
     }
 
     public static void registerRenderers() {

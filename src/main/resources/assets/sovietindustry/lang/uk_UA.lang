@@ -24,8 +24,10 @@ tile.rustyBarrel.name=Іржава 200л бочка
 tile.woodenCrate.name=Заводський дерев'яний ящик
 tile.warningSign.name=Табличка «Не влазь — уб'є!»
 
-tile.chimney.0.name=Димова труба (нова)
+tile.chimney.0.name=Димова труба (нова гладка сталь)
 tile.chimney.1.name=Димова труба (трохи іржава)
-tile.chimney.2.name=Димова труба (дуже іржава)
+tile.chimney.2.name=Димова труба (сильно іржава)
+tile.chimneyBase.name=Фундаментна плита димової труби
 tile.lepPole.name=Опора ЛЕП СВ-95
 tile.lepCrossarm.name=Опора ЛЕП СВ-95 з траверсою
+tile.lep110v1.name=Опора ЛЕП 110 кВ (одноланцюгова ПБ110)

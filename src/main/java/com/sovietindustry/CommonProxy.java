@@ -3,6 +3,7 @@ package com.sovietindustry;
 import com.sovietindustry.tileentities.TileEntityIndustrialLamp;
 import com.sovietindustry.tileentities.TileEntityIndustrialPipe;
 import com.sovietindustry.tileentities.TileEntityKnifeSwitch;
+import com.sovietindustry.tileentities.TileEntityLep110v1;
 import com.sovietindustry.tileentities.TileEntityPO2Fence;
 import cpw.mods.fml.common.registry.GameRegistry;
 
@@ -12,6 +13,7 @@ public class CommonProxy {
         GameRegistry.registerTileEntity(TileEntityPO2Fence.class, "SovietPO2Fence");
         GameRegistry.registerTileEntity(TileEntityIndustrialLamp.class, "SovietIndustrialLamp");
         GameRegistry.registerTileEntity(TileEntityIndustrialPipe.class, "SovietIndustrialPipe");
+        GameRegistry.registerTileEntity(TileEntityLep110v1.class, "SovietLep110v1");
     }
 
     public void registerRenderers() {}

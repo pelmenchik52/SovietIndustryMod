@@ -11,7 +11,7 @@ import cpw.mods.fml.relauncher.SideOnly;
  *   slab        (0, 0)   12x19x1
  *   pillars     (28, 0)  2x20x2   (обидва стовпи ділять одну ділянку)
  *   beams       (0, 22)  16x2x2   (обидві балки ділять одну ділянку)
- *   loops       (38, 0)  2x2x1    <-- ВИПРАВЛЕНО: раніше було (0,0) і накладалось на slab
+ *   loops       (38, 0)  2x2x1    <-- FIXED: раніше було (0,0) і накладалось на slab
  *   footBase    (0, 28)  4x3x8
  *   footTop     (26, 28) 3x2x6
  */

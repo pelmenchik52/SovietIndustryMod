@@ -24,8 +24,10 @@ tile.rustyBarrel.name=Rusted 200L Industrial Barrel
 tile.woodenCrate.name=Industrial Wooden Crate
 tile.warningSign.name=Warning Sign "Danger: High Voltage!"
 
-tile.chimney.0.name=Димова труба (нова)
-tile.chimney.1.name=Димова труба (трохи іржава)
-tile.chimney.2.name=Димова труба (дуже іржава)
-tile.lepPole.name=Опора ЛЕП СВ-95
-tile.lepCrossarm.name=Опора ЛЕП СВ-95 з траверсою
+tile.chimney.0.name=Boiler Chimney Pipe (New Steel)
+tile.chimney.1.name=Boiler Chimney Pipe (Slightly Rusted)
+tile.chimney.2.name=Boiler Chimney Pipe (Heavy Rust)
+tile.chimneyBase.name=Chimney Concrete Foundation Base
+tile.lepPole.name=Power Line Pole SV-95
+tile.lepCrossarm.name=Power Line Pole SV-95 with Crossarm
+tile.lep110v1.name=110 kV Transmission Tower (Single-Circuit)
