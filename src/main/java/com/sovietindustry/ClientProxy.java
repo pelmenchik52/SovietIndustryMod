@@ -11,6 +11,11 @@ import com.sovietindustry.tileentities.TileEntityPO2Fence;
 import cpw.mods.fml.client.registry.ClientRegistry;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import cpw.mods.fml.client.registry.RenderingRegistry;
+import com.sovietindustry.blocks.BlockLep;
+import com.sovietindustry.blocks.BlockChimney;
+import com.sovietindustry.render.LepRenderer;
+import com.sovietindustry.render.ChimneyRenderer;
 
 @SideOnly(Side.CLIENT)
 public class ClientProxy extends CommonProxy {
@@ -21,5 +26,10 @@ public class ClientProxy extends CommonProxy {
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityPO2Fence.class, new RenderPO2Fence());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityIndustrialLamp.class, new RenderIndustrialLamp());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityIndustrialPipe.class, new RenderIndustrialPipe());
+        BlockLep.renderId = RenderingRegistry.getNextAvailableRenderId();
+        RenderingRegistry.registerBlockHandler(new LepRenderer());
+
+        BlockChimney.renderId = RenderingRegistry.getNextAvailableRenderId();
+        RenderingRegistry.registerBlockHandler(new ChimneyRenderer());
     }
 }

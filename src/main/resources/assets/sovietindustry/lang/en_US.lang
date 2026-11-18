@@ -23,3 +23,9 @@ tile.industrialPipe.name=Insulated District Heating Pipe
 tile.rustyBarrel.name=Rusted 200L Industrial Barrel
 tile.woodenCrate.name=Industrial Wooden Crate
 tile.warningSign.name=Warning Sign "Danger: High Voltage!"
+
+tile.chimney.0.name=Димова труба (нова)
+tile.chimney.1.name=Димова труба (трохи іржава)
+tile.chimney.2.name=Димова труба (дуже іржава)
+tile.lepPole.name=Опора ЛЕП СВ-95
+tile.lepCrossarm.name=Опора ЛЕП СВ-95 з траверсою

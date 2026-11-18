@@ -15,6 +15,9 @@ public class ModBlocks {
     public static Block sovietTileGrey;
     public static Block paintedPanel;
     public static Block silicateBrick;
+    public static Block chimney;
+    public static Block lepPole;
+    public static Block lepCrossarm;
 
     // Нові будівельні блоки та конструкції
     public static Block glassBlock;
@@ -158,6 +161,21 @@ public class ModBlocks {
             .setBlockTextureName(SovietIndustryMod.MODID + ":warning_sign")
             .setCreativeTab(SovietIndustryMod.tabSoviet);
         GameRegistry.registerBlock(warningSign, "warningSign");
+
+        chimney = new BlockChimney()
+            .setBlockName("chimney")
+            .setCreativeTab(SovietIndustryMod.tabSoviet);
+        GameRegistry.registerBlock(chimney, ItemBlockChimney.class, "chimney");
+
+        lepPole = new BlockLep(BlockLep.POLE)
+            .setBlockName("lepPole")
+            .setCreativeTab(SovietIndustryMod.tabSoviet);
+        GameRegistry.registerBlock(lepPole, "lepPole");
+
+        lepCrossarm = new BlockLep(BlockLep.CROSSARM)
+            .setBlockName("lepCrossarm")
+            .setCreativeTab(SovietIndustryMod.tabSoviet);
+        GameRegistry.registerBlock(lepCrossarm, "lepCrossarm");
     }
 
     public static void registerRenderers() {
