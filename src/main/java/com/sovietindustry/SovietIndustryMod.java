@@ -7,6 +7,7 @@ import cpw.mods.fml.common.event.FMLInitializationEvent;
 import cpw.mods.fml.common.event.FMLPreInitializationEvent;
 import net.minecraft.creativetab.CreativeTabs;
 import com.sovietindustry.blocks.ModBlocks;
+import com.sovietindustry.items.ModItems;
 
 @Mod(modid = SovietIndustryMod.MODID, name = "Soviet Industry", version = "1.0.0", dependencies = "required-after:hbm")
 public class SovietIndustryMod {
@@ -20,6 +21,7 @@ public class SovietIndustryMod {
     @EventHandler
     public void preInit(FMLPreInitializationEvent event) {
         ModBlocks.init();
+        ModItems.init();
         proxy.registerTileEntities();
     }
 

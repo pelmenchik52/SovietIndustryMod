@@ -20,20 +20,17 @@ public class RenderLep110v1 extends TileEntitySpecialRenderer {
     @Override
     public void renderTileEntityAt(TileEntity te, double x, double y, double z, float partialTicks) {
         TileEntityLep110v1 lep = (TileEntityLep110v1) te;
-        float angle = lep != null ? lep.angle : 0.0F;
 
         this.bindTexture(texture);
 
         GL11.glPushMatrix();
-        // Переносимося до основи стовпа на рівні землі
         GL11.glTranslated(x + 0.5D, y, z + 0.5D);
-        // Повертаємо відповідно до кута розміщення гравцем (із дискретним кроком 30°)
-        GL11.glRotatef(-angle, 0.0F, 1.0F, 0.0F);
-        // Перевертаємо систему координат моделі, щоб Y йшов вгору на всі 13 блоків
+        GL11.glRotatef(-lep.angle, 0.0F, 1.0F, 0.0F);
+        // модель у v1 намальована з Y вниз, тому перевертаємо (це дзеркалить X, див. TileEntityLep110v1)
         GL11.glRotatef(180.0F, 0.0F, 0.0F, 1.0F);
-
         model.renderAll();
-
         GL11.glPopMatrix();
+
+        LepWireRenderer.render(lep, x, y, z);
     }
 }

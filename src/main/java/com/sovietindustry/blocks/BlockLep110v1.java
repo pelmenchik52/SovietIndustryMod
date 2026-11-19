@@ -8,25 +8,22 @@ import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
-import net.minecraft.util.ChatComponentText;
-import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.IIcon;
 import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.World;
 
 import com.sovietindustry.SovietIndustryMod;
 import com.sovietindustry.tileentities.TileEntityLep110v1;
+import com.sovietindustry.tileentities.TileEntityLepPylon;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 
 /**
- * Опора ЛЕП 110 кВ одноланцюгова (3-контактна + грозозахисний трос).
- * Залізобетонна опора на базі центрифугованої стійки СК-22.
- * Мультиблок висотою 13 блоків з кроком повороту 30° та повною твердою колізією.
+ * Опора ЛЕП 110 кВ одноланцюгова (3 фази + трос), мультиблок 13 блоків, крок повороту 30°.
  */
 public class BlockLep110v1 extends BlockContainer {
-    public static final int TOWER_HEIGHT = 13;
+    public static final int TOWER_HEIGHT = LepMultiblock.TOWER_HEIGHT;
 
     public BlockLep110v1() {
         super(Material.rock);
@@ -45,7 +42,7 @@ public class BlockLep110v1 extends BlockContainer {
 
     @Override
     public int getRenderType() {
-        return -1; // Рендериться через TESR RenderLep110v1
+        return -1;
     }
 
     @Override
@@ -60,10 +57,9 @@ public class BlockLep110v1 extends BlockContainer {
 
     @Override
     public boolean canPlaceBlockAt(World world, int x, int y, int z) {
-        if (!world.doesBlockHaveSolidTopSurface(world, x, y - 1, z)) {
+        if (!World.doesBlockHaveSolidTopSurface(world, x, y - 1, z)) {
             return false;
         }
-        // Перевіряємо вільний простір на 12 блоків вгору для всієї висоти опори
         for (int dy = 1; dy < TOWER_HEIGHT; dy++) {
             if (y + dy >= 256) return false;
             Block b = world.getBlock(x, y + dy, z);
@@ -76,31 +72,24 @@ public class BlockLep110v1 extends BlockContainer {
 
     @Override
     public void onBlockPlacedBy(World world, int x, int y, int z, EntityLivingBase placer, ItemStack stack) {
-        // Крок повороту на 30 градусів за поглядом гравця (12 напрямків)
-        float yaw = placer.rotationYaw;
-        float snapped = Math.round(yaw / 30.0F) * 30.0F;
+        float snapped = Math.round(placer.rotationYaw / 30.0F) * 30.0F;
         while (snapped < 0.0F) snapped += 360.0F;
         while (snapped >= 360.0F) snapped -= 360.0F;
 
         TileEntity te = world.getTileEntity(x, y, z);
-        if (te instanceof TileEntityLep110v1) {
-            ((TileEntityLep110v1) te).setAngle(snapped);
+        if (te instanceof TileEntityLepPylon) {
+            ((TileEntityLepPylon) te).setAngle(snapped);
         }
-
-        // Спавнимо 12 структурних блоків колізії вгору
-        for (int dy = 1; dy < TOWER_HEIGHT; dy++) {
-            world.setBlock(x, y + dy, z, ModBlocks.lep110Dummy, dy, 3);
-        }
+        LepMultiblock.buildV1(world, x, y, z);
     }
 
     @Override
     public void breakBlock(World world, int x, int y, int z, Block block, int meta) {
-        // Знищуємо всі верхні сегменти колізії опори
-        for (int dy = 1; dy < TOWER_HEIGHT; dy++) {
-            if (world.getBlock(x, y + dy, z) == ModBlocks.lep110Dummy) {
-                world.setBlockToAir(x, y + dy, z);
-            }
+        TileEntity te = world.getTileEntity(x, y, z);
+        if (te instanceof TileEntityLepPylon) {
+            ((TileEntityLepPylon) te).disconnectAndSync(); // прибрати дроти і вузол у мережі NTM
         }
+        LepMultiblock.removeV1(world, x, y, z);
         super.breakBlock(world, x, y, z, block, meta);
     }
 

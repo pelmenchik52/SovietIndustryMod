@@ -2,17 +2,18 @@ package com.sovietindustry;
 
 import com.sovietindustry.blocks.BlockChimney;
 import com.sovietindustry.blocks.BlockLep;
-import com.sovietindustry.blocks.ModBlocks;
 import com.sovietindustry.render.ChimneyRenderer;
 import com.sovietindustry.render.LepRenderer;
 import com.sovietindustry.render.RenderIndustrialLamp;
 import com.sovietindustry.render.RenderIndustrialPipe;
 import com.sovietindustry.render.RenderKnifeSwitch;
+import com.sovietindustry.render.RenderLep110Angle;
 import com.sovietindustry.render.RenderLep110v1;
 import com.sovietindustry.render.RenderPO2Fence;
 import com.sovietindustry.tileentities.TileEntityIndustrialLamp;
 import com.sovietindustry.tileentities.TileEntityIndustrialPipe;
 import com.sovietindustry.tileentities.TileEntityKnifeSwitch;
+import com.sovietindustry.tileentities.TileEntityLep110Angle;
 import com.sovietindustry.tileentities.TileEntityLep110v1;
 import com.sovietindustry.tileentities.TileEntityPO2Fence;
 
@@ -31,6 +32,7 @@ public class ClientProxy extends CommonProxy {
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityIndustrialLamp.class, new RenderIndustrialLamp());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityIndustrialPipe.class, new RenderIndustrialPipe());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep110v1.class, new RenderLep110v1());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep110Angle.class, new RenderLep110Angle());
 
         BlockLep.renderId = RenderingRegistry.getNextAvailableRenderId();
         RenderingRegistry.registerBlockHandler(new LepRenderer());

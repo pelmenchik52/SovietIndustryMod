@@ -20,6 +20,7 @@ public class ModBlocks {
     public static Block lepPole;
     public static Block lepCrossarm;
     public static Block lep110v1;
+    public static Block lep110Angle;
     public static Block lep110Dummy;
 
     // Нові будівельні блоки та конструкції
@@ -185,16 +186,23 @@ public class ModBlocks {
             .setCreativeTab(SovietIndustryMod.tabSoviet);
         GameRegistry.registerBlock(lepCrossarm, "lepCrossarm");
 
-        // Опора ЛЕП 110 кВ одноланцюгова (мультиблок 13 блоків)
+        // Блок-заповнювач для мультиблокових опор ЛЕП
         lep110Dummy = new BlockLepDummy()
             .setBlockName("lep110Dummy");
         GameRegistry.registerBlock(lep110Dummy, "lep110Dummy");
 
+        // Опора ЛЕП 110 кВ одноланцюгова (мультиблок 13 блоків)
         lep110v1 = new BlockLep110v1()
             .setBlockName("lep110v1")
             .setBlockTextureName(SovietIndustryMod.MODID + ":lep110v1")
             .setCreativeTab(SovietIndustryMod.tabSoviet);
         GameRegistry.registerBlock(lep110v1, "lep110v1");
+
+        // Опора ЛЕП 110 кВ анкерно-кутова (мультиблок 13 блоків, основа 3x3)
+        lep110Angle = new BlockLep110Angle()
+            .setBlockName("lep110Angle")
+            .setCreativeTab(SovietIndustryMod.tabSoviet);
+        GameRegistry.registerBlock(lep110Angle, "lep110Angle");
     }
 
     public static void registerRenderers() {
