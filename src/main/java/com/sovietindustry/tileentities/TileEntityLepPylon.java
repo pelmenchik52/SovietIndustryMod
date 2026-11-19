@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.hbm.tileentity.network.TileEntityPylonBase;
+import com.sovietindustry.api.IWiredPylon;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -23,7 +24,7 @@ import net.minecraftforge.common.util.ForgeDirection;
  * Три фази = ConnectionType.TRIPLE (сумісно з опорами NTM того ж типу).
  * Грозозахисний трос декоративний і енергії не несе.
  */
-public abstract class TileEntityLepPylon extends TileEntityPylonBase {
+public abstract class TileEntityLepPylon extends TileEntityPylonBase implements IWiredPylon {
 
     /** Максимальна довжина прольоту в блоках. */
     public static final double MAX_SPAN = 96.0D;
@@ -37,11 +38,13 @@ public abstract class TileEntityLepPylon extends TileEntityPylonBase {
     protected abstract double[][] getLocalMounts();
 
     /** true: натяжні гірлянди йдуть горизонтально в бік проводу (анкерна опора). */
+    @Override
     public boolean hasAnchorStrings() {
         return false;
     }
 
     /** Довжина натяжної гірлянди в блоках. */
+    @Override
     public double getStringLength() {
         return 1.2D;
     }
@@ -76,26 +79,6 @@ public abstract class TileEntityLepPylon extends TileEntityPylonBase {
         return r;
     }
 
-    /**
-     * Де фактично чіпляється провід: для підвісної опори це точка кріплення,
-     * для анкерної кінець натяжної гірлянди, що дивиться в бік (towardX, towardZ).
-     * Результат відносно кута блока.
-     */
-    public double[] getWireEnd(int pin, double towardX, double towardZ) {
-        Vec3 m = getMountPos()[pin];
-        double ex = m.xCoord;
-        double ey = m.yCoord;
-        double ez = m.zCoord;
-        if (hasAnchorStrings()) {
-            double len = Math.sqrt(towardX * towardX + towardZ * towardZ);
-            if (len > 1.0E-4D) {
-                ex += towardX / len * getStringLength();
-                ez += towardZ / len * getStringLength();
-            }
-        }
-        return new double[] { ex, ey, ez };
-    }
-
     // ------------------------------------------------------------ NTM
 
     @Override
@@ -114,6 +97,7 @@ public abstract class TileEntityLepPylon extends TileEntityPylonBase {
         return false;
     }
 
+    @Override
     public List<int[]> getLinks() {
         List<int[]> out = new ArrayList<int[]>();
         for (Object o : connected) {
@@ -122,8 +106,10 @@ public abstract class TileEntityLepPylon extends TileEntityPylonBase {
         return out;
     }
 
+    /** Перевірка за СИРИМ списком connected (getLinks() може ховати внутрішні зв'язки). */
     public boolean isLinkedTo(int x, int y, int z) {
-        for (int[] p : getLinks()) {
+        for (Object o : connected) {
+            int[] p = (int[]) o;
             if (p[0] == x && p[1] == y && p[2] == z) return true;
         }
         return false;
@@ -131,7 +117,10 @@ public abstract class TileEntityLepPylon extends TileEntityPylonBase {
 
     /** Зрізає всі дроти й повідомляє клієнтів на обох кінцях. */
     public void disconnectAndSync() {
-        List<int[]> links = getLinks();
+        List<int[]> links = new ArrayList<int[]>();
+        for (Object o : connected) {
+            links.add((int[]) o);
+        }
         disconnectAll();
         connected.clear();
         markDirty();

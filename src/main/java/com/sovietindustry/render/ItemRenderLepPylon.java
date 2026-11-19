@@ -5,6 +5,7 @@ import org.lwjgl.opengl.GL11;
 import com.sovietindustry.SovietIndustryMod;
 import com.sovietindustry.models.ModelLep110Angle;
 import com.sovietindustry.models.ModelLep110v1;
+import com.sovietindustry.models.ModelSubstation110kV;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -24,9 +25,17 @@ public class ItemRenderLepPylon implements IItemRenderer {
     private final ModelLep110v1 modelV1 = new ModelLep110v1();
     private final ModelLep110Angle modelAngle = new ModelLep110Angle();
     private final boolean isAngle;
+    private final boolean isSubstation;
+    private final ModelSubstation110kV modelSubstation = new ModelSubstation110kV();
 
     public ItemRenderLepPylon(boolean isAngle) {
+        this(isAngle, false);
+    }
+
+    /** isSubstation = true малює трансформаторну підстанцію (isAngle тоді ігнорується). */
+    public ItemRenderLepPylon(boolean isAngle, boolean isSubstation) {
         this.isAngle = isAngle;
+        this.isSubstation = isSubstation;
     }
 
     @Override
@@ -42,6 +51,13 @@ public class ItemRenderLepPylon implements IItemRenderer {
     @Override
     public void renderItem(ItemRenderType type, ItemStack item, Object... data) {
         GL11.glPushMatrix();
+
+        if (isSubstation) {
+            applySubstationTransform(type);
+            modelSubstation.renderAll();
+            GL11.glPopMatrix();
+            return;
+        }
 
         switch (type) {
             case INVENTORY:
@@ -89,5 +105,34 @@ public class ItemRenderLepPylon implements IItemRenderer {
         }
 
         GL11.glPopMatrix();
+    }
+
+    /** Підстанція ~5x5 блоків при висоті ~7: ставимо під кутом, щоб в іконці було видно портали та бак. */
+    private static void applySubstationTransform(ItemRenderType type) {
+        switch (type) {
+            case INVENTORY:
+                GL11.glTranslatef(0.0F, -0.50F, 0.0F);
+                GL11.glScalef(0.115F, 0.115F, 0.115F);
+                GL11.glRotatef(20.0F, 1.0F, 0.0F, 0.0F);
+                GL11.glRotatef(35.0F, 0.0F, 1.0F, 0.0F);
+                break;
+            case EQUIPPED:
+                GL11.glTranslatef(0.5F, 0.15F, 0.5F);
+                GL11.glScalef(0.09F, 0.09F, 0.09F);
+                GL11.glRotatef(35.0F, 0.0F, 1.0F, 0.0F);
+                break;
+            case EQUIPPED_FIRST_PERSON:
+                GL11.glTranslatef(0.55F, 0.05F, 0.45F);
+                GL11.glScalef(0.08F, 0.08F, 0.08F);
+                GL11.glRotatef(-35.0F, 0.0F, 1.0F, 0.0F);
+                break;
+            case ENTITY:
+                GL11.glTranslatef(0.0F, -0.25F, 0.0F);
+                GL11.glScalef(0.07F, 0.07F, 0.07F);
+                break;
+            default:
+                GL11.glScalef(0.07F, 0.07F, 0.07F);
+                break;
+        }
     }
 }

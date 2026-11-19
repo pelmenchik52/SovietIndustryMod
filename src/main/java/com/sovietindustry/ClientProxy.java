@@ -66,5 +66,9 @@ public class ClientProxy extends CommonProxy {
             Item.getItemFromBlock(ModBlocks.lep110Angle),
             new ItemRenderLepPylon(true)
         );
+        MinecraftForgeClient.registerItemRenderer(
+            Item.getItemFromBlock(ModBlocks.substation110kV),
+            new ItemRenderLepPylon(false, true)
+        );
     }
 }

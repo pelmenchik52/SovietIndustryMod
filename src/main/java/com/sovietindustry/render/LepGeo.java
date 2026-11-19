@@ -84,4 +84,45 @@ public final class LepGeo {
         t.addVertexWithUV(x2, y1, z1, 0, 1); t.addVertexWithUV(x2, y2, z1, 0, 0);
         t.addVertexWithUV(x2, y2, z2, 1, 0); t.addVertexWithUV(x2, y1, z2, 1, 1);
     }
+
+    /**
+     * Паралелепіпед із тайловими UV: текстура повторюється кожні 1/tpb блока
+     * (tpb = кількість повторів на блок), тому великі плити не розтягують текстуру.
+     */
+    public static void boxTiled(Tessellator t, double cx, double cy, double cz,
+                                double hx, double hy, double hz, double tpb) {
+        double x1 = cx - hx, x2 = cx + hx, y1 = cy - hy, y2 = cy + hy, z1 = cz - hz, z2 = cz + hz;
+        double ux = 2 * hx * tpb, uy = 2 * hy * tpb, uz = 2 * hz * tpb;
+        t.setNormal(0, -1, 0);
+        t.addVertexWithUV(x1, y1, z1, 0, 0);  t.addVertexWithUV(x2, y1, z1, ux, 0);
+        t.addVertexWithUV(x2, y1, z2, ux, uz); t.addVertexWithUV(x1, y1, z2, 0, uz);
+        t.setNormal(0, 1, 0);
+        t.addVertexWithUV(x1, y2, z2, 0, uz); t.addVertexWithUV(x2, y2, z2, ux, uz);
+        t.addVertexWithUV(x2, y2, z1, ux, 0); t.addVertexWithUV(x1, y2, z1, 0, 0);
+        t.setNormal(0, 0, -1);
+        t.addVertexWithUV(x1, y1, z1, 0, uy); t.addVertexWithUV(x1, y2, z1, 0, 0);
+        t.addVertexWithUV(x2, y2, z1, ux, 0); t.addVertexWithUV(x2, y1, z1, ux, uy);
+        t.setNormal(0, 0, 1);
+        t.addVertexWithUV(x2, y1, z2, 0, uy); t.addVertexWithUV(x2, y2, z2, 0, 0);
+        t.addVertexWithUV(x1, y2, z2, ux, 0); t.addVertexWithUV(x1, y1, z2, ux, uy);
+        t.setNormal(-1, 0, 0);
+        t.addVertexWithUV(x1, y1, z2, 0, uy); t.addVertexWithUV(x1, y2, z2, 0, 0);
+        t.addVertexWithUV(x1, y2, z1, uz, 0); t.addVertexWithUV(x1, y1, z1, uz, uy);
+        t.setNormal(1, 0, 0);
+        t.addVertexWithUV(x2, y1, z1, 0, uy); t.addVertexWithUV(x2, y2, z1, 0, 0);
+        t.addVertexWithUV(x2, y2, z2, uz, 0); t.addVertexWithUV(x2, y1, z2, uz, uy);
+    }
+
+    /** Площадка 0.25x0.25 на бічній грані (+X або -X), повністю накрита текстурою 4x4. */
+    public static void padX(Tessellator t, double x, double cy, double cz, double half, boolean positive) {
+        double y1 = cy - half, y2 = cy + half, z1 = cz - half, z2 = cz + half;
+        t.setNormal(positive ? 1 : -1, 0, 0);
+        if (positive) {
+            t.addVertexWithUV(x, y1, z1, 0, 1); t.addVertexWithUV(x, y2, z1, 0, 0);
+            t.addVertexWithUV(x, y2, z2, 1, 0); t.addVertexWithUV(x, y1, z2, 1, 1);
+        } else {
+            t.addVertexWithUV(x, y1, z2, 0, 1); t.addVertexWithUV(x, y2, z2, 0, 0);
+            t.addVertexWithUV(x, y2, z1, 1, 0); t.addVertexWithUV(x, y1, z1, 1, 1);
+        }
+    }
 }

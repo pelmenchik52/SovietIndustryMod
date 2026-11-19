@@ -4,7 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.hbm.tileentity.network.TileEntityPylonBase;
+import com.hbm.util.fauxpointtwelve.BlockPos;
+import com.hbm.util.fauxpointtwelve.DirPos;
+import com.sovietindustry.api.IWiredPylon;
 
+import api.hbm.energymk2.Nodespace.PowerNode;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.nbt.NBTTagCompound;
@@ -18,23 +22,28 @@ import net.minecraftforge.common.util.ForgeDirection;
 
 /**
  * Головний контролер трансформаторної підстанції 5x5:
- * - Має 4-точковий портал (ConnectionType.QUAD) для великих опор NTM.
- * - Має кабельні виводи збоку (canConnect = true для горизонтальних сторін).
- * - Внутрішньо з'єднує свій вузол NTM із вихідним 3-фазним порталом 110 кВ.
+ * - портал ВН (ConnectionType.QUAD): сюди чіпляється велика ЛЕП NTM (4 дроти: 2 стовпи x 2 яруси);
+ * - портал 110 кВ (TileEntitySubstationPort110kV, ConnectionType.TRIPLE) малий/середній ЛЕП NTM та наші ЛЕП;
+ * - 2 кабельні виводи (помаранчеві 4x4 площадки на боках плити) для мідних кабелів NTM.
+ *   Вони реалізовані як додаткові позиції вузла в Nodespace NTM, тому кабель просто
+ *   ставиться впритул до плити зовні, як і до будь-якої машини NTM.
  */
-public class TileEntitySubstation110kV extends TileEntityPylonBase {
+public class TileEntitySubstation110kV extends TileEntityPylonBase implements IWiredPylon {
 
     public static final double MAX_SPAN = 128.0D;
 
     /** Поворот підстанції: 0, 90, 180, 270 градусів. */
     public float angle = 0.0F;
 
-    /** Локальні координати 4 точок кріплення на порталі ВН (для великої ЛЕП NTM). */
+    /**
+     * Точки кріплення порталу ВН (локальні координати). Порядок такий самий, як у великої опори NTM:
+     * [+бік верх, +бік низ, -бік верх, -бік низ], щоб дроти між нашим порталом і опорою NTM не схрещувалися.
+     */
     private static final double[][] NTM_QUAD_MOUNTS = {
-        { -1.65D, 6.35D, -1.95D },
-        { -0.55D, 6.35D, -1.95D },
-        {  0.55D, 6.35D, -1.95D },
-        {  1.65D, 6.35D, -1.95D }
+        {  1.70D, 6.40D, -1.95D },
+        {  1.70D, 5.40D, -1.95D },
+        { -1.70D, 6.40D, -1.95D },
+        { -1.70D, 5.40D, -1.95D }
     };
 
     public void setAngle(float angle) {
@@ -45,11 +54,20 @@ public class TileEntitySubstation110kV extends TileEntityPylonBase {
         }
     }
 
+    /** Локальні (за поворотом моделі) координати -> зміщення в світі. */
     public double[] toWorldOffset(double lx, double ly, double lz) {
         double th = Math.toRadians(-angle);
         double c = Math.cos(th);
         double s = Math.sin(th);
         return new double[] { lx * c + lz * s, ly, -lx * s + lz * c };
+    }
+
+    /** Зворотне перетворення: світове зміщення (dx, dz) від центру -> локальні (lx, lz). */
+    public double[] toLocalOffset(double dx, double dz) {
+        double th = Math.toRadians(-angle);
+        double c = Math.cos(th);
+        double s = Math.sin(th);
+        return new double[] { dx * c - dz * s, dx * s + dz * c };
     }
 
     /** Зміщення суб-порталу 110 кВ (3 фази) відносно центру підстанції. */
@@ -58,7 +76,7 @@ public class TileEntitySubstation110kV extends TileEntityPylonBase {
         return new int[] { (int) Math.round(off[0]), 0, (int) Math.round(off[2]) };
     }
 
-    /** Координати 2 кабельних портів (лівий та правий край підстанції 5x5). */
+    /** Зміщення 2 кабельних портів (лівий та правий край плити 5x5). */
     public int[][] getCablePortOffsets() {
         double[] left = toWorldOffset(-2.0D, 0.0D, 0.0D);
         double[] right = toWorldOffset(2.0D, 0.0D, 0.0D);
@@ -68,12 +86,29 @@ public class TileEntitySubstation110kV extends TileEntityPylonBase {
         };
     }
 
+    /**
+     * Яку опору NTM/нашу чіпляти, коли гравець клікнув по блоку підстанції зі зміщенням (dx, dz) від центру:
+     * передня (110 кВ) сторона веде на TileEntitySubstationPort110kV, усе інше на портал ВН.
+     */
+    public TileEntityPylonBase getWireTarget(int dx, int dz) {
+        double[] l = toLocalOffset(dx, dz);
+        if (l[1] > 1.5D && worldObj != null) {
+            int[] po = getPort110Offset();
+            TileEntity pt = worldObj.getTileEntity(xCoord + po[0], yCoord + po[1], zCoord + po[2]);
+            if (pt instanceof TileEntitySubstationPort110kV) {
+                return (TileEntitySubstationPort110kV) pt;
+            }
+        }
+        return this;
+    }
+
     @Override
     public void updateEntity() {
         super.updateEntity();
         if (worldObj == null || worldObj.isRemote) return;
 
-        // Підтримуємо внутрішній шиноз'єднувач між порталом NTM (QUAD) та порталом 110 кВ (TRIPLE)
+        // Внутрішній зв'язок вузлів: портал ВН <-> портал 110 кВ (трансформатор між ними).
+        // Перевірка йде по СИРОМУ списку connected, інакше зв'язки множилися б щотіка.
         int[] pOff = getPort110Offset();
         int px = xCoord + pOff[0];
         int py = yCoord + pOff[1];
@@ -82,7 +117,7 @@ public class TileEntitySubstation110kV extends TileEntityPylonBase {
         TileEntity sub = worldObj.getTileEntity(px, py, pz);
         if (sub instanceof TileEntitySubstationPort110kV) {
             TileEntitySubstationPort110kV port110 = (TileEntitySubstationPort110kV) sub;
-            if (!isLinkedTo(px, py, pz)) {
+            if (!hasRawLink(px, py, pz)) {
                 this.addConnection(px, py, pz);
             }
             if (!port110.isLinkedTo(xCoord, yCoord, zCoord)) {
@@ -91,12 +126,55 @@ public class TileEntitySubstation110kV extends TileEntityPylonBase {
         }
     }
 
-    public boolean isLinkedTo(int x, int y, int z) {
-        for (int[] p : getLinks()) {
+    private boolean hasRawLink(int x, int y, int z) {
+        for (Object o : connected) {
+            int[] p = (int[]) o;
             if (p[0] == x && p[1] == y && p[2] == z) return true;
         }
         return false;
     }
+
+    public boolean isLinkedTo(int x, int y, int z) {
+        return hasRawLink(x, y, z);
+    }
+
+    // ------------------------------------------------------------ вузол мережі NTM
+
+    /**
+     * Вузол займає центр + 2 кабельні порти (позиції на краях плити),
+     * а до звичайних зв'язків пілона додаються входи для кабелів із зовнішнього боку порту.
+     */
+    @Override
+    public PowerNode createNode() {
+        int[][] ports = getCablePortOffsets();
+        PowerNode node = new PowerNode(
+            new BlockPos(xCoord, yCoord, zCoord),
+            new BlockPos(xCoord + ports[0][0], yCoord, zCoord + ports[0][2]),
+            new BlockPos(xCoord + ports[1][0], yCoord, zCoord + ports[1][2]))
+            .setConnections(new DirPos(xCoord, yCoord, zCoord, ForgeDirection.UNKNOWN));
+
+        for (Object o : connected) {
+            int[] pos = (int[]) o;
+            node.addConnection(new DirPos(pos[0], pos[1], pos[2], ForgeDirection.UNKNOWN));
+        }
+
+        for (int[] port : ports) {
+            ForgeDirection out = outward(port[0], port[2]);
+            if (out == ForgeDirection.UNKNOWN) continue;
+            node.addConnection(new DirPos(
+                xCoord + port[0] + out.offsetX, yCoord, zCoord + port[2] + out.offsetZ, out));
+        }
+        return node;
+    }
+
+    private static ForgeDirection outward(int ox, int oz) {
+        if (Math.abs(ox) >= Math.abs(oz)) {
+            return ox > 0 ? ForgeDirection.EAST : (ox < 0 ? ForgeDirection.WEST : ForgeDirection.UNKNOWN);
+        }
+        return oz > 0 ? ForgeDirection.SOUTH : ForgeDirection.NORTH;
+    }
+
+    // ------------------------------------------------------------ геометрія / NTM API
 
     @Override
     public Vec3[] getMountPos() {
@@ -106,6 +184,16 @@ public class TileEntitySubstation110kV extends TileEntityPylonBase {
             r[i] = Vec3.createVectorHelper(0.5D + w[0], w[1], 0.5D + w[2]);
         }
         return r;
+    }
+
+    @Override
+    public boolean hasAnchorStrings() {
+        return true;
+    }
+
+    @Override
+    public double getStringLength() {
+        return 1.05D;
     }
 
     @Override
@@ -123,16 +211,26 @@ public class TileEntitySubstation110kV extends TileEntityPylonBase {
         return dir != ForgeDirection.UP && dir != ForgeDirection.DOWN;
     }
 
+    /** Зовнішні дроти (без внутрішнього зв'язку з порталом 110 кВ). */
+    @Override
     public List<int[]> getLinks() {
         List<int[]> out = new ArrayList<int[]>();
         for (Object o : connected) {
-            out.add((int[]) o);
+            int[] p = (int[]) o;
+            if (worldObj != null) {
+                TileEntity te = worldObj.getTileEntity(p[0], p[1], p[2]);
+                if (te instanceof TileEntitySubstationPort110kV) continue;
+            }
+            out.add(p);
         }
         return out;
     }
 
     public void disconnectAndSync() {
-        List<int[]> links = getLinks();
+        List<int[]> links = new ArrayList<int[]>();
+        for (Object o : connected) {
+            links.add((int[]) o);
+        }
         disconnectAll();
         connected.clear();
         markDirty();

@@ -14,6 +14,8 @@ import net.minecraft.util.MovingObjectPosition;
 import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 
+import com.hbm.tileentity.network.TileEntityPylonBase;
+import com.sovietindustry.items.ItemWireCoil;
 import com.sovietindustry.tileentities.TileEntityLepDummy;
 
 /**
@@ -95,6 +97,22 @@ public class BlockLepDummy extends BlockContainer {
     public AxisAlignedBB getCollisionBoundingBoxFromPool(World world, int x, int y, int z) {
         setBlockBoundsBasedOnState(world, x, y, z);
         return super.getCollisionBoundingBoxFromPool(world, x, y, z);
+    }
+
+    /**
+     * Котушка дроту з NTM (ItemWiring) приймає лише власні BlockDummyable, а наші заповнювачі такими не є,
+     * тому клік по тілу опори/підстанції раніше не робив нічого. Тут ми самі знаходимо справжню опору
+     * (майстер-блок або портал 110 кВ підстанції) й передаємо їй клік тією ж котушкою NTM.
+     */
+    @Override
+    public boolean onBlockActivated(World world, int x, int y, int z, EntityPlayer player,
+                                    int side, float hitX, float hitY, float hitZ) {
+        ItemStack held = player.getHeldItem();
+        if (held == null || !ItemWireCoil.isNtmWiring(held) || player.isSneaking()) return false;
+        TileEntityPylonBase target = ItemWireCoil.resolve(world, x, y, z);
+        if (target == null) return false;
+        return held.getItem().onItemUse(held, player, world, target.xCoord, target.yCoord, target.zCoord,
+            side, hitX, hitY, hitZ);
     }
 
     @Override

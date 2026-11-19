@@ -18,6 +18,7 @@ import com.sovietindustry.SovietIndustryMod;
 import com.sovietindustry.blocks.ModBlocks;
 import com.sovietindustry.tileentities.TileEntityLepDummy;
 import com.sovietindustry.tileentities.TileEntityLepPylon;
+import com.sovietindustry.tileentities.TileEntitySubstation110kV;
 
 /**
  * Wire Coil.
@@ -35,8 +36,24 @@ public class ItemWireCoil extends Item {
         setCreativeTab(SovietIndustryMod.tabSoviet);
     }
 
-    /** Finds pylon TE by any multiblock block (dummy or master, ours or NTM). */
+    /** True for the NTM wire spool (com.hbm.items.tool.ItemWiring), matched by name to avoid a hard link. */
+    public static boolean isNtmWiring(ItemStack stack) {
+        if (stack == null || stack.getItem() == null) return false;
+        Class<?> c = stack.getItem().getClass();
+        while (c != null && c != Item.class) {
+            if (c.getName().equals("com.hbm.items.tool.ItemWiring")) return true;
+            c = c.getSuperclass();
+        }
+        return false;
+    }
+
+    /**
+     * Finds pylon TE by any multiblock block (dummy or master, ours or NTM).
+     * For the substation the clicked dummy decides the target: the 110 kV (front) side leads to the
+     * 3-phase port, everything else to the HV (QUAD) portal.
+     */
     public static TileEntityPylonBase resolve(World world, int x, int y, int z) {
+        int clickX = x, clickZ = z;
         Block b = world.getBlock(x, y, z);
         if (b == ModBlocks.lep110Dummy) {
             TileEntity d = world.getTileEntity(x, y, z);
@@ -50,6 +67,9 @@ public class ItemWireCoil extends Item {
             }
         }
         TileEntity te = world.getTileEntity(x, y, z);
+        if (te instanceof TileEntitySubstation110kV) {
+            return ((TileEntitySubstation110kV) te).getWireTarget(clickX - x, clickZ - z);
+        }
         if (te instanceof TileEntityPylonBase) {
             return (TileEntityPylonBase) te;
         }
@@ -86,7 +106,7 @@ public class ItemWireCoil extends Item {
 
     private static boolean full(TileEntityPylonBase t) {
         return t instanceof TileEntityLepPylon
-            && t.getConnected().size() >= TileEntityLepPylon.MAX_LINE_CONNECTIONS;
+            && ((TileEntityLepPylon) t).getLinks().size() >= TileEntityLepPylon.MAX_LINE_CONNECTIONS;
     }
 
     @Override

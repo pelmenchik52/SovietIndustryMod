@@ -33,7 +33,7 @@ public class BlockSubstation110kV extends BlockContainer {
         setStepSound(soundTypeMetal);
         setHarvestLevel("pickaxe", 2);
         setCreativeTab(SovietIndustryMod.tabSoviet);
-        setBlockBounds(0.0F, 0.0F, 0.0F, 1.0F, 0.5F, 1.0F);
+        setBlockBounds(0.0F, 0.0F, 0.0F, 1.0F, 1.0F, 1.0F);
     }
 
     @Override
@@ -109,10 +109,12 @@ public class BlockSubstation110kV extends BlockContainer {
                     setDummy(world, bx, y, bz, x, y, z);
                 }
 
-                // Верхні габаритні dummy-блоки для порталів і трансформатора (dy = 1..3 у центрі та на лінії порталів)
+                // Верхні габаритні dummy-блоки: бак і вводи в центрі, стійки порталів по кутах.
+                // Портал ВН (локально z < 0) вищий (7 блоків), портал 110 кВ (z > 0) нижчий (5 блоків).
+                double[] local = sub.toLocalOffset(dx, dz);
                 boolean isCenterEquip = Math.abs(dx) <= 1 && Math.abs(dz) <= 1;
-                boolean isPortalPillar = (Math.abs(dx) == 2 && (dz == -2 || dz == 2));
-                int maxH = isPortalPillar ? 6 : (isCenterEquip ? 3 : 1);
+                boolean isPortalPillar = (Math.abs(dx) == 2 && Math.abs(dz) == 2);
+                int maxH = isPortalPillar ? (local[1] < 0.0D ? 7 : 5) : (isCenterEquip ? 4 : 1);
                 for (int dy = 1; dy < maxH; dy++) {
                     setDummy(world, bx, y + dy, bz, x, y, z);
                 }

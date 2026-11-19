@@ -53,11 +53,35 @@ public final class LepMultiblock {
 
     /** Бокс {minX,minY,minZ,maxX,maxY,maxZ} для сегмента із зміщенням (dx,dy,dz). */
     public static float[] bounds(Block master, int dx, int dy, int dz) {
+        if (master == ModBlocks.substation110kV) {
+            return substationBounds(dx, dy, dz);
+        }
         boolean angle = master == ModBlocks.lep110Angle;
         double h = angle ? angleHalf(dy) : v1Half(dy);
         double[] ax = angle ? axisRange(dx, h) : axisRange(0, h);
         double[] az = angle ? axisRange(dz, h) : axisRange(0, h);
         return new float[] { (float) ax[0], 0.0F, (float) az[0], (float) ax[1], 1.0F, (float) az[1] };
+    }
+
+    /**
+     * Колізія сегментів підстанції (симетрична, тому не залежить від повороту):
+     * плита 4 пікселі заввишки, трансформатор по центру, тонкі стійки порталів по кутах.
+     */
+    private static float[] substationBounds(int dx, int dy, int dz) {
+        boolean centre = Math.abs(dx) <= 1 && Math.abs(dz) <= 1;
+        boolean pillar = Math.abs(dx) == 2 && Math.abs(dz) == 2;
+        if (dy == 0 && !centre && !pillar) {
+            return new float[] { 0.0F, 0.0F, 0.0F, 1.0F, 0.25F, 1.0F };
+        }
+        if (pillar) {
+            return new float[] { 0.30F, 0.0F, 0.30F, 0.70F, 1.0F, 0.70F };
+        }
+        // центр: габарит бака 2.1 x 1.56 блока, вище 2.5 блока лише вводи
+        double hx = dy >= 3 ? 0.80D : 1.05D;
+        double hz = dy >= 3 ? 0.60D : 1.00D;
+        double[] ax = axisRange(dx, hx);
+        double[] az = axisRange(dz, hz);
+        return new float[] { (float) ax[0], 0.0F, (float) az[0], (float) ax[1], dy >= 3 ? 0.9F : 1.0F, (float) az[1] };
     }
 
     // ------------------------------------------------------------ перевірка місця

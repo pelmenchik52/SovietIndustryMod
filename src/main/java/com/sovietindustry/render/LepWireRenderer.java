@@ -7,7 +7,7 @@ import org.lwjgl.opengl.GL11;
 
 import com.hbm.tileentity.network.TileEntityPylonBase;
 import com.sovietindustry.SovietIndustryMod;
-import com.sovietindustry.tileentities.TileEntityLepPylon;
+import com.sovietindustry.api.IWiredPylon;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -19,16 +19,23 @@ import net.minecraft.util.Vec3;
 import net.minecraft.world.World;
 
 /**
- * Малює для опори: натяжні гірлянди (лише анкерна), шлейфи між ними та самі проводи з провисанням.
+ * Малює для опори: натяжні гірлянди (динамічні), шлейфи між ними та самі проводи з провисанням.
  * Усі координати відносно кута блока (xCoord, yCoord, zCoord), тому достатньо translate(x, y, z).
- * Кожен дріт малює тільки "нижня" з двох опор, щоб не було дубля.
+ *
+ * Два випадки для кожного дроту:
+ *  - сусід теж наша опора (IWiredPylon): повний дріт малює лише "менша" за координатами опора;
+ *  - сусід з NTM: NTM сам малює свою половину до середини прольоту, тому ми малюємо лише
+ *    свою половину тією самою кривою (sin), інакше був би подвійний дріт.
+ *
+ * Гірлянда повертається вздовж дотичної до дроту у СВОЇЙ точці кріплення, тому дивиться вниз,
+ * якщо дріт іде нижче, вгору, якщо вище, і вбік на рівному прольоті.
  */
 @SideOnly(Side.CLIENT)
 public final class LepWireRenderer {
     private static final ResourceLocation INSULATOR =
         new ResourceLocation(SovietIndustryMod.MODID, "textures/models/lep_insulator.png");
 
-    /** Стріла провисання як частка довжини прольоту. */
+    /** Стріла провисання власного дроту як частка довжини прольоту. */
     private static final double SAG = 0.03D;
     private static final double WIRE_HALF = 0.02D;
 
@@ -36,13 +43,19 @@ public final class LepWireRenderer {
     }
 
     private static final class Link {
+        /** Кінець гірлянди (або точка кріплення, якщо гірлянд нема) на нашій опорі. */
         final double[][] mine;
+        /** Те саме на другій опорі (лише для наших опор). */
         final double[][] other;
+        /** Куди дивиться наша гірлянда (одиничний вектор). */
+        final double[][] dir;
         boolean draw;
+        boolean ntm;
 
         Link(int n) {
             mine = new double[n][];
             other = new double[n][];
+            dir = new double[n][];
         }
     }
 
@@ -52,38 +65,75 @@ public final class LepWireRenderer {
         return a.zCoord < b.zCoord;
     }
 
-    public static void render(TileEntityLepPylon te, double x, double y, double z) {
+    private static double[] unit(double x, double y, double z) {
+        double l = Math.sqrt(x * x + y * y + z * z);
+        if (l < 1.0E-6D) return new double[] { 0.0D, -1.0D, 0.0D };
+        return new double[] { x / l, y / l, z / l };
+    }
+
+    public static void render(TileEntityPylonBase te, double x, double y, double z) {
+        if (!(te instanceof IWiredPylon)) return;
+        IWiredPylon me = (IWiredPylon) te;
         World world = te.getWorldObj();
         if (world == null) return;
-        List<int[]> links = te.getLinks();
+        List<int[]> links = me.getLinks();
         if (links.isEmpty()) return;
 
         Vec3[] mine = te.getMountPos();
+        boolean anchor = me.hasAnchorStrings();
+        double myStr = me.getStringLength();
         List<Link> list = new ArrayList<Link>();
 
         for (int[] p : links) {
             TileEntity o = world.getTileEntity(p[0], p[1], p[2]);
             if (!(o instanceof TileEntityPylonBase)) continue;
             Vec3[] om = ((TileEntityPylonBase) o).getMountPos();
-            if (om == null) continue;
+            if (om == null || om.length == 0) continue;
+
+            boolean ours = o instanceof IWiredPylon;
+            IWiredPylon oth = ours ? (IWiredPylon) o : null;
+            boolean otherAnchor = ours && oth.hasAnchorStrings();
 
             int n = Math.min(mine.length, om.length);
             double ox = o.xCoord - te.xCoord;
             double oy = o.yCoord - te.yCoord;
             double oz = o.zCoord - te.zCoord;
-            boolean ours = o instanceof TileEntityLepPylon;
 
             Link l = new Link(n);
+            l.ntm = !ours;
             l.draw = !ours || isLower(te, o);
             for (int i = 0; i < n; i++) {
                 double bx = ox + om[i].xCoord, by = oy + om[i].yCoord, bz = oz + om[i].zCoord;
-                double tx = bx - mine[i].xCoord, tz = bz - mine[i].zCoord;
-                l.mine[i] = te.getWireEnd(i, tx, tz);
+                double dx = bx - mine[i].xCoord, dy = by - mine[i].yCoord, dz = bz - mine[i].zCoord;
+                double len = Math.sqrt(dx * dx + dy * dy + dz * dz);
+
+                double[] d;
                 if (ours) {
-                    double[] e = ((TileEntityLepPylon) o).getWireEnd(i, -tx, -tz);
-                    l.other[i] = new double[] { ox + e[0], oy + e[1], oz + e[2] };
+                    // дотична параболи на початку: нахил прольоту мінус провисання
+                    d = unit(dx, dy - 4.0D * SAG * len, dz);
                 } else {
-                    l.other[i] = new double[] { bx, by, bz };
+                    // дотична половини NTM-дроту: sin-крива з провисанням hang на середині
+                    double half = len * 0.5D;
+                    double hang = Math.min(half / 15.0D, 2.5D);
+                    d = unit(dx * 0.5D, dy * 0.5D - hang * Math.PI * 0.5D, dz * 0.5D);
+                }
+                l.dir[i] = d;
+                l.mine[i] = anchor
+                    ? new double[] { mine[i].xCoord + d[0] * myStr, mine[i].yCoord + d[1] * myStr, mine[i].zCoord + d[2] * myStr }
+                    : new double[] { mine[i].xCoord, mine[i].yCoord, mine[i].zCoord };
+
+                if (ours) {
+                    double[] e = otherAnchor
+                        ? unit(-dx, -dy - 4.0D * SAG * len, -dz)
+                        : null;
+                    double s = otherAnchor ? oth.getStringLength() : 0.0D;
+                    l.other[i] = otherAnchor
+                        ? new double[] { bx + e[0] * s, by + e[1] * s, bz + e[2] * s }
+                        : new double[] { bx, by, bz };
+                } else {
+                    // середина між точками кріплення, там зустрічається половина NTM
+                    l.other[i] = new double[] {
+                        mine[i].xCoord + dx * 0.5D, mine[i].yCoord + dy * 0.5D, mine[i].zCoord + dz * 0.5D };
                 }
             }
             list.add(l);
@@ -96,7 +146,7 @@ public final class LepWireRenderer {
         GL11.glDisable(GL11.GL_CULL_FACE);
 
         // --- гірлянди
-        if (te.hasAnchorStrings()) {
+        if (anchor) {
             Minecraft.getMinecraft().renderEngine.bindTexture(INSULATOR);
             t.startDrawingQuads();
             for (Link l : list) {
@@ -116,12 +166,16 @@ public final class LepWireRenderer {
         for (Link l : list) {
             if (!l.draw) continue;
             for (int i = 0; i < l.mine.length; i++) {
-                double len = dist(l.mine[i], l.other[i]);
-                wire(t, l.mine[i], l.other[i], len * SAG);
+                if (l.ntm) {
+                    ntmHalf(t, l.mine[i], l.other[i]);
+                } else {
+                    double len = dist(l.mine[i], l.other[i]);
+                    wire(t, l.mine[i], l.other[i], len * SAG);
+                }
             }
         }
         // шлейфи між двома натяжними гірляндами однієї фази
-        if (te.hasAnchorStrings() && list.size() >= 2) {
+        if (anchor && list.size() >= 2) {
             int n = Math.min(list.get(0).mine.length, list.get(1).mine.length);
             for (int i = 0; i < n; i++) {
                 wire(t, list.get(0).mine[i], list.get(1).mine[i], 0.45D);
@@ -134,6 +188,22 @@ public final class LepWireRenderer {
         GL11.glEnable(GL11.GL_CULL_FACE);
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
         GL11.glPopMatrix();
+    }
+
+    /** Половина дроту до середини прольоту тією самою sin-кривою, що й у RenderPylonBase з NTM. */
+    private static void ntmHalf(Tessellator t, double[] a, double[] mid) {
+        double hx = mid[0] - a[0], hy = mid[1] - a[1], hz = mid[2] - a[2];
+        double hang = Math.min(Math.sqrt(hx * hx + hy * hy + hz * hz) / 15.0D, 2.5D);
+        int count = 10;
+        double px = a[0], py = a[1], pz = a[2];
+        for (int j = 1; j <= count; j++) {
+            double f = (double) j / count;
+            double cx = a[0] + hx * f;
+            double cy = a[1] + hy * f - Math.sin(f * Math.PI * 0.5D) * hang;
+            double cz = a[2] + hz * f;
+            ribbon(t, px, py, pz, cx, cy, cz);
+            px = cx; py = cy; pz = cz;
+        }
     }
 
     private static double dist(double[] a, double[] b) {

@@ -27,7 +27,7 @@ public class BlockSubstationPort110kV extends BlockContainer {
         setHardness(8.0F);
         setResistance(40.0F);
         setStepSound(soundTypeMetal);
-        setBlockBounds(0.0F, 0.0F, 0.0F, 1.0F, 0.5F, 1.0F);
+        setBlockBounds(0.0F, 0.0F, 0.0F, 1.0F, 0.25F, 1.0F);
     }
 
     @Override
