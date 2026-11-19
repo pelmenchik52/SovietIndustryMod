@@ -31,3 +31,8 @@ tile.chimneyBase.name=Фундаментна плита димової труб�
 tile.lepPole.name=Опора ЛЕП СВ-95
 tile.lepCrossarm.name=Опора ЛЕП СВ-95 з траверсою
 tile.lep110v1.name=Опора ЛЕП 110 кВ (одноланцюгова ПБ110)
+
+tile.lep110Angle.name=110 kV Angle Tower
+tile.lep110v1.name=110 kV Intermediate Tower
+tile.lep110Dummy.name=Tower Dummy
+item.wireCoil.name=Wire Coil

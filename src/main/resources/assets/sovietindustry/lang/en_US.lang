@@ -31,3 +31,8 @@ tile.chimneyBase.name=Chimney Concrete Foundation Base
 tile.lepPole.name=Power Line Pole SV-95
 tile.lepCrossarm.name=Power Line Pole SV-95 with Crossarm
 tile.lep110v1.name=110 kV Transmission Tower (Single-Circuit)
+
+tile.lep110Angle.name=110 kV Angle Tower
+tile.lep110v1.name=110 kV Intermediate Tower
+tile.lep110Dummy.name=Tower Dummy
+item.wireCoil.name=Wire Coil
