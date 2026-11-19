@@ -1,5 +1,7 @@
 package com.sovietindustry;
 
+import com.sovietindustry.tileentities.TileEntitySubstation110kV;
+import com.sovietindustry.tileentities.TileEntitySubstationPort110kV;
 import com.sovietindustry.tileentities.TileEntityIndustrialLamp;
 import com.sovietindustry.tileentities.TileEntityIndustrialPipe;
 import com.sovietindustry.tileentities.TileEntityKnifeSwitch;
@@ -18,6 +20,8 @@ public class CommonProxy {
         GameRegistry.registerTileEntity(TileEntityLep110v1.class, "SovietLep110v1");
         GameRegistry.registerTileEntity(TileEntityLep110Angle.class, "SovietLep110Angle");
         GameRegistry.registerTileEntity(TileEntityLepDummy.class, "SovietLepDummy");
+        GameRegistry.registerTileEntity(TileEntitySubstation110kV.class, "TileEntitySubstation110kV");
+        GameRegistry.registerTileEntity(TileEntitySubstationPort110kV.class, "TileEntitySubstationPort110kV");
     }
 
     public void registerRenderers() {}

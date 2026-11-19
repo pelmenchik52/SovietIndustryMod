@@ -1,5 +1,12 @@
 package com.sovietindustry;
 
+import com.sovietindustry.render.LepWireRenderer;
+import com.sovietindustry.tileentities.TileEntityLepPylon;
+import net.minecraft.tileentity.TileEntity;
+import com.sovietindustry.render.RenderSubstation110kV;
+import com.sovietindustry.tileentities.TileEntitySubstation110kV;
+import com.sovietindustry.tileentities.TileEntitySubstationPort110kV;
+import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import com.sovietindustry.blocks.ModBlocks;
 import com.sovietindustry.render.ItemRenderLepPylon;
 import net.minecraft.item.Item;
@@ -37,6 +44,13 @@ public class ClientProxy extends CommonProxy {
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityIndustrialPipe.class, new RenderIndustrialPipe());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep110v1.class, new RenderLep110v1());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep110Angle.class, new RenderLep110Angle());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstation110kV.class, new RenderSubstation110kV());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstationPort110kV.class, new TileEntitySpecialRenderer() {
+            @Override
+            public void renderTileEntityAt(TileEntity te, double x, double y, double z, float partialTicks) {
+                LepWireRenderer.render((TileEntityLepPylon) te, x, y, z);
+            }
+        });
 
         BlockLep.renderId = RenderingRegistry.getNextAvailableRenderId();
         RenderingRegistry.registerBlockHandler(new LepRenderer());

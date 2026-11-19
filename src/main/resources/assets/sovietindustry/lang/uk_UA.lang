@@ -36,3 +36,4 @@ tile.lep110Angle.name=110 kV Angle Tower
 tile.lep110v1.name=110 kV Intermediate Tower
 tile.lep110Dummy.name=Tower Dummy
 item.wireCoil.name=Wire Coil
+tile.substation110kV.name=110 kV Outdoor Switchgear (OSG) Transformer Substation

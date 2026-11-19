@@ -21,6 +21,8 @@ public class ModBlocks {
     public static Block lepCrossarm;
     public static Block lep110v1;
     public static Block lep110Angle;
+    public static Block substation110kV;
+    public static Block substationPort110kV;
     public static Block lep110Dummy;
 
     // Нові будівельні блоки та конструкції
@@ -203,6 +205,15 @@ public class ModBlocks {
             .setBlockName("lep110Angle")
             .setCreativeTab(SovietIndustryMod.tabSoviet);
         GameRegistry.registerBlock(lep110Angle, "lep110Angle");
+
+        substation110kV = new BlockSubstation110kV()
+            .setBlockName("substation110kV")
+            .setCreativeTab(SovietIndustryMod.tabSoviet);
+        GameRegistry.registerBlock(substation110kV, "substation110kV");
+
+        substationPort110kV = new BlockSubstationPort110kV()
+            .setBlockName("substationPort110kV");
+        GameRegistry.registerBlock(substationPort110kV, "substationPort110kV");
     }
 
     public static void registerRenderers() {
