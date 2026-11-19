@@ -2,6 +2,7 @@ package com.sovietindustry.tileentities;
 
 import java.util.ArrayList;
 import java.util.List;
+import api.hbm.energymk2.Nodespace;
 
 import com.hbm.tileentity.network.TileEntityPylonBase;
 import com.hbm.util.fauxpointtwelve.BlockPos;
@@ -102,26 +103,41 @@ public class TileEntitySubstation110kV extends TileEntityPylonBase implements IW
         return this;
     }
 
+    private boolean internalLinked = false;
+    private int initTicks = 0;
+
     @Override
     public void updateEntity() {
+        if (this.isInvalid()) return;
         super.updateEntity();
-        if (worldObj == null || worldObj.isRemote) return;
+        if (worldObj == null || worldObj.isRemote || this.isInvalid()) return;
 
-        // Внутрішній зв'язок вузлів: портал ВН <-> портал 110 кВ (трансформатор між ними).
-        // Перевірка йде по СИРОМУ списку connected, інакше зв'язки множилися б щотіка.
-        int[] pOff = getPort110Offset();
-        int px = xCoord + pOff[0];
-        int py = yCoord + pOff[1];
-        int pz = zCoord + pOff[2];
+        if (!internalLinked) {
+            initTicks++;
+            if (initTicks < 5) return;
 
-        TileEntity sub = worldObj.getTileEntity(px, py, pz);
-        if (sub instanceof TileEntitySubstationPort110kV) {
-            TileEntitySubstationPort110kV port110 = (TileEntitySubstationPort110kV) sub;
-            if (!hasRawLink(px, py, pz)) {
-                this.addConnection(px, py, pz);
-            }
-            if (!port110.isLinkedTo(xCoord, yCoord, zCoord)) {
-                port110.addConnection(xCoord, yCoord, zCoord);
+            int[] pOff = getPort110Offset();
+            int px = xCoord + pOff[0];
+            int py = yCoord + pOff[1];
+            int pz = zCoord + pOff[2];
+
+            if (worldObj.blockExists(px, py, pz)) {
+                TileEntity sub = worldObj.getTileEntity(px, py, pz);
+                if (sub instanceof TileEntitySubstationPort110kV && !sub.isInvalid()) {
+                    TileEntitySubstationPort110kV port110 = (TileEntitySubstationPort110kV) sub;
+                    try {
+                        if (!isLinkedTo(px, py, pz)) {
+                            this.addConnection(px, py, pz);
+                        }
+                        if (!port110.isLinkedTo(xCoord, yCoord, zCoord)) {
+                            port110.addConnection(xCoord, yCoord, zCoord);
+                        }
+                        internalLinked = true;
+                        Nodespace.destroyNode(worldObj, xCoord, yCoord, zCoord);
+                    } catch (Throwable t) {
+                        initTicks = 0;
+                    }
+                }
             }
         }
     }
@@ -233,6 +249,8 @@ public class TileEntitySubstation110kV extends TileEntityPylonBase implements IW
         }
         disconnectAll();
         connected.clear();
+        internalLinked = false;
+        initTicks = 0;
         markDirty();
         if (worldObj != null) {
             for (int[] p : links) {
