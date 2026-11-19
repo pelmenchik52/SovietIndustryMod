@@ -35,7 +35,6 @@ public class BlockLep110Angle extends BlockContainer {
         setStepSound(soundTypeMetal);
         setHarvestLevel("pickaxe", 2);
         setCreativeTab(SovietIndustryMod.tabSoviet);
-        setBlockTextureName(SovietIndustryMod.MODID + ":lep110_angle");
     }
 
     @Override
@@ -101,7 +100,7 @@ public class BlockLep110Angle extends BlockContainer {
     @Override
     @SideOnly(Side.CLIENT)
     public void registerBlockIcons(IIconRegister reg) {
-        blockIcon = reg.registerIcon("sovietindustry:lep110_angle");
+        blockIcon = reg.registerIcon("sovietindustry:lep110v1");
     }
 
     @Override

@@ -1,5 +1,9 @@
 package com.sovietindustry;
 
+import com.sovietindustry.blocks.ModBlocks;
+import com.sovietindustry.render.ItemRenderLepPylon;
+import net.minecraft.item.Item;
+import net.minecraftforge.client.MinecraftForgeClient;
 import com.sovietindustry.blocks.BlockChimney;
 import com.sovietindustry.blocks.BlockLep;
 import com.sovietindustry.render.ChimneyRenderer;
@@ -39,5 +43,14 @@ public class ClientProxy extends CommonProxy {
 
         BlockChimney.renderId = RenderingRegistry.getNextAvailableRenderId();
         RenderingRegistry.registerBlockHandler(new ChimneyRenderer());
+
+        MinecraftForgeClient.registerItemRenderer(
+            Item.getItemFromBlock(ModBlocks.lep110v1),
+            new ItemRenderLepPylon(false)
+        );
+        MinecraftForgeClient.registerItemRenderer(
+            Item.getItemFromBlock(ModBlocks.lep110Angle),
+            new ItemRenderLepPylon(true)
+        );
     }
 }
