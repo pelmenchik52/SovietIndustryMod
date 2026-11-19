@@ -20,11 +20,11 @@ import com.sovietindustry.tileentities.TileEntityLepDummy;
 import com.sovietindustry.tileentities.TileEntityLepPylon;
 
 /**
- * Котушка проводу.
- *  ПКМ по опорі: перший клік запам'ятовує початок, другий з'єднує (3 фази).
- *  Shift+ПКМ по опорі: зрізає всі дроти цієї опори.
- *  ПКМ у повітря: скасовує вибір початку.
- * Працює і з опорами цього мода, і з опорами NTM типу TRIPLE (середні пілони).
+ * Wire Coil.
+ * RMB on pylon: first click sets start, second connects (3 phases).
+ * Shift+RMB on pylon: cuts all wires on this pylon.
+ * RMB in air: cancels start selection.
+ * Works with both this mod's pylons and NTM TRIPLE type pylons (medium pylons).
  */
 public class ItemWireCoil extends Item {
 
@@ -35,7 +35,7 @@ public class ItemWireCoil extends Item {
         setCreativeTab(SovietIndustryMod.tabSoviet);
     }
 
-    /** Знаходить TE опори за будь-яким блоком мультиблока (dummy чи майстер, наш чи NTM). */
+    /** Finds pylon TE by any multiblock block (dummy or master, ours or NTM). */
     public static TileEntityPylonBase resolve(World world, int x, int y, int z) {
         Block b = world.getBlock(x, y, z);
         if (b == ModBlocks.lep110Dummy) {
@@ -99,17 +99,17 @@ public class ItemWireCoil extends Item {
         if (player.isSneaking()) {
             if (pylon instanceof TileEntityLepPylon) {
                 ((TileEntityLepPylon) pylon).disconnectAndSync();
-                msg(player, EnumChatFormatting.YELLOW, "Усі проводи цієї опори зрізано");
+                msg(player, EnumChatFormatting.YELLOW, "All wires on this pylon have been cut");
             } else if (pylon != null) {
                 pylon.disconnectAll();
-                msg(player, EnumChatFormatting.YELLOW, "Усі проводи цієї опори зрізано");
+                msg(player, EnumChatFormatting.YELLOW, "All wires on this pylon have been cut");
             }
             clear(stack);
             return true;
         }
 
         if (pylon == null) {
-            msg(player, EnumChatFormatting.RED, "Це не опора ЛЕП");
+            msg(player, EnumChatFormatting.RED, "Not a power pylon");
             return true;
         }
 
@@ -123,7 +123,7 @@ public class ItemWireCoil extends Item {
             tag.setInteger("sx", pylon.xCoord);
             tag.setInteger("sy", pylon.yCoord);
             tag.setInteger("sz", pylon.zCoord);
-            msg(player, EnumChatFormatting.GREEN, "Початок проводу: " + pylon.xCoord + " " + pylon.yCoord + " " + pylon.zCoord);
+            msg(player, EnumChatFormatting.GREEN, "Wire start: " + pylon.xCoord + " " + pylon.yCoord + " " + pylon.zCoord);
             return true;
         }
 
@@ -132,30 +132,30 @@ public class ItemWireCoil extends Item {
 
         TileEntity ft = world.blockExists(sx, sy, sz) ? world.getTileEntity(sx, sy, sz) : null;
         if (!(ft instanceof TileEntityPylonBase)) {
-            msg(player, EnumChatFormatting.RED, "Початкова опора зникла або не завантажена");
+            msg(player, EnumChatFormatting.RED, "Start pylon is missing or unloaded");
             return true;
         }
         TileEntityPylonBase first = (TileEntityPylonBase) ft;
         TileEntityPylonBase second = pylon;
 
         if (first == second) {
-            msg(player, EnumChatFormatting.RED, "Не можна з'єднати опору саму з собою");
+            msg(player, EnumChatFormatting.RED, "Cannot connect a pylon to itself");
             return true;
         }
         if (first.getConnectionType() != second.getConnectionType()) {
-            msg(player, EnumChatFormatting.RED, "Опори різного типу (кількість фаз не збігається)");
+            msg(player, EnumChatFormatting.RED, "Pylon types do not match (phase count mismatch)");
             return true;
         }
         if (TileEntityPylonBase.canConnect(first, second) != 0) {
-            msg(player, EnumChatFormatting.RED, "Завелика відстань між опорами");
+            msg(player, EnumChatFormatting.RED, "Distance between pylons is too far");
             return true;
         }
         if (linked(first, second)) {
-            msg(player, EnumChatFormatting.RED, "Ці опори вже з'єднані");
+            msg(player, EnumChatFormatting.RED, "These pylons are already connected");
             return true;
         }
         if (full(first) || full(second)) {
-            msg(player, EnumChatFormatting.RED, "На опорі вже є два проводи (вхід і вихід)");
+            msg(player, EnumChatFormatting.RED, "Pylon already has two connections (input and output)");
             return true;
         }
 
@@ -164,7 +164,7 @@ public class ItemWireCoil extends Item {
         world.markBlockForUpdate(first.xCoord, first.yCoord, first.zCoord);
         world.markBlockForUpdate(second.xCoord, second.yCoord, second.zCoord);
 
-        msg(player, EnumChatFormatting.GREEN, "Опори з'єднано");
+        msg(player, EnumChatFormatting.GREEN, "Pylons connected");
         return true;
     }
 
@@ -172,7 +172,7 @@ public class ItemWireCoil extends Item {
     public ItemStack onItemRightClick(ItemStack stack, World world, EntityPlayer player) {
         if (!world.isRemote && stack.getTagCompound() != null && stack.getTagCompound().hasKey("sx")) {
             clear(stack);
-            msg(player, EnumChatFormatting.GRAY, "Вибір початку скасовано");
+            msg(player, EnumChatFormatting.GRAY, "Wire start selection cancelled");
         }
         return stack;
     }
@@ -180,11 +180,11 @@ public class ItemWireCoil extends Item {
     @Override
     @SuppressWarnings({ "rawtypes", "unchecked" })
     public void addInformation(ItemStack stack, EntityPlayer player, List list, boolean adv) {
-        list.add("ПКМ по опорі: початок, потім кінець проводу");
-        list.add("Shift+ПКМ по опорі: зрізати всі проводи");
+        list.add("RMB on pylon: set start, then end of wire");
+        list.add("Shift+RMB on pylon: cut all wires");
         NBTTagCompound tag = stack.getTagCompound();
         if (tag != null && tag.hasKey("sx")) {
-            list.add("Початок: " + tag.getInteger("sx") + " " + tag.getInteger("sy") + " " + tag.getInteger("sz"));
+            list.add("Start: " + tag.getInteger("sx") + " " + tag.getInteger("sy") + " " + tag.getInteger("sz"));
         }
     }
 }
