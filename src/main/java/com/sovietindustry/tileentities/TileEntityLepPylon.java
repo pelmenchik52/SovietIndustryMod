@@ -106,6 +106,22 @@ public abstract class TileEntityLepPylon extends TileEntityPylonBase implements 
         return out;
     }
 
+    /** За замовчуванням дріт використовує всі точки кріплення. */
+    @Override
+    public int[] getLinkMounts(int x, int y, int z) {
+        return null;
+    }
+
+    /** Висота опори над основою для рамки рендера. */
+    protected double renderHeight() {
+        return 15.0D;
+    }
+
+    /** true, коли вузол NTM цієї опори вже створений (створюється в першому updateEntity). */
+    public boolean hasNode() {
+        return node != null && !node.expired;
+    }
+
     /** Перевірка за СИРИМ списком connected (getLinks() може ховати внутрішні зв'язки). */
     public boolean isLinkedTo(int x, int y, int z) {
         for (Object o : connected) {
@@ -164,13 +180,13 @@ public abstract class TileEntityLepPylon extends TileEntityPylonBase implements 
     @SideOnly(Side.CLIENT)
     public AxisAlignedBB getRenderBoundingBox() {
         double minX = xCoord - 5.0D, minY = yCoord - 1.0D, minZ = zCoord - 5.0D;
-        double maxX = xCoord + 6.0D, maxY = yCoord + 15.0D, maxZ = zCoord + 6.0D;
+        double maxX = xCoord + 6.0D, maxY = yCoord + renderHeight(), maxZ = zCoord + 6.0D;
         for (int[] p : getLinks()) {
             minX = Math.min(minX, p[0] - 5.0D);
             minY = Math.min(minY, p[1] - 1.0D);
             minZ = Math.min(minZ, p[2] - 5.0D);
             maxX = Math.max(maxX, p[0] + 6.0D);
-            maxY = Math.max(maxY, p[1] + 15.0D);
+            maxY = Math.max(maxY, p[1] + 20.0D);
             maxZ = Math.max(maxZ, p[2] + 6.0D);
         }
         return AxisAlignedBB.getBoundingBox(minX, minY, minZ, maxX, maxY, maxZ);

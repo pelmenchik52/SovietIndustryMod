@@ -78,7 +78,8 @@ public class BlockLepDummy extends BlockContainer {
     }
 
     private static boolean isTower(Block b) {
-        return b == ModBlocks.lep110v1 || b == ModBlocks.lep110Angle || b == ModBlocks.substation110kV;
+        return b == ModBlocks.lep110v1 || b == ModBlocks.lep110Angle || b == ModBlocks.substation110kV
+            || b == ModBlocks.lep110x2 || b == ModBlocks.lep110x2Angle;
     }
 
     @Override

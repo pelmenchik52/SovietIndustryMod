@@ -5,6 +5,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
 
 import com.sovietindustry.tileentities.TileEntityLep110Angle;
+import com.sovietindustry.tileentities.Lep110x2;
 import com.sovietindustry.tileentities.TileEntityLepDummy;
 
 /**
@@ -34,6 +35,23 @@ public final class LepMultiblock {
         return 3.0D / 16.0D;
     }
 
+    /** Півширина колізії 6-контактної проміжної опори (колона 1x1, звужується вгору). */
+    public static double x2Half(int dy) {
+        return Math.min(0.5D, Lep110x2.legHalf(dy, false) + 0.07D);
+    }
+
+    /** Півширина колізії 6-контактної анкерно-кутової опори на рівні dy. */
+    public static double x2AngleHalf(int dy) {
+        return Lep110x2.legHalf(dy, true) + 0.12D;
+    }
+
+    public static boolean x2AngleHasBlock(int dx, int dy, int dz) {
+        if (dy < 0 || dy >= Lep110x2.HEIGHT) return false;
+        if (dx == 0 && dz == 0) return true;
+        if (Math.abs(dx) > 1 || Math.abs(dz) > 1) return false;
+        return x2AngleHalf(dy) >= RING_MIN_HALF;
+    }
+
     public static boolean angleHasBlock(int dx, int dy, int dz) {
         if (dy < 0 || dy >= TOWER_HEIGHT) return false;
         if (dx == 0 && dz == 0) return true;
@@ -55,6 +73,16 @@ public final class LepMultiblock {
     public static float[] bounds(Block master, int dx, int dy, int dz) {
         if (master == ModBlocks.substation110kV) {
             return substationBounds(dx, dy, dz);
+        }
+        if (master == ModBlocks.lep110x2) {
+            double[] a = axisRange(0, x2Half(dy));
+            return new float[] { (float) a[0], 0.0F, (float) a[0], (float) a[1], 1.0F, (float) a[1] };
+        }
+        if (master == ModBlocks.lep110x2Angle) {
+            double h2 = x2AngleHalf(dy);
+            double[] ax2 = axisRange(dx, h2);
+            double[] az2 = axisRange(dz, h2);
+            return new float[] { (float) ax2[0], 0.0F, (float) az2[0], (float) ax2[1], 1.0F, (float) az2[1] };
         }
         boolean angle = master == ModBlocks.lep110Angle;
         double h = angle ? angleHalf(dy) : v1Half(dy);
@@ -152,6 +180,75 @@ public final class LepMultiblock {
         for (int dy = 1; dy < TOWER_HEIGHT; dy++) {
             if (w.getBlock(x, y + dy, z) == ModBlocks.lep110Dummy) {
                 w.setBlockToAir(x, y + dy, z);
+            }
+        }
+    }
+
+    // ------------------------------------------------------------ 6-контактні опори (висота 16)
+
+    private static boolean freeCell(World w, int x, int y, int z) {
+        Block b = w.getBlock(x, y, z);
+        return w.isAirBlock(x, y, z) || b.isReplaceable(w, x, y, z);
+    }
+
+    public static boolean canPlaceX2(World w, int x, int y, int z) {
+        if (!World.doesBlockHaveSolidTopSurface(w, x, y - 1, z)) return false;
+        for (int dy = 1; dy < Lep110x2.HEIGHT; dy++) {
+            if (y + dy >= 256 || !freeCell(w, x, y + dy, z)) return false;
+        }
+        return true;
+    }
+
+    public static void buildX2(World w, int x, int y, int z) {
+        for (int dy = 1; dy < Lep110x2.HEIGHT; dy++) {
+            setDummy(w, x, y + dy, z, x, y, z);
+        }
+    }
+
+    public static void removeX2(World w, int x, int y, int z) {
+        for (int dy = 1; dy < Lep110x2.HEIGHT; dy++) {
+            if (w.getBlock(x, y + dy, z) == ModBlocks.lep110Dummy) w.setBlockToAir(x, y + dy, z);
+        }
+    }
+
+    public static boolean canPlaceX2Angle(World w, int x, int y, int z) {
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                if (!World.doesBlockHaveSolidTopSurface(w, x + dx, y - 1, z + dz)) return false;
+            }
+        }
+        for (int dy = 0; dy < Lep110x2.HEIGHT; dy++) {
+            if (y + dy >= 256) return false;
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    if (dx == 0 && dz == 0 && dy == 0) continue;
+                    if (x2AngleHasBlock(dx, dy, dz) && !freeCell(w, x + dx, y + dy, z + dz)) return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public static void buildX2Angle(World w, int x, int y, int z) {
+        for (int dy = 0; dy < Lep110x2.HEIGHT; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    if (dx == 0 && dz == 0 && dy == 0) continue;
+                    if (x2AngleHasBlock(dx, dy, dz)) setDummy(w, x + dx, y + dy, z + dz, x, y, z);
+                }
+            }
+        }
+    }
+
+    public static void removeX2Angle(World w, int x, int y, int z) {
+        for (int dy = 0; dy < Lep110x2.HEIGHT; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                for (int dz = -1; dz <= 1; dz++) {
+                    if (dx == 0 && dz == 0 && dy == 0) continue;
+                    if (x2AngleHasBlock(dx, dy, dz) && w.getBlock(x + dx, y + dy, z + dz) == ModBlocks.lep110Dummy) {
+                        w.setBlockToAir(x + dx, y + dy, z + dz);
+                    }
+                }
             }
         }
     }

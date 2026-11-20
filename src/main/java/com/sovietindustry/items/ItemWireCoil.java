@@ -17,6 +17,9 @@ import com.hbm.tileentity.network.TileEntityPylonBase;
 import com.sovietindustry.SovietIndustryMod;
 import com.sovietindustry.blocks.ModBlocks;
 import com.sovietindustry.tileentities.TileEntityLepDummy;
+import com.sovietindustry.tileentities.TileEntityLep110Angle;
+import com.sovietindustry.tileentities.TileEntityLep110x2;
+import com.sovietindustry.tileentities.TileEntityLep110x2Base;
 import com.sovietindustry.tileentities.TileEntityLepPylon;
 import com.sovietindustry.tileentities.TileEntitySubstation110kV;
 
@@ -104,7 +107,41 @@ public class ItemWireCoil extends Item {
         return false;
     }
 
+    /**
+     * Правила для 6-контактних опор. Повертає текст помилки або null, якщо з'єднання дозволене:
+     *  - 6-контактна <-> 6-контактна: усі 6 дротів;
+     *  - 6-контактна АНКЕРНО-КУТОВА <-> 3-контактна анкерно-кутова: одне коло (3 дроти), тож АКО
+     *    розходиться на дві 3-контактні;
+     *  - проміжна 6-контактна приймає лише інші 6-контактні опори.
+     * Місткість рахується по точках кріплення (до двох дротів на точку), а не загальним лічильником.
+     */
+    private static String sixWireCheck(TileEntityPylonBase first, TileEntityPylonBase second) {
+        boolean a = first instanceof TileEntityLep110x2Base;
+        boolean b = second instanceof TileEntityLep110x2Base;
+        if (!a && !b) return null;
+        if (a && b) {
+            if (!((TileEntityLep110x2Base) first).canAcceptLink(second)
+                || !((TileEntityLep110x2Base) second).canAcceptLink(first)) {
+                return "No free contacts left on a 6-wire tower (max two wires per contact)";
+            }
+            return null;
+        }
+        TileEntityLep110x2Base six = (TileEntityLep110x2Base) (a ? first : second);
+        TileEntityPylonBase other = a ? second : first;
+        if (six instanceof TileEntityLep110x2) {
+            return "An intermediate 6-wire tower connects only to other 6-wire towers";
+        }
+        if (!(other instanceof TileEntityLep110Angle)) {
+            return "A 6-wire angle tower can only split into 3-wire angle towers";
+        }
+        if (!six.canAcceptLink(other)) {
+            return "No free 3-wire circuit left on this 6-wire tower";
+        }
+        return null;
+    }
+
     private static boolean full(TileEntityPylonBase t) {
+        if (t instanceof TileEntityLep110x2Base) return false; // місткість перевіряє sixWireCheck
         return t instanceof TileEntityLepPylon
             && ((TileEntityLepPylon) t).getLinks().size() >= TileEntityLepPylon.MAX_LINE_CONNECTIONS;
     }
@@ -172,6 +209,11 @@ public class ItemWireCoil extends Item {
         }
         if (linked(first, second)) {
             msg(player, EnumChatFormatting.RED, "These pylons are already connected");
+            return true;
+        }
+        String sixErr = sixWireCheck(first, second);
+        if (sixErr != null) {
+            msg(player, EnumChatFormatting.RED, sixErr);
             return true;
         }
         if (full(first) || full(second)) {

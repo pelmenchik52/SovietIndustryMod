@@ -5,6 +5,7 @@ import org.lwjgl.opengl.GL11;
 import com.sovietindustry.SovietIndustryMod;
 import com.sovietindustry.models.ModelLep110Angle;
 import com.sovietindustry.models.ModelLep110v1;
+import com.sovietindustry.models.ModelLep110x2;
 import com.sovietindustry.models.ModelSubstation110kV;
 
 import cpw.mods.fml.relauncher.Side;
@@ -24,6 +25,12 @@ public class ItemRenderLepPylon implements IItemRenderer {
 
     private final ModelLep110v1 modelV1 = new ModelLep110v1();
     private final ModelLep110Angle modelAngle = new ModelLep110Angle();
+    public static final int KIND_X2 = 3;
+    public static final int KIND_X2_ANGLE = 4;
+
+    private final ModelLep110x2 modelX2 = new ModelLep110x2(false);
+    private final ModelLep110x2 modelX2Angle = new ModelLep110x2(true);
+    private int x2Kind = 0;
     private final boolean isAngle;
     private final boolean isSubstation;
     private final ModelSubstation110kV modelSubstation = new ModelSubstation110kV();
@@ -36,6 +43,12 @@ public class ItemRenderLepPylon implements IItemRenderer {
     public ItemRenderLepPylon(boolean isAngle, boolean isSubstation) {
         this.isAngle = isAngle;
         this.isSubstation = isSubstation;
+    }
+
+    /** Для 6-контактних опор: KIND_X2 (проміжна) або KIND_X2_ANGLE (анкерно-кутова). */
+    public ItemRenderLepPylon(int kind) {
+        this(false, false);
+        this.x2Kind = kind;
     }
 
     @Override
@@ -51,6 +64,15 @@ public class ItemRenderLepPylon implements IItemRenderer {
     @Override
     public void renderItem(ItemRenderType type, ItemStack item, Object... data) {
         GL11.glPushMatrix();
+
+        if (x2Kind != 0) {
+            applyX2Transform(type);
+            GL11.glDisable(GL11.GL_CULL_FACE);
+            (x2Kind == KIND_X2_ANGLE ? modelX2Angle : modelX2).renderAll();
+            GL11.glEnable(GL11.GL_CULL_FACE);
+            GL11.glPopMatrix();
+            return;
+        }
 
         if (isSubstation) {
             applySubstationTransform(type);
@@ -132,6 +154,34 @@ public class ItemRenderLepPylon implements IItemRenderer {
                 break;
             default:
                 GL11.glScalef(0.07F, 0.07F, 0.07F);
+                break;
+        }
+    }
+
+    /** 6-контактні опори мають висоту ~16.5 блока й ширину 5, тому масштаб менший, ніж у 3-контактних. */
+    private static void applyX2Transform(ItemRenderType type) {
+        switch (type) {
+            case INVENTORY:
+                GL11.glTranslatef(0.0F, -0.58F, 0.0F);
+                GL11.glScalef(0.068F, 0.068F, 0.068F);
+                GL11.glRotatef(25.0F, 0.0F, 1.0F, 0.0F);
+                break;
+            case EQUIPPED:
+                GL11.glTranslatef(0.5F, 0.15F, 0.5F);
+                GL11.glScalef(0.088F, 0.088F, 0.088F);
+                GL11.glRotatef(35.0F, 0.0F, 1.0F, 0.0F);
+                break;
+            case EQUIPPED_FIRST_PERSON:
+                GL11.glTranslatef(0.55F, 0.05F, 0.45F);
+                GL11.glScalef(0.08F, 0.08F, 0.08F);
+                GL11.glRotatef(-35.0F, 0.0F, 1.0F, 0.0F);
+                break;
+            case ENTITY:
+                GL11.glTranslatef(0.0F, -0.25F, 0.0F);
+                GL11.glScalef(0.072F, 0.072F, 0.072F);
+                break;
+            default:
+                GL11.glScalef(0.072F, 0.072F, 0.072F);
                 break;
         }
     }

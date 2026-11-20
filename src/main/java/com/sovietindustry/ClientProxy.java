@@ -26,6 +26,9 @@ import com.sovietindustry.tileentities.TileEntityIndustrialPipe;
 import com.sovietindustry.tileentities.TileEntityKnifeSwitch;
 import com.sovietindustry.tileentities.TileEntityLep110Angle;
 import com.sovietindustry.tileentities.TileEntityLep110v1;
+import com.sovietindustry.tileentities.TileEntityLep110x2;
+import com.sovietindustry.tileentities.TileEntityLep110x2Angle;
+import com.sovietindustry.render.RenderLep110x2;
 import com.sovietindustry.tileentities.TileEntityPO2Fence;
 
 import cpw.mods.fml.client.registry.ClientRegistry;
@@ -44,6 +47,9 @@ public class ClientProxy extends CommonProxy {
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityIndustrialPipe.class, new RenderIndustrialPipe());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep110v1.class, new RenderLep110v1());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep110Angle.class, new RenderLep110Angle());
+        RenderLep110x2 x2Renderer = new RenderLep110x2();
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep110x2.class, x2Renderer);
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep110x2Angle.class, x2Renderer);
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstation110kV.class, new RenderSubstation110kV());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstationPort110kV.class, new TileEntitySpecialRenderer() {
             @Override
@@ -65,6 +71,14 @@ public class ClientProxy extends CommonProxy {
         MinecraftForgeClient.registerItemRenderer(
             Item.getItemFromBlock(ModBlocks.lep110Angle),
             new ItemRenderLepPylon(true)
+        );
+        MinecraftForgeClient.registerItemRenderer(
+            Item.getItemFromBlock(ModBlocks.lep110x2),
+            new ItemRenderLepPylon(ItemRenderLepPylon.KIND_X2)
+        );
+        MinecraftForgeClient.registerItemRenderer(
+            Item.getItemFromBlock(ModBlocks.lep110x2Angle),
+            new ItemRenderLepPylon(ItemRenderLepPylon.KIND_X2_ANGLE)
         );
         MinecraftForgeClient.registerItemRenderer(
             Item.getItemFromBlock(ModBlocks.substation110kV),

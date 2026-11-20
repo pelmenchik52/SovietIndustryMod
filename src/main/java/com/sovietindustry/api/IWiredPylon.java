@@ -21,4 +21,10 @@ public interface IWiredPylon {
 
     /** Довжина натяжної гірлянди в блоках. */
     double getStringLength();
+
+    /**
+     * Які точки кріплення (індекси в getMountPos()) використовує дріт до сусіда (x, y, z).
+     * null означає усі точки. Потрібно 6-контактним опорам, які можуть розходитись на дві 3-контактні.
+     */
+    int[] getLinkMounts(int x, int y, int z);
 }

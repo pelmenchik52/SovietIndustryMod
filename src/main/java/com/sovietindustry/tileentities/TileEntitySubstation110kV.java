@@ -213,6 +213,11 @@ public class TileEntitySubstation110kV extends TileEntityPylonBase implements IW
     }
 
     @Override
+    public int[] getLinkMounts(int x, int y, int z) {
+        return null;
+    }
+
+    @Override
     public ConnectionType getConnectionType() {
         return ConnectionType.QUAD;
     }

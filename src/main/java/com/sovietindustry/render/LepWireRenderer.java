@@ -1,12 +1,15 @@
 package com.sovietindustry.render;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.lwjgl.opengl.GL11;
 
 import com.hbm.tileentity.network.TileEntityPylonBase;
 import com.sovietindustry.SovietIndustryMod;
+import com.sovietindustry.api.IGroundWired;
 import com.sovietindustry.api.IWiredPylon;
 
 import cpw.mods.fml.relauncher.Side;
@@ -38,24 +41,25 @@ public final class LepWireRenderer {
     /** Стріла провисання власного дроту як частка довжини прольоту. */
     private static final double SAG = 0.03D;
     private static final double WIRE_HALF = 0.02D;
+    private static final double GROUND_HALF = 0.014D;
 
     private LepWireRenderer() {
     }
 
     private static final class Link {
-        /** Кінець гірлянди (або точка кріплення, якщо гірлянд нема) на нашій опорі. */
+        /** Кінець гірлянди (або точка кріплення, якщо гірлянд нема) на нашій опорі, за номером запису. */
         final double[][] mine;
-        /** Те саме на другій опорі (лише для наших опор). */
+        /** Те саме на другій опорі (для наших опор) або середина прольоту (для опор NTM). */
         final double[][] other;
-        /** Куди дивиться наша гірлянда (одиничний вектор). */
-        final double[][] dir;
+        /** Індекс точки кріплення на нашій опорі для кожного запису. */
+        final int[] mi;
         boolean draw;
         boolean ntm;
 
         Link(int n) {
             mine = new double[n][];
             other = new double[n][];
-            dir = new double[n][];
+            mi = new int[n];
         }
     }
 
@@ -69,6 +73,12 @@ public final class LepWireRenderer {
         double l = Math.sqrt(x * x + y * y + z * z);
         if (l < 1.0E-6D) return new double[] { 0.0D, -1.0D, 0.0D };
         return new double[] { x / l, y / l, z / l };
+    }
+
+    private static int[] all(int n) {
+        int[] r = new int[n];
+        for (int i = 0; i < n; i++) r[i] = i;
+        return r;
     }
 
     public static void render(TileEntityPylonBase te, double x, double y, double z) {
@@ -94,7 +104,13 @@ public final class LepWireRenderer {
             IWiredPylon oth = ours ? (IWiredPylon) o : null;
             boolean otherAnchor = ours && oth.hasAnchorStrings();
 
-            int n = Math.min(mine.length, om.length);
+            // які точки кріплення використовує саме цей дріт (6-контактна АКО ділить їх на два кола)
+            int[] mi = me.getLinkMounts(p[0], p[1], p[2]);
+            if (mi == null) mi = all(mine.length);
+            int[] oi = ours ? oth.getLinkMounts(te.xCoord, te.yCoord, te.zCoord) : null;
+            if (oi == null) oi = all(om.length);
+
+            int n = Math.min(mi.length, oi.length);
             double ox = o.xCoord - te.xCoord;
             double oy = o.yCoord - te.yCoord;
             double oz = o.zCoord - te.zCoord;
@@ -103,8 +119,15 @@ public final class LepWireRenderer {
             l.ntm = !ours;
             l.draw = !ours || isLower(te, o);
             for (int i = 0; i < n; i++) {
-                double bx = ox + om[i].xCoord, by = oy + om[i].yCoord, bz = oz + om[i].zCoord;
-                double dx = bx - mine[i].xCoord, dy = by - mine[i].yCoord, dz = bz - mine[i].zCoord;
+                if (mi[i] >= mine.length || oi[i] >= om.length) {
+                    l.mine[i] = null;
+                    continue;
+                }
+                Vec3 m = mine[mi[i]];
+                Vec3 q = om[oi[i]];
+                l.mi[i] = mi[i];
+                double bx = ox + q.xCoord, by = oy + q.yCoord, bz = oz + q.zCoord;
+                double dx = bx - m.xCoord, dy = by - m.yCoord, dz = bz - m.zCoord;
                 double len = Math.sqrt(dx * dx + dy * dy + dz * dz);
 
                 double[] d;
@@ -117,28 +140,26 @@ public final class LepWireRenderer {
                     double hang = Math.min(half / 15.0D, 2.5D);
                     d = unit(dx * 0.5D, dy * 0.5D - hang * Math.PI * 0.5D, dz * 0.5D);
                 }
-                l.dir[i] = d;
                 l.mine[i] = anchor
-                    ? new double[] { mine[i].xCoord + d[0] * myStr, mine[i].yCoord + d[1] * myStr, mine[i].zCoord + d[2] * myStr }
-                    : new double[] { mine[i].xCoord, mine[i].yCoord, mine[i].zCoord };
+                    ? new double[] { m.xCoord + d[0] * myStr, m.yCoord + d[1] * myStr, m.zCoord + d[2] * myStr }
+                    : new double[] { m.xCoord, m.yCoord, m.zCoord };
 
                 if (ours) {
-                    double[] e = otherAnchor
-                        ? unit(-dx, -dy - 4.0D * SAG * len, -dz)
-                        : null;
+                    double[] e = otherAnchor ? unit(-dx, -dy - 4.0D * SAG * len, -dz) : null;
                     double s = otherAnchor ? oth.getStringLength() : 0.0D;
                     l.other[i] = otherAnchor
                         ? new double[] { bx + e[0] * s, by + e[1] * s, bz + e[2] * s }
                         : new double[] { bx, by, bz };
                 } else {
                     // середина між точками кріплення, там зустрічається половина NTM
-                    l.other[i] = new double[] {
-                        mine[i].xCoord + dx * 0.5D, mine[i].yCoord + dy * 0.5D, mine[i].zCoord + dz * 0.5D };
+                    l.other[i] = new double[] { m.xCoord + dx * 0.5D, m.yCoord + dy * 0.5D, m.zCoord + dz * 0.5D };
                 }
             }
             list.add(l);
         }
-        if (list.isEmpty()) return;
+
+        Vec3 ground = te instanceof IGroundWired ? ((IGroundWired) te).getGroundMount() : null;
+        if (list.isEmpty() && ground == null) return;
 
         Tessellator t = Tessellator.instance;
         GL11.glPushMatrix();
@@ -146,13 +167,14 @@ public final class LepWireRenderer {
         GL11.glDisable(GL11.GL_CULL_FACE);
 
         // --- гірлянди
-        if (anchor) {
+        if (anchor && !list.isEmpty()) {
             Minecraft.getMinecraft().renderEngine.bindTexture(INSULATOR);
             t.startDrawingQuads();
             for (Link l : list) {
                 for (int i = 0; i < l.mine.length; i++) {
-                    double[] base = { mine[i].xCoord, mine[i].yCoord, mine[i].zCoord };
-                    string(t, base, l.mine[i]);
+                    if (l.mine[i] == null) continue;
+                    Vec3 m = mine[l.mi[i]];
+                    string(t, new double[] { m.xCoord, m.yCoord, m.zCoord }, l.mine[i]);
                 }
             }
             t.draw();
@@ -166,19 +188,48 @@ public final class LepWireRenderer {
         for (Link l : list) {
             if (!l.draw) continue;
             for (int i = 0; i < l.mine.length; i++) {
+                if (l.mine[i] == null) continue;
                 if (l.ntm) {
                     ntmHalf(t, l.mine[i], l.other[i]);
                 } else {
                     double len = dist(l.mine[i], l.other[i]);
-                    wire(t, l.mine[i], l.other[i], len * SAG);
+                    wire(t, l.mine[i], l.other[i], len * SAG, WIRE_HALF);
                 }
             }
         }
-        // шлейфи між двома натяжними гірляндами однієї фази
-        if (anchor && list.size() >= 2) {
-            int n = Math.min(list.get(0).mine.length, list.get(1).mine.length);
-            for (int i = 0; i < n; i++) {
-                wire(t, list.get(0).mine[i], list.get(1).mine[i], 0.45D);
+        // шлейфи між гірляндами однієї точки кріплення (наскрізна анкерна опора, розгалуження 6 -> 3 + 3)
+        if (anchor) {
+            Map<Integer, List<double[]>> perMount = new HashMap<Integer, List<double[]>>();
+            for (Link l : list) {
+                for (int i = 0; i < l.mine.length; i++) {
+                    if (l.mine[i] == null) continue;
+                    List<double[]> ends = perMount.get(l.mi[i]);
+                    if (ends == null) {
+                        ends = new ArrayList<double[]>();
+                        perMount.put(l.mi[i], ends);
+                    }
+                    ends.add(l.mine[i]);
+                }
+            }
+            for (List<double[]> ends : perMount.values()) {
+                if (ends.size() >= 2) {
+                    double d = dist(ends.get(0), ends.get(1));
+                    wire(t, ends.get(0), ends.get(1), Math.min(0.45D, d * 0.3D), WIRE_HALF);
+                }
+            }
+        }
+
+        // --- грозозахисний трос: лише між двома опорами з тросом, на кінці лінії обривається
+        if (ground != null) {
+            t.setColorOpaque_F(0.24F, 0.25F, 0.27F);
+            for (int[] p : links) {
+                TileEntity o = world.getTileEntity(p[0], p[1], p[2]);
+                if (!(o instanceof IGroundWired) || !isLower(te, o)) continue;
+                Vec3 og = ((IGroundWired) o).getGroundMount();
+                double[] a = { ground.xCoord, ground.yCoord, ground.zCoord };
+                double[] b = { o.xCoord - te.xCoord + og.xCoord, o.yCoord - te.yCoord + og.yCoord,
+                               o.zCoord - te.zCoord + og.zCoord };
+                wire(t, a, b, dist(a, b) * SAG, GROUND_HALF);
             }
         }
         t.draw();
@@ -201,7 +252,7 @@ public final class LepWireRenderer {
             double cx = a[0] + hx * f;
             double cy = a[1] + hy * f - Math.sin(f * Math.PI * 0.5D) * hang;
             double cz = a[2] + hz * f;
-            ribbon(t, px, py, pz, cx, cy, cz);
+            ribbon(t, px, py, pz, cx, cy, cz, WIRE_HALF);
             px = cx; py = cy; pz = cz;
         }
     }
@@ -229,7 +280,7 @@ public final class LepWireRenderer {
     }
 
     /** Провисаючий провід (парабола) із двох схрещених стрічок. */
-    private static void wire(Tessellator t, double[] a, double[] b, double sag) {
+    private static void wire(Tessellator t, double[] a, double[] b, double sag, double half) {
         double len = dist(a, b);
         int n = (int) Math.max(6, Math.min(48, len / 2.0D));
         double px = a[0], py = a[1], pz = a[2];
@@ -238,12 +289,12 @@ public final class LepWireRenderer {
             double cx = a[0] + (b[0] - a[0]) * f;
             double cy = a[1] + (b[1] - a[1]) * f - sag * 4.0D * f * (1.0D - f);
             double cz = a[2] + (b[2] - a[2]) * f;
-            ribbon(t, px, py, pz, cx, cy, cz);
+            ribbon(t, px, py, pz, cx, cy, cz, half);
             px = cx; py = cy; pz = cz;
         }
     }
 
-    private static void ribbon(Tessellator t, double x1, double y1, double z1, double x2, double y2, double z2) {
+    private static void ribbon(Tessellator t, double x1, double y1, double z1, double x2, double y2, double z2, double hw) {
         double dx = x2 - x1, dy = y2 - y1, dz = z2 - z1;
         double len = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (len < 1.0E-6D) return;
@@ -253,12 +304,12 @@ public final class LepWireRenderer {
         double n1x = -dz, n1y = 0.0D, n1z = dx;
         double l1 = Math.sqrt(n1x * n1x + n1z * n1z);
         if (l1 < 1.0E-4D) { n1x = 1.0D; n1z = 0.0D; l1 = 1.0D; }
-        n1x = n1x / l1 * WIRE_HALF; n1z = n1z / l1 * WIRE_HALF;
+        n1x = n1x / l1 * hw; n1z = n1z / l1 * hw;
 
         // n2 = d x n1
         double n2x = dy * n1z - dz * n1y, n2y = dz * n1x - dx * n1z, n2z = dx * n1y - dy * n1x;
         double l2 = Math.sqrt(n2x * n2x + n2y * n2y + n2z * n2z);
-        if (l2 > 1.0E-6D) { n2x = n2x / l2 * WIRE_HALF; n2y = n2y / l2 * WIRE_HALF; n2z = n2z / l2 * WIRE_HALF; }
+        if (l2 > 1.0E-6D) { n2x = n2x / l2 * hw; n2y = n2y / l2 * hw; n2z = n2z / l2 * hw; }
 
         t.addVertex(x1 - n1x, y1 - n1y, z1 - n1z);
         t.addVertex(x1 + n1x, y1 + n1y, z1 + n1z);
