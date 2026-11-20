@@ -16,8 +16,9 @@ import net.minecraft.util.Vec3;
  * Для NTM опора лишається одним вузлом ConnectionType.TRIPLE (енергія йде мережею як зазвичай),
  * а розбиття на кола суто візуальне й конструктивне:
  *  - дріт до іншої 6-контактної опори займає всі 6 точок;
- *  - дріт до 3-контактної опори (лише анкерно-кутової) займає одну групу з 3 точок,
- *    так 6-контактна АКО розходиться на дві 3-контактні.
+ *  - дріт до 3-контактної анкерно-кутової опори або до порталу 110 кВ трансформаторної підстанції
+ *    займає одну групу з 3 точок, так 6-контактна АКО розходиться на дві 3-контактні лінії
+ *    або віддає одне коло на підстанцію (інше коло йде далі по лінії).
  * Кожна точка кріплення витримує не більше двох дротів (вхід + вихід).
  */
 public abstract class TileEntityLep110x2Base extends TileEntityLepPylon implements IGroundWired {
@@ -97,9 +98,19 @@ public abstract class TileEntityLep110x2Base extends TileEntityLepPylon implemen
         return m;
     }
 
-    /** Яке коло найменш завантажене, при рівності перше. */
-    private int bestGroup(int[] counts) {
-        return maxOf(counts, Lep110x2.GROUPS[1]) < maxOf(counts, Lep110x2.GROUPS[0]) ? 1 : 0;
+    /**
+     * Яке коло віддати 3-контактному сусідові (анкерній опорі чи порталу підстанції): те, що менше
+     * завантажене, а при рівності те, що з боку сусіда (+X бік моделі це коло 0, -X бік це коло 1),
+     * тому три дроти йдуть до підстанції з того боку опори, де вона стоїть.
+     */
+    private int pickGroup(int[] counts, int x, int y, int z) {
+        double th = Math.toRadians(-angle);
+        double c = Math.cos(th);
+        double s = Math.sin(th);
+        double localX = (x - xCoord) * c - (z - zCoord) * s;
+        int near = localX >= 0.0D ? 0 : 1;
+        int far = 1 - near;
+        return maxOf(counts, Lep110x2.GROUPS[near]) <= maxOf(counts, Lep110x2.GROUPS[far]) ? near : far;
     }
 
     /** Чи можна додати дріт до цього сусіда (перевірка до з'єднання). */
@@ -109,7 +120,7 @@ public abstract class TileEntityLep110x2Base extends TileEntityLepPylon implemen
         if (other instanceof TileEntityLep110x2Base) {
             cand = new int[] { 0, 1, 2, 3, 4, 5 };
         } else {
-            cand = Lep110x2.GROUPS[bestGroup(counts)];
+            cand = Lep110x2.GROUPS[pickGroup(counts, other.xCoord, other.yCoord, other.zCoord)];
         }
         return maxOf(counts, cand) < MAX_PER_MOUNT;
     }
@@ -122,7 +133,7 @@ public abstract class TileEntityLep110x2Base extends TileEntityLepPylon implemen
         TileEntity other = worldObj.getTileEntity(x, y, z);
         forgetGroup(x, y, z);
         if (other != null && !(other instanceof TileEntityLep110x2Base)) {
-            int g = bestGroup(mountUsage(x, y, z, true));
+            int g = pickGroup(mountUsage(x, y, z, true), x, y, z);
             groups.add(new int[] { x, y, z, g });
         }
         markDirty();

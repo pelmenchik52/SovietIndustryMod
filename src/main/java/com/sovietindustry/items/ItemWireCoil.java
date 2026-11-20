@@ -22,6 +22,7 @@ import com.sovietindustry.tileentities.TileEntityLep110x2;
 import com.sovietindustry.tileentities.TileEntityLep110x2Base;
 import com.sovietindustry.tileentities.TileEntityLepPylon;
 import com.sovietindustry.tileentities.TileEntitySubstation110kV;
+import com.sovietindustry.tileentities.TileEntitySubstationPort110kV;
 
 /**
  * Wire Coil.
@@ -112,6 +113,8 @@ public class ItemWireCoil extends Item {
      *  - 6-контактна <-> 6-контактна: усі 6 дротів;
      *  - 6-контактна АНКЕРНО-КУТОВА <-> 3-контактна анкерно-кутова: одне коло (3 дроти), тож АКО
      *    розходиться на дві 3-контактні;
+     *  - 6-контактна АНКЕРНО-КУТОВА <-> портал 110 кВ підстанції: одне коло (3 дроти) з одного боку опори,
+     *    друге коло лишається для лінії;
      *  - проміжна 6-контактна приймає лише інші 6-контактні опори.
      * Місткість рахується по точках кріплення (до двох дротів на точку), а не загальним лічильником.
      */
@@ -131,8 +134,8 @@ public class ItemWireCoil extends Item {
         if (six instanceof TileEntityLep110x2) {
             return "An intermediate 6-wire tower connects only to other 6-wire towers";
         }
-        if (!(other instanceof TileEntityLep110Angle)) {
-            return "A 6-wire angle tower can only split into 3-wire angle towers";
+        if (!(other instanceof TileEntityLep110Angle) && !(other instanceof TileEntitySubstationPort110kV)) {
+            return "A 6-wire angle tower can only connect to 3-wire angle towers or a substation 110 kV port";
         }
         if (!six.canAcceptLink(other)) {
             return "No free 3-wire circuit left on this 6-wire tower";

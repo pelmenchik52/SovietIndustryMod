@@ -37,6 +37,11 @@ public class ModelSubstation110kV {
     /** Висота бетонної плити (рівно 4 пікселі, під помаранчевий вивід 4x4). */
     private static final double SLAB_H = 0.25D;
 
+    /** Вводи ВН на кришці: X основ, висота й Z верхівок (майже вертикальні, не перетинають консерватор). */
+    private static final double[] HV_X = { -0.75D, -0.25D, 0.25D, 0.75D };
+    private static final double HV_TOP_Y = 3.75D;
+    private static final double HV_TOP_Z = -0.70D;
+
     private final int[] lists = new int[PARTS];
     private boolean built = false;
 
@@ -111,9 +116,9 @@ public class ModelSubstation110kV {
         // верхній фланець кришки
         LepGeo.box(t, 0.0D, by + 2.10D, 0.0D, 1.12D, 0.08D, 0.85D);
         // розширювальний бак (консерватор) на стійках
-        LepGeo.box(t, 0.0D, 3.05D, -0.45D, 0.85D, 0.24D, 0.24D);
-        LepGeo.box(t, -0.55D, 2.72D, -0.45D, 0.07D, 0.34D, 0.07D);
-        LepGeo.box(t,  0.55D, 2.72D, -0.45D, 0.07D, 0.34D, 0.07D);
+        LepGeo.box(t, 0.0D, 3.05D, 0.0D, 0.85D, 0.24D, 0.24D);
+        LepGeo.box(t, -0.55D, 2.72D, 0.0D, 0.07D, 0.34D, 0.07D);
+        LepGeo.box(t,  0.55D, 2.72D, 0.0D, 0.07D, 0.34D, 0.07D);
         // радіаторні батареї з обох боків бака
         for (int i = -3; i <= 3; i++) {
             double rx = i * 0.26D;
@@ -137,7 +142,8 @@ public class ModelSubstation110kV {
             LepGeo.beam(t, -2.15D, y, -1.95D, 2.15D, y, -1.95D, 0.11D);
             LepGeo.beam(t, -2.15D, y - 0.38D, -1.95D, 2.15D, y - 0.38D, -1.95D, 0.07D);
             for (int j = -4; j < 4; j++) {
-                LepGeo.beam(t, j * 0.50D, y - 0.38D, -1.95D, (j + 1) * 0.50D, y, -1.95D, 0.045D);
+                boolean up = (j & 1) == 0;
+                LepGeo.beam(t, j * 0.50D, up ? y - 0.38D : y, -1.95D, (j + 1) * 0.50D, up ? y : y - 0.38D, -1.95D, 0.045D);
             }
         }
         // розкоси між ярусами
@@ -150,7 +156,8 @@ public class ModelSubstation110kV {
         LepGeo.beam(t, -1.95D, 4.65D, 2.15D, 1.95D, 4.65D, 2.15D, 0.10D);
         LepGeo.beam(t, -1.95D, 4.30D, 2.15D, 1.95D, 4.30D, 2.15D, 0.07D);
         for (int j = -4; j < 4; j++) {
-            LepGeo.beam(t, j * 0.49D, 4.30D, 2.15D, (j + 1) * 0.49D, 4.65D, 2.15D, 0.045D);
+            boolean up = (j & 1) == 0;
+            LepGeo.beam(t, j * 0.49D, up ? 4.30D : 4.65D, 2.15D, (j + 1) * 0.49D, up ? 4.65D : 4.30D, 2.15D, 0.045D);
         }
 
         // стійки роз'єднувачів і ошиновка від трансформатора до порталу 110 кВ
@@ -163,9 +170,34 @@ public class ModelSubstation110kV {
             LepGeo.beam(t, px, 2.95D, 1.55D, px, 4.45D, 2.15D, 0.05D);
         }
 
-        // кабельні вводи в бак
-        LepGeo.beam(t, -2.22D, 1.65D, 0.0D, -1.05D, 2.10D, 0.0D, 0.06D);
-        LepGeo.beam(t,  2.22D, 1.65D, 0.0D,  1.05D, 2.10D, 0.0D, 0.06D);
+        // кабельні вводи в бак: стояк від шафи, потім горизонтально в стінку бака
+        for (int s = -1; s <= 1; s += 2) {
+            double cx = s * 2.22D;
+            LepGeo.beam(t, cx, SLAB_H + 0.70D, 0.0D, cx, 1.65D, 0.0D, 0.06D);
+            LepGeo.beam(t, cx, 1.65D, 0.0D, s * 1.05D, 1.65D, 0.0D, 0.06D);
+        }
+
+        // декоративні кабелі від порталу ВН (4 кріплення NTM) до вводів ВН трансформатора
+        double[][] hvMounts = { { -1.70D, 6.40D }, { -1.70D, 5.40D }, { 1.70D, 5.40D }, { 1.70D, 6.40D } };
+        for (int i = 0; i < 4; i++) {
+            cable(t, hvMounts[i][0], hvMounts[i][1], -1.95D,
+                HV_X[i] * 1.15D, HV_TOP_Y, HV_TOP_Z, 0.35D);
+        }
+    }
+
+    /** Провисаючий декоративний кабель (парабола з 8 відрізків). */
+    private static void cable(Tessellator t, double x1, double y1, double z1,
+                              double x2, double y2, double z2, double sag) {
+        int n = 8;
+        double px = x1, py = y1, pz = z1;
+        for (int i = 1; i <= n; i++) {
+            double f = (double) i / n;
+            double cx = x1 + (x2 - x1) * f;
+            double cy = y1 + (y2 - y1) * f - sag * 4.0D * f * (1.0D - f);
+            double cz = z1 + (z2 - z1) * f;
+            LepGeo.beam(t, px, py, pz, cx, cy, cz, 0.035D);
+            px = cx; py = cy; pz = cz;
+        }
     }
 
     // ------------------------------------------------------------ фарфор
@@ -177,9 +209,8 @@ public class ModelSubstation110kV {
             double ix = i * 0.65D;
             LepGeo.beam(t, ix, lid, 0.45D, ix * 1.3D, 3.55D, 0.85D, 0.16D);
         }
-        double[] hvX = { -0.75D, -0.25D, 0.25D, 0.75D };
-        for (double hx : hvX) {
-            LepGeo.beam(t, hx, lid, -0.35D, hx * 1.4D, 3.75D, -0.85D, 0.17D);
+        for (double hx : HV_X) {
+            LepGeo.beam(t, hx, lid, -0.60D, hx * 1.15D, HV_TOP_Y, HV_TOP_Z, 0.17D);
         }
         // опорні ізолятори роз'єднувачів
         for (int i = -1; i <= 1; i++) {
