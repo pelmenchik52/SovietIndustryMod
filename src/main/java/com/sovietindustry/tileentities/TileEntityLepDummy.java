@@ -5,9 +5,12 @@ import net.minecraft.network.NetworkManager;
 import net.minecraft.network.Packet;
 import net.minecraft.network.play.server.S35PacketUpdateTileEntity;
 import net.minecraft.tileentity.TileEntity;
+import api.hbm.energymk2.IEnergyConnectorMK2;
+import net.minecraft.tileentity.TileEntity;
+import net.minecraftforge.common.util.ForgeDirection;
 
 /** Зберігає координати майстер-блока, до якого належить цей сегмент опори. */
-public class TileEntityLepDummy extends TileEntity {
+public class TileEntityLepDummy extends TileEntity implements IEnergyConnectorMK2 {
 
     public int mx, my, mz;
     public boolean valid = false;
@@ -16,7 +19,27 @@ public class TileEntityLepDummy extends TileEntity {
     public boolean canUpdate() {
         return false;
     }
-
+    @Override
+    public boolean canConnect(ForgeDirection dir) {
+        if (!valid || worldObj == null) return false;
+        TileEntity master = worldObj.getTileEntity(mx, my, mz);
+        if (master instanceof TileEntitySubstation110kV) {
+            TileEntitySubstation110kV sub = (TileEntitySubstation110kV) master;
+            int[][] ports = sub.getCablePortOffsets();
+            int dx = xCoord - mx;
+            int dz = zCoord - mz;
+            for (int[] p : ports) {
+                if (p[0] == dx && p[2] == dz) {
+                    // Дозволяємо підключення кабелю лише із зовнішнього боку цього порту
+                    if (dx > 0 && dir == ForgeDirection.EAST) return true;
+                    if (dx < 0 && dir == ForgeDirection.WEST) return true;
+                    if (dz > 0 && dir == ForgeDirection.SOUTH) return true;
+                    if (dz < 0 && dir == ForgeDirection.NORTH) return true;
+                }
+            }
+        }
+        return false;
+    }
     public void setMaster(int x, int y, int z) {
         mx = x;
         my = y;

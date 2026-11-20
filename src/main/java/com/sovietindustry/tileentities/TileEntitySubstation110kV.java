@@ -41,10 +41,10 @@ public class TileEntitySubstation110kV extends TileEntityPylonBase implements IW
      * [+бік верх, +бік низ, -бік верх, -бік низ], щоб дроти між нашим порталом і опорою NTM не схрещувалися.
      */
     private static final double[][] NTM_QUAD_MOUNTS = {
-        {  1.70D, 6.40D, -1.95D },
-        {  1.70D, 5.40D, -1.95D },
-        { -1.70D, 6.40D, -1.95D },
-        { -1.70D, 5.40D, -1.95D }
+        { -1.70D, 6.40D, -1.95D }, 
+        {  1.70D, 6.40D, -1.95D }, 
+        { -1.70D, 5.40D, -1.95D }, 
+        {  1.70D, 5.40D, -1.95D }  
     };
 
     public void setAngle(float angle) {
