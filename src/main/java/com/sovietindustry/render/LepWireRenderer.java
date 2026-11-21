@@ -48,7 +48,13 @@ public final class LepWireRenderer {
     /** Роздвоєні натяжні гірлянди сходяться до точки кріплення: біля опори розстань це частка розстані на кінці. */
     private static final double FORK_ROOT = 0.75D;
     /** Радіус кружка-розпірки на кінці гірлянди (як на простій опорі). */
-    private static final double RING_R = 0.20D;
+    private static final double RING_R = 0.22D;
+    private static final ResourceLocation ATLAS =
+        new ResourceLocation(SovietIndustryMod.MODID, "textures/models/lep110_single.png");
+    private static final double[] A_STEEL = { 64.0D, 4.0D, 80.0D, 12.0D };
+    private static final double[] A_STEEL_DARK = { 0.0D, 84.0D, 16.0D, 92.0D };
+    private static final double[] A_CAP = { 96.0D, 48.0D, 112.0D, 56.0D };
+    private static final double ATLAS_SIZE = 128.0D;
 
     private LepWireRenderer() {
     }
@@ -221,6 +227,35 @@ public final class LepWireRenderer {
                 }
             }
             t.draw();
+
+            // один сталевий овальний кружок на обидві гірлянди пари (як на фото) із хрестом і затискачами
+            if (bun != null) {
+                Minecraft.getMinecraft().renderEngine.bindTexture(ATLAS);
+                t.startDrawingQuads();
+                for (Link l : list) {
+                    for (int i = 0; i < l.mine.length; i++) {
+                        if (l.mine[i] == null || l.pm == null) continue;
+                        Vec3 m = mine[l.mi[i]];
+                        double[] u = unit(l.mine[i][0] - m.xCoord, l.mine[i][1] - m.yCoord, l.mine[i][2] - m.zCoord);
+                        double[][] ends = new double[bun.getStringsPerMount()][];
+                        for (int si = 0; si < ends.length; si++) {
+                            ends[si] = shift(l.mine[i], l.pm, stringOffset(bun, si));
+                        }
+                        endFitting(t, ends, u);
+                    }
+                }
+                if (jumperUsed) {
+                    Vec3[][] jsAll = jump.getJumperStrings();
+                    double[][] ends = new double[jsAll.length][];
+                    for (int k = 0; k < jsAll.length; k++) {
+                        ends[k] = new double[] { jsAll[k][1].xCoord, jsAll[k][1].yCoord, jsAll[k][1].zCoord };
+                    }
+                    double[] u = unit(jsAll[0][1].xCoord - jsAll[0][0].xCoord, jsAll[0][1].yCoord - jsAll[0][0].yCoord,
+                                      jsAll[0][1].zCoord - jsAll[0][0].zCoord);
+                    endFitting(t, ends, u);
+                }
+                t.draw();
+            }
         }
 
         // --- проводи
@@ -228,25 +263,6 @@ public final class LepWireRenderer {
         GL11.glDisable(GL11.GL_LIGHTING);
         t.startDrawingQuads();
         t.setColorOpaque_F(0.09F, 0.09F, 0.1F);
-        // кружки на кінцях гірлянд: нижні натяжні й верхні
-        if (anchor && bun != null) {
-            for (Link l : list) {
-                for (int i = 0; i < l.mine.length; i++) {
-                    if (l.mine[i] == null || l.pm == null) continue;
-                    Vec3 m = mine[l.mi[i]];
-                    double[] u = unit(l.mine[i][0] - m.xCoord, l.mine[i][1] - m.yCoord, l.mine[i][2] - m.zCoord);
-                    for (int si = 0; si < bun.getStringsPerMount(); si++) {
-                        ring(t, shift(l.mine[i], l.pm, stringOffset(bun, si)), u, RING_R);
-                    }
-                }
-            }
-            if (jumperUsed) {
-                for (Vec3[] js : jump.getJumperStrings()) {
-                    double[] u = unit(js[1].xCoord - js[0].xCoord, js[1].yCoord - js[0].yCoord, js[1].zCoord - js[0].zCoord);
-                    ring(t, new double[] { js[1].xCoord, js[1].yCoord, js[1].zCoord }, u, RING_R);
-                }
-            }
-        }
         for (Link l : list) {
             if (!l.draw) continue;
             for (int i = 0; i < l.mine.length; i++) {
@@ -503,29 +519,72 @@ public final class LepWireRenderer {
         LepGeo.beam(t, b[0] - ux * 0.10D, b[1] - uy * 0.10D, b[2] - uz * 0.10D, b[0], b[1], b[2], 0.14D);
     }
 
-    /** Кружок-розпірка навколо кінця гірлянди: кільце в площині, перпендикулярній осі гірлянди u. */
-    private static void ring(Tessellator t, double[] c, double[] u, double r) {
-        double rx = 0.0D, ry = 1.0D, rz = 0.0D;
-        if (Math.abs(u[1]) > 0.9D) {
-            rx = 1.0D;
-            ry = 0.0D;
+    /**
+     * Кінцева арматура пари гірлянд, як на фото: ОДИН сталевий овальний кружок навколо кінців усіх гірлянд пари
+     * (витягнутий уздовж лінії, що з'єднує кінці; площина перпендикулярна осі гірлянд u), зі спицями-хрестом,
+     * і темний затискач за кінцем кожної гірлянди. Для однієї гірлянди кружок круглий.
+     */
+    private static void endFitting(Tessellator t, double[][] ends, double[] u) {
+        int n = ends.length;
+        double mx = 0.0D, my = 0.0D, mz = 0.0D;
+        for (double[] e : ends) {
+            mx += e[0] / n; my += e[1] / n; mz += e[2] / n;
         }
-        double e1x = u[1] * rz - u[2] * ry, e1y = u[2] * rx - u[0] * rz, e1z = u[0] * ry - u[1] * rx;
-        double l1 = Math.sqrt(e1x * e1x + e1y * e1y + e1z * e1z);
-        if (l1 < 1.0E-6D) return;
-        e1x /= l1; e1y /= l1; e1z /= l1;
-        double e2x = u[1] * e1z - u[2] * e1y, e2y = u[2] * e1x - u[0] * e1z, e2z = u[0] * e1y - u[1] * e1x;
 
-        int segs = 10;
-        double px = c[0] + e1x * r, py = c[1] + e1y * r, pz = c[2] + e1z * r;
+        // довга вісь овала: від першого кінця до останнього, або будь-яка перпендикулярна u для однієї гірлянди
+        double ax, ay, az, rA;
+        if (n > 1) {
+            ax = ends[n - 1][0] - ends[0][0];
+            ay = ends[n - 1][1] - ends[0][1];
+            az = ends[n - 1][2] - ends[0][2];
+            double l = Math.sqrt(ax * ax + ay * ay + az * az);
+            if (l < 1.0E-6D) return;
+            rA = l * 0.5D + 0.20D;
+            ax /= l; ay /= l; az /= l;
+        } else {
+            double rx = 0.0D, ry = 1.0D, rz = 0.0D;
+            if (Math.abs(u[1]) > 0.9D) {
+                rx = 1.0D;
+                ry = 0.0D;
+            }
+            ax = u[1] * rz - u[2] * ry;
+            ay = u[2] * rx - u[0] * rz;
+            az = u[0] * ry - u[1] * rx;
+            double l = Math.sqrt(ax * ax + ay * ay + az * az);
+            if (l < 1.0E-6D) return;
+            ax /= l; ay /= l; az /= l;
+            rA = RING_R;
+        }
+        // коротка вісь: u x a
+        double bx = u[1] * az - u[2] * ay, by = u[2] * ax - u[0] * az, bz = u[0] * ay - u[1] * ax;
+        double lb = Math.sqrt(bx * bx + by * by + bz * bz);
+        if (lb < 1.0E-6D) return;
+        bx /= lb; by /= lb; bz /= lb;
+        double rB = RING_R;
+
+        // центр кружка трохи назад від кінців, у бік гірлянд
+        double cx = mx - u[0] * 0.08D, cy = my - u[1] * 0.08D, cz = mz - u[2] * 0.08D;
+
+        int segs = 12;
+        double px = cx + ax * rA, py = cy + ay * rA, pz = cz + az * rA;
         for (int i = 1; i <= segs; i++) {
             double a = 2.0D * Math.PI * i / segs;
-            double ca = Math.cos(a), sa = Math.sin(a);
-            double qx = c[0] + (e1x * ca + e2x * sa) * r;
-            double qy = c[1] + (e1y * ca + e2y * sa) * r;
-            double qz = c[2] + (e1z * ca + e2z * sa) * r;
-            LepGeo.beam(t, px, py, pz, qx, qy, qz, 0.035D);
+            double ca = Math.cos(a) * rA, sa = Math.sin(a) * rB;
+            double qx = cx + ax * ca + bx * sa;
+            double qy = cy + ay * ca + by * sa;
+            double qz = cz + az * ca + bz * sa;
+            LepGeo.beamUV(t, px, py, pz, qx, qy, qz, 0.03D, A_STEEL, ATLAS_SIZE);
             px = qx; py = qy; pz = qz;
+        }
+        // спиці хрестом
+        LepGeo.beamUV(t, cx - ax * rA, cy - ay * rA, cz - az * rA, cx + ax * rA, cy + ay * rA, cz + az * rA,
+            0.025D, A_STEEL_DARK, ATLAS_SIZE);
+        LepGeo.beamUV(t, cx - bx * rB, cy - by * rB, cz - bz * rB, cx + bx * rB, cy + by * rB, cz + bz * rB,
+            0.025D, A_STEEL_DARK, ATLAS_SIZE);
+        // затискач за кінцем кожної гірлянди
+        for (double[] e : ends) {
+            LepGeo.beamUV(t, e[0] - u[0] * 0.02D, e[1] - u[1] * 0.02D, e[2] - u[2] * 0.02D,
+                e[0] + u[0] * 0.16D, e[1] + u[1] * 0.16D, e[2] + u[2] * 0.16D, 0.12D, A_CAP, ATLAS_SIZE);
         }
     }
 
