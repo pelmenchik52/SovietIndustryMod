@@ -9,7 +9,9 @@ import org.lwjgl.opengl.GL11;
 
 import com.hbm.tileentity.network.TileEntityPylonBase;
 import com.sovietindustry.SovietIndustryMod;
+import com.sovietindustry.api.IBundledPylon;
 import com.sovietindustry.api.IGroundWired;
+import com.sovietindustry.api.IMultiGroundWired;
 import com.sovietindustry.api.IWiredPylon;
 
 import cpw.mods.fml.relauncher.Side;
@@ -55,6 +57,9 @@ public final class LepWireRenderer {
         final int[] mi;
         boolean draw;
         boolean ntm;
+        /** Вісь пучка на нашій опорі й на сусідній (null, якщо опора без пучків). */
+        double[] pm;
+        double[] po;
 
         Link(int n) {
             mine = new double[n][];
@@ -116,6 +121,12 @@ public final class LepWireRenderer {
             double oz = o.zCoord - te.zCoord;
 
             Link l = new Link(n);
+            if (te instanceof IBundledPylon) {
+                l.pm = ((IBundledPylon) te).getBundleAxis(ox, oz);
+            }
+            if (o instanceof IBundledPylon) {
+                l.po = ((IBundledPylon) o).getBundleAxis(-ox, -oz);
+            }
             l.ntm = !ours;
             l.draw = !ours || isLower(te, o);
             for (int i = 0; i < n; i++) {
@@ -158,8 +169,9 @@ public final class LepWireRenderer {
             list.add(l);
         }
 
-        Vec3 ground = te instanceof IGroundWired ? ((IGroundWired) te).getGroundMount() : null;
+        Vec3[] ground = groundMounts(te);
         if (list.isEmpty() && ground == null) return;
+        IBundledPylon bun = te instanceof IBundledPylon ? (IBundledPylon) te : null;
 
         Tessellator t = Tessellator.instance;
         GL11.glPushMatrix();
@@ -174,7 +186,15 @@ public final class LepWireRenderer {
                 for (int i = 0; i < l.mine.length; i++) {
                     if (l.mine[i] == null) continue;
                     Vec3 m = mine[l.mi[i]];
-                    string(t, new double[] { m.xCoord, m.yCoord, m.zCoord }, l.mine[i]);
+                    double[] base = { m.xCoord, m.yCoord, m.zCoord };
+                    if (bun != null && l.pm != null) {
+                        for (int si = 0; si < bun.getStringsPerMount(); si++) {
+                            double o = stringOffset(bun, si);
+                            string(t, shift(base, l.pm, o), shift(l.mine[i], l.pm, o));
+                        }
+                    } else {
+                        string(t, base, l.mine[i]);
+                    }
                 }
             }
             t.draw();
@@ -189,7 +209,22 @@ public final class LepWireRenderer {
             if (!l.draw) continue;
             for (int i = 0; i < l.mine.length; i++) {
                 if (l.mine[i] == null) continue;
-                if (l.ntm) {
+                if (bun != null && l.pm != null) {
+                    // пучок: подвійна гірлянда x кілька дротів на гірлянді
+                    double sign = (!l.ntm && l.po != null && dot(l.pm, l.po) < 0.0D) ? -1.0D : 1.0D;
+                    for (int si = 0; si < bun.getStringsPerMount(); si++) {
+                        for (int wi = 0; wi < bun.getWiresPerString(); wi++) {
+                            double o = wireOffset(bun, si, wi);
+                            double[] a = shift(l.mine[i], l.pm, o);
+                            if (l.ntm) {
+                                ntmHalf(t, a, l.other[i]);
+                            } else {
+                                double[] b = l.po != null ? shift(l.other[i], l.po, o * sign) : l.other[i];
+                                wire(t, a, b, dist(a, b) * SAG, WIRE_HALF);
+                            }
+                        }
+                    }
+                } else if (l.ntm) {
                     ntmHalf(t, l.mine[i], l.other[i]);
                 } else {
                     double len = dist(l.mine[i], l.other[i]);
@@ -200,19 +235,37 @@ public final class LepWireRenderer {
         // шлейфи між гірляндами однієї точки кріплення (наскрізна анкерна опора, розгалуження 6 -> 3 + 3)
         if (anchor) {
             Map<Integer, List<double[]>> perMount = new HashMap<Integer, List<double[]>>();
+            Map<Integer, List<double[]>> perAxis = new HashMap<Integer, List<double[]>>();
             for (Link l : list) {
                 for (int i = 0; i < l.mine.length; i++) {
                     if (l.mine[i] == null) continue;
                     List<double[]> ends = perMount.get(l.mi[i]);
+                    List<double[]> axes = perAxis.get(l.mi[i]);
                     if (ends == null) {
                         ends = new ArrayList<double[]>();
+                        axes = new ArrayList<double[]>();
                         perMount.put(l.mi[i], ends);
+                        perAxis.put(l.mi[i], axes);
                     }
                     ends.add(l.mine[i]);
+                    axes.add(l.pm);
                 }
             }
-            for (List<double[]> ends : perMount.values()) {
-                if (ends.size() >= 2) {
+            for (Map.Entry<Integer, List<double[]>> e : perMount.entrySet()) {
+                List<double[]> ends = e.getValue();
+                List<double[]> axes = perAxis.get(e.getKey());
+                if (ends.size() < 2) continue;
+                if (bun != null && axes.get(0) != null && axes.get(1) != null) {
+                    double sign = dot(axes.get(0), axes.get(1)) < 0.0D ? -1.0D : 1.0D;
+                    for (int si = 0; si < bun.getStringsPerMount(); si++) {
+                        for (int wi = 0; wi < bun.getWiresPerString(); wi++) {
+                            double o = wireOffset(bun, si, wi);
+                            double[] a = shift(ends.get(0), axes.get(0), o);
+                            double[] b = shift(ends.get(1), axes.get(1), o * sign);
+                            wire(t, a, b, Math.min(0.45D, dist(a, b) * 0.3D), WIRE_HALF);
+                        }
+                    }
+                } else {
                     double d = dist(ends.get(0), ends.get(1));
                     wire(t, ends.get(0), ends.get(1), Math.min(0.45D, d * 0.3D), WIRE_HALF);
                 }
@@ -225,11 +278,29 @@ public final class LepWireRenderer {
             for (int[] p : links) {
                 TileEntity o = world.getTileEntity(p[0], p[1], p[2]);
                 if (!(o instanceof IGroundWired) || !isLower(te, o)) continue;
-                Vec3 og = ((IGroundWired) o).getGroundMount();
-                double[] a = { ground.xCoord, ground.yCoord, ground.zCoord };
-                double[] b = { o.xCoord - te.xCoord + og.xCoord, o.yCoord - te.yCoord + og.yCoord,
-                               o.zCoord - te.zCoord + og.zCoord };
-                wire(t, a, b, dist(a, b) * SAG, GROUND_HALF);
+                Vec3[] og = groundMounts(o);
+                if (og == null) continue;
+                double sx = o.xCoord - te.xCoord, sz = o.zCoord - te.zCoord;
+                double sl = Math.sqrt(sx * sx + sz * sz);
+                double ux = sl < 1.0E-6D ? 1.0D : -sz / sl;
+                double uz = sl < 1.0E-6D ? 0.0D : sx / sl;
+                double[] ka = new double[ground.length];
+                double[] kb = new double[og.length];
+                for (int i = 0; i < ground.length; i++) ka[i] = ground[i].xCoord * ux + ground[i].zCoord * uz;
+                for (int i = 0; i < og.length; i++) {
+                    kb[i] = (sx + og[i].xCoord) * ux + (sz + og[i].zCoord) * uz;
+                }
+                int[] ia = order(ka);
+                int[] ib = order(kb);
+                int cnt = Math.min(ia.length, ib.length);
+                for (int k = 0; k < cnt; k++) {
+                    Vec3 g1 = ground[ia[k]];
+                    Vec3 g2 = og[ib[k]];
+                    double[] a = { g1.xCoord, g1.yCoord, g1.zCoord };
+                    double[] b = { o.xCoord - te.xCoord + g2.xCoord, o.yCoord - te.yCoord + g2.yCoord,
+                                   o.zCoord - te.zCoord + g2.zCoord };
+                    wire(t, a, b, dist(a, b) * SAG, GROUND_HALF);
+                }
             }
         }
         t.draw();
@@ -239,6 +310,54 @@ public final class LepWireRenderer {
         GL11.glEnable(GL11.GL_CULL_FACE);
         GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
         GL11.glPopMatrix();
+    }
+
+
+    // ------------------------------------------------------------ пучки й троси
+
+    private static double stringOffset(IBundledPylon b, int si) {
+        return (si - (b.getStringsPerMount() - 1) * 0.5D) * b.getStringSpacing();
+    }
+
+    private static double wireOffset(IBundledPylon b, int si, int wi) {
+        return stringOffset(b, si) + (wi - (b.getWiresPerString() - 1) * 0.5D) * b.getWireSpacing();
+    }
+
+    private static double[] shift(double[] p, double[] axis, double o) {
+        return new double[] { p[0] + axis[0] * o, p[1] + axis[1] * o, p[2] + axis[2] * o };
+    }
+
+    private static double dot(double[] a, double[] b) {
+        return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    }
+
+    /** Усі точки тросів опори (одна або кілька); null, якщо троса нема. */
+    private static Vec3[] groundMounts(TileEntity te) {
+        if (te instanceof IMultiGroundWired) {
+            Vec3[] m = ((IMultiGroundWired) te).getGroundMounts();
+            return m == null || m.length == 0 ? null : m;
+        }
+        if (te instanceof IGroundWired) {
+            Vec3 g = ((IGroundWired) te).getGroundMount();
+            return g == null ? null : new Vec3[] { g };
+        }
+        return null;
+    }
+
+    /** Індекси масиву за зростанням значень (для зіставлення тросів двох опор). */
+    private static int[] order(double[] k) {
+        int[] r = new int[k.length];
+        for (int i = 0; i < r.length; i++) r[i] = i;
+        for (int i = 1; i < r.length; i++) {
+            int v = r[i];
+            int j = i - 1;
+            while (j >= 0 && k[r[j]] > k[v]) {
+                r[j + 1] = r[j];
+                j--;
+            }
+            r[j + 1] = v;
+        }
+        return r;
     }
 
     /** Половина дроту до середини прольоту тією самою sin-кривою, що й у RenderPylonBase з NTM. */

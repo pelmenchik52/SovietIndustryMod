@@ -6,6 +6,7 @@ import net.minecraft.world.World;
 
 import com.sovietindustry.tileentities.TileEntityLep110Angle;
 import com.sovietindustry.tileentities.Lep110x2;
+import com.sovietindustry.tileentities.Lep330;
 import com.sovietindustry.tileentities.TileEntityLepDummy;
 
 /**
@@ -73,6 +74,17 @@ public final class LepMultiblock {
     public static float[] bounds(Block master, int dx, int dy, int dz) {
         if (master == ModBlocks.substation110kV) {
             return substationBounds(dx, dy, dz);
+        }
+        if (master == ModBlocks.lep330) {
+            if (dx == 0 && dz == 0) return new float[] { 0.2F, 0.0F, 0.2F, 0.8F, 0.15F, 0.8F };
+            double e = p330Half(dy);
+            return new float[] { (float) (0.5D - e), 0.0F, (float) (0.5D - e), (float) (0.5D + e), 1.0F, (float) (0.5D + e) };
+        }
+        if (master == ModBlocks.lep330Angle) {
+            double h3 = a330Half(dy);
+            double[] bx = axisRangeN(dx, h3);
+            double[] bz = axisRangeN(dz, h3);
+            return new float[] { (float) bx[0], 0.0F, (float) bz[0], (float) bx[1], 1.0F, (float) bz[1] };
         }
         if (master == ModBlocks.lep110x2) {
             double[] a = axisRange(0, x2Half(dy));
@@ -248,6 +260,130 @@ public final class LepMultiblock {
                     if (x2AngleHasBlock(dx, dy, dz) && w.getBlock(x + dx, y + dy, z + dz) == ModBlocks.lep110Dummy) {
                         w.setBlockToAir(x + dx, y + dy, z + dz);
                     }
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------------ опори 330 кВ
+
+    /** Півширина колізії стійки П-опори. */
+    public static double p330Half(int dy) {
+        return Math.min(0.5D, Lep330.pLegHalf(dy) + 0.07D);
+    }
+
+    /** Півширина колізії анкерно-кутової 330 кВ на рівні dy (береться низ блока, де опора найширша). */
+    public static double a330Half(int dy) {
+        return Lep330.angleLegHalf(dy) + 0.12D;
+    }
+
+    public static boolean a330HasBlock(int dx, int dy, int dz) {
+        if (dy < 0 || dy >= Lep330.HEIGHT) return false;
+        if (dx == 0 && dz == 0) return true;
+        if (Math.abs(dx) > 2 || Math.abs(dz) > 2) return false;
+        return a330Half(dy) > Math.max(Math.abs(dx), Math.abs(dz)) - 0.5D + 0.1D;
+    }
+
+    /** Діапазон коробки в клітинці зі зміщенням d для симетричної фігури півширини h (будь-яке |d|). */
+    private static double[] axisRangeN(int d, double h) {
+        if (d == 0) {
+            double e = Math.min(h, 0.5D);
+            return new double[] { 0.5D - e, 0.5D + e };
+        }
+        if (d > 0) {
+            double hi = Math.min(1.0D, h - d + 0.5D);
+            return new double[] { 0.0D, Math.max(0.05D, hi) };
+        }
+        double lo = Math.max(0.0D, 0.5D - h - d);
+        return new double[] { Math.min(0.95D, lo), 1.0D };
+    }
+
+    /** Зміщення (dx, dz) стійки П-опори; side = -1 або +1. Поворот той самий, що й у TileEntityLepPylon. */
+    public static int[] p330Leg(float angle, int side) {
+        double th = Math.toRadians(-angle);
+        double lx = side * Lep330.LEG_OFFSET;
+        return new int[] { (int) Math.round(lx * Math.cos(th)), (int) Math.round(-lx * Math.sin(th)) };
+    }
+
+    /** Чи можна поставити П-опору хоч в одній з двох орієнтацій (до відомого повороту). */
+    public static boolean canPlaceP330Any(World w, int x, int y, int z) {
+        return canPlaceP330(w, x, y, z, 0.0F) || canPlaceP330(w, x, y, z, 90.0F);
+    }
+
+    /** Центр і обидві стійки стоять на твердому, колони стійок вільні (центральна клітинка належить майстру). */
+    public static boolean canPlaceP330(World w, int x, int y, int z, float angle) {
+        if (!World.doesBlockHaveSolidTopSurface(w, x, y - 1, z)) return false;
+        for (int side = -1; side <= 1; side += 2) {
+            int[] l = p330Leg(angle, side);
+            if (!World.doesBlockHaveSolidTopSurface(w, x + l[0], y - 1, z + l[1])) return false;
+            for (int dy = 0; dy < Lep330.HEIGHT; dy++) {
+                if (y + dy >= 256 || !freeCell(w, x + l[0], y + dy, z + l[1])) return false;
+            }
+        }
+        return true;
+    }
+
+    public static void buildP330(World w, int x, int y, int z, float angle) {
+        for (int side = -1; side <= 1; side += 2) {
+            int[] l = p330Leg(angle, side);
+            for (int dy = 0; dy < Lep330.HEIGHT; dy++) {
+                setDummy(w, x + l[0], y + dy, z + l[1], x, y, z);
+            }
+        }
+    }
+
+    public static void removeP330(World w, int x, int y, int z, float angle) {
+        for (int side = -1; side <= 1; side += 2) {
+            int[] l = p330Leg(angle, side);
+            for (int dy = 0; dy < Lep330.HEIGHT; dy++) removeOwnDummy(w, x + l[0], y + dy, z + l[1], x, y, z);
+        }
+    }
+
+    /** Знімає dummy лише якщо він належить саме цьому майстру (не чіпає чужі опори). */
+    private static void removeOwnDummy(World w, int x, int y, int z, int mx, int my, int mz) {
+        if (w.getBlock(x, y, z) != ModBlocks.lep110Dummy) return;
+        TileEntity te = w.getTileEntity(x, y, z);
+        if (te instanceof TileEntityLepDummy) {
+            TileEntityLepDummy d = (TileEntityLepDummy) te;
+            if (d.valid && d.mx == mx && d.my == my && d.mz == mz) w.setBlockToAir(x, y, z);
+        }
+    }
+
+    public static boolean canPlaceA330(World w, int x, int y, int z) {
+        for (int dx = -1; dx <= 1; dx++) {
+            for (int dz = -1; dz <= 1; dz++) {
+                if (!World.doesBlockHaveSolidTopSurface(w, x + dx, y - 1, z + dz)) return false;
+            }
+        }
+        for (int dy = 0; dy < Lep330.HEIGHT; dy++) {
+            if (y + dy >= 256) return false;
+            for (int dx = -2; dx <= 2; dx++) {
+                for (int dz = -2; dz <= 2; dz++) {
+                    if (dx == 0 && dz == 0 && dy == 0) continue;
+                    if (a330HasBlock(dx, dy, dz) && !freeCell(w, x + dx, y + dy, z + dz)) return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public static void buildA330(World w, int x, int y, int z) {
+        for (int dy = 0; dy < Lep330.HEIGHT; dy++) {
+            for (int dx = -2; dx <= 2; dx++) {
+                for (int dz = -2; dz <= 2; dz++) {
+                    if (dx == 0 && dz == 0 && dy == 0) continue;
+                    if (a330HasBlock(dx, dy, dz)) setDummy(w, x + dx, y + dy, z + dz, x, y, z);
+                }
+            }
+        }
+    }
+
+    public static void removeA330(World w, int x, int y, int z) {
+        for (int dy = 0; dy < Lep330.HEIGHT; dy++) {
+            for (int dx = -2; dx <= 2; dx++) {
+                for (int dz = -2; dz <= 2; dz++) {
+                    if (dx == 0 && dz == 0 && dy == 0) continue;
+                    if (a330HasBlock(dx, dy, dz)) removeOwnDummy(w, x + dx, y + dy, z + dz, x, y, z);
                 }
             }
         }

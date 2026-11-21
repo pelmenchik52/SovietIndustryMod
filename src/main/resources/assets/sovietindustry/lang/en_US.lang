@@ -39,3 +39,5 @@ item.wireCoil.name=Wire Coil
 tile.substation110kV.name=110 kV Outdoor Switchgear (OSG) Transformer Substation
 tile.lep110x2.name=110 kV Transmission Tower (Double-Circuit, 6 wires)
 tile.lep110x2Angle.name=110 kV Angle Tower (Double-Circuit, 6 wires)
+tile.lep330.name=330 kV Portal Tower (P-type, 3 phases)
+tile.lep330Angle.name=330 kV Angle Tower (U330-3)

@@ -12,6 +12,8 @@ import com.sovietindustry.tileentities.TileEntityPO2Fence;
 import cpw.mods.fml.common.registry.GameRegistry;
 import com.sovietindustry.tileentities.TileEntityLep110x2;
 import com.sovietindustry.tileentities.TileEntityLep110x2Angle;
+import com.sovietindustry.tileentities.TileEntityLep330;
+import com.sovietindustry.tileentities.TileEntityLep330Angle;
 
 public class CommonProxy {
     public void registerTileEntities() {
@@ -26,6 +28,8 @@ public class CommonProxy {
         GameRegistry.registerTileEntity(TileEntitySubstationPort110kV.class, "TileEntitySubstationPort110kV");
         GameRegistry.registerTileEntity(TileEntityLep110x2.class, "SovietLep110x2");
         GameRegistry.registerTileEntity(TileEntityLep110x2Angle.class, "SovietLep110x2Angle");
+        GameRegistry.registerTileEntity(TileEntityLep330.class, "SovietLep330");
+        GameRegistry.registerTileEntity(TileEntityLep330Angle.class, "SovietLep330Angle");
     }
 
     public void registerRenderers() {}

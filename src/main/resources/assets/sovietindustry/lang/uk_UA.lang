@@ -39,3 +39,5 @@ item.wireCoil.name=Wire Coil
 tile.substation110kV.name=110 kV Outdoor Switchgear (OSG) Transformer Substation
 tile.lep110x2.name=Опора ЛЕП 110 кВ 6-контактна (дволанцюгова УП110-2)
 tile.lep110x2Angle.name=Анкерно-кутова опора ЛЕП 110 кВ 6-контактна
+tile.lep330.name=П-подібна опора ЛЕП 330 кВ (проміжна)
+tile.lep330Angle.name=Анкерно-кутова опора ЛЕП 330 кВ (У330-3)

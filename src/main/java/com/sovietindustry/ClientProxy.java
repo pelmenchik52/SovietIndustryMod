@@ -29,6 +29,9 @@ import com.sovietindustry.tileentities.TileEntityLep110v1;
 import com.sovietindustry.tileentities.TileEntityLep110x2;
 import com.sovietindustry.tileentities.TileEntityLep110x2Angle;
 import com.sovietindustry.render.RenderLep110x2;
+import com.sovietindustry.render.RenderLep330;
+import com.sovietindustry.tileentities.TileEntityLep330;
+import com.sovietindustry.tileentities.TileEntityLep330Angle;
 import com.sovietindustry.tileentities.TileEntityPO2Fence;
 
 import cpw.mods.fml.client.registry.ClientRegistry;
@@ -50,6 +53,9 @@ public class ClientProxy extends CommonProxy {
         RenderLep110x2 x2Renderer = new RenderLep110x2();
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep110x2.class, x2Renderer);
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep110x2Angle.class, x2Renderer);
+        RenderLep330 l330Renderer = new RenderLep330();
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep330.class, l330Renderer);
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep330Angle.class, l330Renderer);
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstation110kV.class, new RenderSubstation110kV());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstationPort110kV.class, new TileEntitySpecialRenderer() {
             @Override
@@ -79,6 +85,14 @@ public class ClientProxy extends CommonProxy {
         MinecraftForgeClient.registerItemRenderer(
             Item.getItemFromBlock(ModBlocks.lep110x2Angle),
             new ItemRenderLepPylon(ItemRenderLepPylon.KIND_X2_ANGLE)
+        );
+        MinecraftForgeClient.registerItemRenderer(
+            Item.getItemFromBlock(ModBlocks.lep330),
+            new ItemRenderLepPylon(ItemRenderLepPylon.KIND_330)
+        );
+        MinecraftForgeClient.registerItemRenderer(
+            Item.getItemFromBlock(ModBlocks.lep330Angle),
+            new ItemRenderLepPylon(ItemRenderLepPylon.KIND_330_ANGLE)
         );
         MinecraftForgeClient.registerItemRenderer(
             Item.getItemFromBlock(ModBlocks.substation110kV),

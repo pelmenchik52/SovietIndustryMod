@@ -20,6 +20,7 @@ import com.sovietindustry.tileentities.TileEntityLepDummy;
 import com.sovietindustry.tileentities.TileEntityLep110Angle;
 import com.sovietindustry.tileentities.TileEntityLep110x2;
 import com.sovietindustry.tileentities.TileEntityLep110x2Base;
+import com.sovietindustry.tileentities.TileEntityLep330Base;
 import com.sovietindustry.tileentities.TileEntityLepPylon;
 import com.sovietindustry.tileentities.TileEntitySubstation110kV;
 import com.sovietindustry.tileentities.TileEntitySubstationPort110kV;
@@ -200,6 +201,11 @@ public class ItemWireCoil extends Item {
 
         if (first == second) {
             msg(player, EnumChatFormatting.RED, "Cannot connect a pylon to itself");
+            return true;
+        }
+        if (first instanceof TileEntityLepPylon && second instanceof TileEntityLepPylon
+            && (first instanceof TileEntityLep330Base) != (second instanceof TileEntityLep330Base)) {
+            msg(player, EnumChatFormatting.RED, "Voltage mismatch: 330 kV towers connect only to 330 kV towers");
             return true;
         }
         if (first.getConnectionType() != second.getConnectionType()) {

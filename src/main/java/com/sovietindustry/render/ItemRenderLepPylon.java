@@ -6,6 +6,7 @@ import com.sovietindustry.SovietIndustryMod;
 import com.sovietindustry.models.ModelLep110Angle;
 import com.sovietindustry.models.ModelLep110v1;
 import com.sovietindustry.models.ModelLep110x2;
+import com.sovietindustry.models.ModelLep330;
 import com.sovietindustry.models.ModelSubstation110kV;
 
 import cpw.mods.fml.relauncher.Side;
@@ -27,6 +28,11 @@ public class ItemRenderLepPylon implements IItemRenderer {
     private final ModelLep110Angle modelAngle = new ModelLep110Angle();
     public static final int KIND_X2 = 3;
     public static final int KIND_X2_ANGLE = 4;
+    public static final int KIND_330 = 5;
+    public static final int KIND_330_ANGLE = 6;
+
+    private final ModelLep330 model330 = new ModelLep330(false);
+    private final ModelLep330 model330Angle = new ModelLep330(true);
 
     private final ModelLep110x2 modelX2 = new ModelLep110x2(false);
     private final ModelLep110x2 modelX2Angle = new ModelLep110x2(true);
@@ -64,6 +70,15 @@ public class ItemRenderLepPylon implements IItemRenderer {
     @Override
     public void renderItem(ItemRenderType type, ItemStack item, Object... data) {
         GL11.glPushMatrix();
+
+        if (x2Kind == KIND_330 || x2Kind == KIND_330_ANGLE) {
+            apply330Transform(type);
+            GL11.glDisable(GL11.GL_CULL_FACE);
+            (x2Kind == KIND_330_ANGLE ? model330Angle : model330).renderAll();
+            GL11.glEnable(GL11.GL_CULL_FACE);
+            GL11.glPopMatrix();
+            return;
+        }
 
         if (x2Kind != 0) {
             applyX2Transform(type);
@@ -154,6 +169,34 @@ public class ItemRenderLepPylon implements IItemRenderer {
                 break;
             default:
                 GL11.glScalef(0.07F, 0.07F, 0.07F);
+                break;
+        }
+    }
+
+    /** Опори 330 кВ: висота 17, ширина до 12 блоків (П-опора), тому масштаб ще менший. */
+    private static void apply330Transform(ItemRenderType type) {
+        switch (type) {
+            case INVENTORY:
+                GL11.glTranslatef(0.0F, -0.52F, 0.0F);
+                GL11.glScalef(0.055F, 0.055F, 0.055F);
+                GL11.glRotatef(25.0F, 0.0F, 1.0F, 0.0F);
+                break;
+            case EQUIPPED:
+                GL11.glTranslatef(0.5F, 0.15F, 0.5F);
+                GL11.glScalef(0.07F, 0.07F, 0.07F);
+                GL11.glRotatef(35.0F, 0.0F, 1.0F, 0.0F);
+                break;
+            case EQUIPPED_FIRST_PERSON:
+                GL11.glTranslatef(0.55F, 0.05F, 0.45F);
+                GL11.glScalef(0.064F, 0.064F, 0.064F);
+                GL11.glRotatef(-35.0F, 0.0F, 1.0F, 0.0F);
+                break;
+            case ENTITY:
+                GL11.glTranslatef(0.0F, -0.25F, 0.0F);
+                GL11.glScalef(0.058F, 0.058F, 0.058F);
+                break;
+            default:
+                GL11.glScalef(0.058F, 0.058F, 0.058F);
                 break;
         }
     }
