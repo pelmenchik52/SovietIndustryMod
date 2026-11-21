@@ -17,6 +17,7 @@ import net.minecraft.world.World;
 import com.hbm.tileentity.network.TileEntityPylonBase;
 import com.sovietindustry.items.ItemWireCoil;
 import com.sovietindustry.tileentities.TileEntityLepDummy;
+import com.sovietindustry.tileentities.TileEntityLepPylon;
 
 /**
  * Невидимий блок-заповнювач опор ЛЕП. Тепер має TileEntity з координатами майстер-блока,
@@ -90,7 +91,10 @@ public class BlockLepDummy extends BlockContainer {
             setBlockBounds(0.25F, 0.0F, 0.25F, 0.75F, 1.0F, 0.75F);
             return;
         }
-        float[] b = LepMultiblock.bounds(world.getBlock(d.mx, d.my, d.mz), x - d.mx, y - d.my, z - d.mz);
+        float angle = 0.0F;
+        TileEntity mt = world.getTileEntity(d.mx, d.my, d.mz);
+        if (mt instanceof TileEntityLepPylon) angle = ((TileEntityLepPylon) mt).angle;
+        float[] b = LepMultiblock.bounds(world.getBlock(d.mx, d.my, d.mz), x - d.mx, y - d.my, z - d.mz, angle);
         setBlockBounds(b[0], b[1], b[2], b[3], b[4], b[5]);
     }
 

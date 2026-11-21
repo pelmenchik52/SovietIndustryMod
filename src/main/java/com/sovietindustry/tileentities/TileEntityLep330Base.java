@@ -8,10 +8,16 @@ import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.Vec3;
 
+/**
+ * База опор 330 кВ. Для NTM це звичайний вузол ConnectionType.TRIPLE (3 фази), тому та сама котушка мода
+ * з'єднує їх так само, як 110 кВ. Візуально кожна фаза це подвійна гірлянда з двома дротами на гірлянді
+ * (Lep330.WIRES_PER_STRING), на вершині один або два грозозахисні троси.
+ */
 public abstract class TileEntityLep330Base extends TileEntityLepPylon implements IBundledPylon, IMultiGroundWired {
 
     public static final double MAX_SPAN_330 = 128.0D;
 
+    /** Локальні координати точок кріплення тросів [x, y, z]. */
     protected abstract double[][] getLocalGround();
 
     @Override
@@ -34,6 +40,8 @@ public abstract class TileEntityLep330Base extends TileEntityLepPylon implements
     public Vec3 getGroundMount() {
         return getGroundMounts()[0];
     }
+
+    // ------------------------------------------------------------ пучок
 
     @Override
     public int getStringsPerMount() {
@@ -65,6 +73,8 @@ public abstract class TileEntityLep330Base extends TileEntityLepPylon implements
         double[] a = toWorldOffset(1.0D, 0.0D, 0.0D);
         return new double[] { a[0], 0.0D, a[2] };
     }
+
+    // ------------------------------------------------------------ рамка рендера
 
     @Override
     protected double renderHeight() {

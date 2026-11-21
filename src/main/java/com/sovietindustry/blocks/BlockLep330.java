@@ -24,7 +24,8 @@ import cpw.mods.fml.relauncher.SideOnly;
 /**
  * П-подібна проміжна опора ЛЕП 330 кВ. Майстер-блок стоїть по центру між стійками (плита без прохідності,
  * під траверсою можна пройти), стійки це dummy-колони по +-3 блоки від центру: колізія 7 блоків завдовжки,
- * висота 17. Траверса й гірлянди без колізії. Поворот кратний 90°, бо стійки мають лежати на сітці блоків.
+ * висота 17. Траверса й гірлянди без колізії. Поворот кроком 30°, як у решти опор: при кутах не кратних 90°
+ * колізія стійки ділиться на кілька dummy-клітинок (див. LepMultiblock.p330Cells).
  */
 public class BlockLep330 extends BlockContainer {
 
@@ -76,23 +77,20 @@ public class BlockLep330 extends BlockContainer {
 
     @Override
     public void onBlockPlacedBy(World world, int x, int y, int z, EntityLivingBase placer, ItemStack stack) {
-        float snapped = Math.round(placer.rotationYaw / 90.0F) * 90.0F;
+        float snapped = Math.round(placer.rotationYaw / 30.0F) * 30.0F;
         while (snapped < 0.0F) snapped += 360.0F;
         while (snapped >= 360.0F) snapped -= 360.0F;
 
-        // якщо в цьому напрямку місця нема, пробуємо повернути на 90°
-        if (!LepMultiblock.canPlaceP330(world, x, y, z, snapped)) {
-            float alt = (snapped + 90.0F) % 360.0F;
-            if (LepMultiblock.canPlaceP330(world, x, y, z, alt)) {
-                snapped = alt;
-            } else {
-                world.setBlockToAir(x, y, z);
-                if (placer instanceof EntityPlayer && !((EntityPlayer) placer).capabilities.isCreativeMode) {
-                    ((EntityPlayer) placer).inventory.addItemStackToInventory(new ItemStack(this));
-                }
-                return;
+        // якщо в цьому напрямку місця нема, беремо найближчий вільний кут із кроком 30°
+        float chosen = LepMultiblock.pickP330Angle(world, x, y, z, snapped);
+        if (chosen < 0.0F) {
+            world.setBlockToAir(x, y, z);
+            if (placer instanceof EntityPlayer && !((EntityPlayer) placer).capabilities.isCreativeMode) {
+                ((EntityPlayer) placer).inventory.addItemStackToInventory(new ItemStack(this));
             }
+            return;
         }
+        snapped = chosen;
 
         TileEntity te = world.getTileEntity(x, y, z);
         if (te instanceof TileEntityLepPylon) {

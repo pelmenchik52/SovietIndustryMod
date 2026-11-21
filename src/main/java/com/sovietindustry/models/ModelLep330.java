@@ -53,7 +53,8 @@ public class ModelLep330 {
             return;
         }
 
-        // Для анкерно-кутової опори: 1) сталевий каркас (lep_steel), 2) зелені скляні ізолятори і шлейф (ATLAS)
+        // Анкерно-кутова опора: лише сталевий каркас. Гірлянди, верхній ізолятор і шлейф дротів
+        // малює LepWireRenderer, коли підключають дріт.
         if (listSteel < 0) {
             listSteel = GLAllocation.generateDisplayLists(1);
             GL11.glNewList(listSteel, GL11.GL_COMPILE);
@@ -63,21 +64,8 @@ public class ModelLep330 {
             t.draw();
             GL11.glEndList();
         }
-        if (listAtlas < 0) {
-            listAtlas = GLAllocation.generateDisplayLists(1);
-            GL11.glNewList(listAtlas, GL11.GL_COMPILE);
-            Tessellator t = Tessellator.instance;
-            t.startDrawingQuads();
-            buildLatticeInsulatorsAndLoop(t);
-            t.draw();
-            GL11.glEndList();
-        }
-
         Minecraft.getMinecraft().renderEngine.bindTexture(LATTICE_STEEL);
         GL11.glCallList(listSteel);
-
-        Minecraft.getMinecraft().renderEngine.bindTexture(ATLAS);
-        GL11.glCallList(listAtlas);
     }
 
     // ------------------------------------------------------------ допоміжні
@@ -256,7 +244,7 @@ public class ModelLep330 {
         double sTop = top - 0.08D;
         double len = sTop - bottom;
         LepGeo.beamUV(t, px, sTop, 0.0D, px, bottom, 0.0D, 0.065D, CAP, TEX);
-        int n = 9;
+        int n = 11;
         for (int k = 0; k < n; k++) {
             double c = 0.14D + k * ((len - 0.28D) / (n - 1));
             LepGeo.boxUV(t, px, sTop - c, 0.0D, 0.15D, 0.03D, 0.15D, GLASS, TEX);
@@ -292,7 +280,7 @@ public class ModelLep330 {
         return new double[] { SIGN[k & 3][0] * hw, y, SIGN[k & 3][1] * hw };
     }
 
-    /** Частина 1: металевий каркас вежі і траверс (текстура LATTICE_STEEL). */
+    /** Металевий каркас вежі і траверс (текстура LATTICE_STEEL). */
     private void buildLatticeSteel(Tessellator t) {
         double armY = Lep330.A_ARM_Y;
         double uY = Lep330.A_UPPER_Y;
@@ -333,6 +321,9 @@ public class ModelLep330 {
         // Верхній ярус (перевернутий): довга консоль вліво, менша вправо
         trapezoidArm(t, -Lep330.A_UPPER_LONG_LEN,  uY, -0.95D, 0.65D, 0.22D, beamT);
         trapezoidArm(t,  Lep330.A_UPPER_SHORT_LEN, uY, -0.75D, 0.45D, 0.16D, beamT);
+        // вушко під верхні гірлянди на кінці довгої консолі (самі гірлянди динамічні)
+        lb(t, -Lep330.A_UPPER_LONG_LEN, uY - 0.04D, -Lep330.A_JUMPER_Z,
+              -Lep330.A_UPPER_LONG_LEN, uY - 0.04D, Lep330.A_JUMPER_Z, beamT * 1.4D);
 
         double hwTop = Lep330.angleLegHalf(Lep330.A_TOP);
         for (int k = 0; k < 4; k++) {
@@ -342,74 +333,6 @@ public class ModelLep330 {
         for (int k = 0; k < 4; k++) {
             double[] c = corner(k, 0.0D);
             LepGeo.box(t, c[0], 0.16D, c[2], 0.24D, 0.16D, 0.24D);
-        }
-    }
-
-    /**
-     * Частина 2: зелені скляні гірлянди на верхній консолі та зовнішній шлейф, який іде
-     * ВІД КІНЦЯ нижнього натяжного ізолятора (переднього і заднього по Z) до верхнього зеленого ізолятора!
-     */
-    private void buildLatticeInsulatorsAndLoop(Tessellator t) {
-        double lowArmY = Lep330.A_ARM_Y;
-        double upperY = Lep330.A_UPPER_Y;
-        double tipX = -Lep330.A_UPPER_LONG_LEN;
-
-        // Верхні підтримуючі гірлянди на кінці довгої верхньої консолі (спереду і ззаду по Z)
-        double topY = upperY - 0.06D;
-        double botY = topY - 1.65D;
-        double upperZOff = 0.22D;
-
-        // Координати кінця нижніх натяжних ізоляторів центральної фази (зовні вежі по осі Z!)
-        // Центральна рамка виступає на reach = 0.80, а натяжна гірлянда має довжину A_STRING_LEN = 1.60 -> кінець на z = ±2.35
-        double lowerInsulatorTipZ = Lep330.A_STRING_LEN * 0.5D + Lep330.A_STRING_LEN - 0.05D;
-        double lowerTipY = lowArmY - Lep330.A_MOUNT_DROP;
-
-        for (int s = -1; s <= 1; s += 2) {
-            double zUp = s * upperZOff;
-            double zLowTip = s * lowerInsulatorTipZ;
-
-            // Темна арматура зверху і знизу верхньої гірлянди (з атласу)
-            LepGeo.beamUV(t, tipX, topY, zUp, tipX, topY - 0.12D, zUp, 0.12D, CAP, TEX);
-            LepGeo.beamUV(t, tipX, botY + 0.10D, zUp, tipX, botY, zUp, 0.12D, CAP, TEX);
-            // Стрижень гірлянди
-            LepGeo.beamUV(t, tipX, topY, zUp, tipX, botY, zUp, 0.06D, CAP, TEX);
-
-            // Зелені скляні ізоляторні тарілки (GLASS з атласу!)
-            int discs = 8;
-            for (int k = 0; k < discs; k++) {
-                double dy = 0.16D + k * ((topY - botY - 0.30D) / (discs - 1));
-                LepGeo.boxUV(t, tipX, topY - dy, zUp, 0.15D, 0.03D, 0.15D, GLASS, TEX);
-            }
-
-            // Нижня планка-розпірка і два затискачі для подвійного проводу шлейфа
-            LepGeo.boxUV(t, tipX, botY - 0.03D, zUp, 0.05D, 0.04D, 0.18D, CAP, TEX);
-
-            // Подвійний провід шлейфа (2 паралельні нитки): йде ЗОВНІ від кінця нижнього ізолятора (0, lowerTipY, zLowTip)
-            // наверх до кінця зеленого верхнього ізолятора (tipX, botY - 0.05, zUp) з легким провисанням!
-            for (int w = -1; w <= 1; w += 2) {
-                double wOff = w * 0.10D;
-                double p0x = wOff;
-                double p0y = lowerTipY;
-                double p0z = zLowTip;
-
-                double p2x = tipX;
-                double p2y = botY - 0.05D;
-                double p2z = zUp + wOff;
-
-                // Проміжна точка з природним провисом дуги зовні опори
-                double p1x = (p0x + p2x) * 0.45D;
-                double p1y = (p0y + p2y) * 0.46D - 0.45D;
-                double p1z = (p0z + p2z) * 0.52D;
-
-                sd(t, p0x, p0y, p0z, p1x, p1y, p1z, 0.024D);
-                sd(t, p1x, p1y, p1z, p2x, p2y, p2z, 0.024D);
-            }
-        }
-
-        // Перемичка-шлейф між передньою і задньою верхніми зеленими гірляндами (знизу)
-        for (int w = -1; w <= 1; w += 2) {
-            double xw = tipX + w * 0.09D;
-            sd(t, xw, botY - 0.05D, -upperZOff, xw, botY - 0.05D, upperZOff, 0.024D);
         }
     }
 

@@ -20,7 +20,7 @@ public final class Lep330 {
     /** Висота траверси. */
     public static final double P_ARM_Y = 14.0D;
     /** Висота підвісної гірлянди (до нижнього затискача). */
-    public static final double P_STRING_DROP = 1.85D;
+    public static final double P_STRING_DROP = 2.22D;
     public static final double[] P_PHASE_X = { -5.95D, 0.0D, 5.95D };
     /** Верхівка тросостійок. */
     public static final double P_TOP = 16.9D;
@@ -51,7 +51,17 @@ public final class Lep330 {
     public static final double A_UPPER_LONG_LEN = 3.8D;
     public static final double A_UPPER_SHORT_LEN = 2.0D;
     public static final double A_MOUNT_DROP = 0.15D;
-    public static final double A_STRING_LEN = 1.6D;
+    public static final double A_STRING_LEN = 2.0D;
+    /** Роздвоєні натяжні гірлянди анкерної опори: дві гірлянди на фазу, на кожній по одному дроту. */
+    public static final int A_STRINGS = 2;
+    public static final double A_STRING_SPACING = 0.40D;
+    public static final int A_WIRES_PER_STRING = 1;
+    public static final double A_WIRE_SPACING = 0.0D;
+    /** Фаза, що йде через верхні гірлянди (центральна). */
+    public static final int A_JUMPER_MOUNT = 1;
+    /** Довжина верхніх гірлянд і зміщення пари по Z (одна спереду, друга ззаду). */
+    public static final double A_JUMPER_DROP = 2.03D;
+    public static final double A_JUMPER_Z = 0.22D;
     public static final double A_TOP = 16.9D;
     public static final double A_GROUND_Y = 16.9D;
 
@@ -80,6 +90,20 @@ public final class Lep330 {
             { -A_ARM_LEN, y, 0.0D },
             { 0.0D,       y, 0.0D },
             { A_ARM_LEN,  y, 0.0D }
+        };
+    }
+
+    /**
+     * Верхні гірлянди на кінці довгої верхньої консолі (локальні координати): {верх, низ} для переднього
+     * й заднього ряду. Це лише геометрія, самі гірлянди малюються з дротами.
+     */
+    public static double[][][] aJumperStrings() {
+        double x = -A_UPPER_LONG_LEN;
+        double top = A_UPPER_Y - 0.06D;
+        double bot = top - A_JUMPER_DROP;
+        return new double[][][] {
+            { { x, top, -A_JUMPER_Z }, { x, bot, -A_JUMPER_Z } },
+            { { x, top, A_JUMPER_Z }, { x, bot, A_JUMPER_Z } }
         };
     }
 }

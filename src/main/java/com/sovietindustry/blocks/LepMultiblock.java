@@ -1,5 +1,8 @@
 package com.sovietindustry.blocks;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import net.minecraft.block.Block;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
@@ -72,13 +75,26 @@ public final class LepMultiblock {
 
     /** Бокс {minX,minY,minZ,maxX,maxY,maxZ} для сегмента із зміщенням (dx,dy,dz). */
     public static float[] bounds(Block master, int dx, int dy, int dz) {
+        return bounds(master, dx, dy, dz, 0.0F);
+    }
+
+    /** Те саме, але з кутом повороту майстра (потрібен П-опорі 330 кВ: стійки не лежать на сітці при 30°). */
+    public static float[] bounds(Block master, int dx, int dy, int dz, float rot) {
         if (master == ModBlocks.substation110kV) {
             return substationBounds(dx, dy, dz);
         }
         if (master == ModBlocks.lep330) {
             if (dx == 0 && dz == 0) return new float[] { 0.2F, 0.0F, 0.2F, 0.8F, 0.15F, 0.8F };
-            double e = p330Half(dy);
-            return new float[] { (float) (0.5D - e), 0.0F, (float) (0.5D - e), (float) (0.5D + e), 1.0F, (float) (0.5D + e) };
+            double r = p330Reach(dy, rot);
+            for (int side = -1; side <= 1; side += 2) {
+                double[] c = p330LegCentre(rot, side);
+                double x0 = Math.max(0.0D, c[0] - r - (dx - 0.5D)), x1 = Math.min(1.0D, c[0] + r - (dx - 0.5D));
+                double z0 = Math.max(0.0D, c[1] - r - (dz - 0.5D)), z1 = Math.min(1.0D, c[1] + r - (dz - 0.5D));
+                if (x1 - x0 > 0.02D && z1 - z0 > 0.02D) {
+                    return new float[] { (float) x0, 0.0F, (float) z0, (float) x1, 1.0F, (float) z1 };
+                }
+            }
+            return new float[] { 0.45F, 0.0F, 0.45F, 0.55F, 1.0F, 0.55F };
         }
         if (master == ModBlocks.lep330Angle) {
             double h3 = a330Half(dy);
@@ -298,26 +314,66 @@ public final class LepMultiblock {
         return new double[] { Math.min(0.95D, lo), 1.0D };
     }
 
-    /** Зміщення (dx, dz) стійки П-опори; side = -1 або +1. Поворот той самий, що й у TileEntityLepPylon. */
-    public static int[] p330Leg(float angle, int side) {
+    /** Центр стійки П-опори відносно центру майстра (x, z), поворот той самий, що й у TileEntityLepPylon. */
+    public static double[] p330LegCentre(float angle, int side) {
         double th = Math.toRadians(-angle);
-        double lx = side * Lep330.LEG_OFFSET;
-        return new int[] { (int) Math.round(lx * Math.cos(th)), (int) Math.round(-lx * Math.sin(th)) };
+        double lx = side * Lep330.LEG_X;
+        return new double[] { lx * Math.cos(th), -lx * Math.sin(th) };
     }
 
-    /** Чи можна поставити П-опору хоч в одній з двох орієнтацій (до відомого повороту). */
+    /** Півширина охоплюючого квадрата стійки, повернутої на angle (квадрат із півсторони p330Half). */
+    public static double p330Reach(int dy, float angle) {
+        double th = Math.toRadians(angle);
+        return p330Half(dy) * (Math.abs(Math.cos(th)) + Math.abs(Math.sin(th)));
+    }
+
+    /** Клітинки, яких торкається стійка на рівні dy: {dx, dz}. При 0/90/180/270 градусах це одна клітинка. */
+    private static List<int[]> p330Cells(float angle, int side, int dy) {
+        double[] c = p330LegCentre(angle, side);
+        double r = p330Reach(dy, angle);
+        int x0 = (int) Math.floor(c[0] - r + 0.5D), x1 = (int) Math.floor(c[0] + r - 1.0E-6D + 0.5D);
+        int z0 = (int) Math.floor(c[1] - r + 0.5D), z1 = (int) Math.floor(c[1] + r - 1.0E-6D + 0.5D);
+        List<int[]> out = new ArrayList<int[]>();
+        for (int cx = x0; cx <= x1; cx++) {
+            for (int cz = z0; cz <= z1; cz++) {
+                out.add(new int[] { cx, cz });
+            }
+        }
+        return out;
+    }
+
+    /** Усі 12 поворотів (крок 30°), як у решти опор мода. */
     public static boolean canPlaceP330Any(World w, int x, int y, int z) {
-        return canPlaceP330(w, x, y, z, 0.0F) || canPlaceP330(w, x, y, z, 90.0F);
+        return pickP330Angle(w, x, y, z, 0.0F) >= 0.0F;
+    }
+
+    /** Найближчий до preferred кут із кроком 30°, де опора вміщається; -1, якщо ніде. */
+    public static float pickP330Angle(World w, int x, int y, int z, float preferred) {
+        for (int k = 0; k <= 6; k++) {
+            for (int sg = -1; sg <= 1; sg += 2) {
+                float a = preferred + sg * 30.0F * k;
+                while (a < 0.0F) a += 360.0F;
+                while (a >= 360.0F) a -= 360.0F;
+                if (canPlaceP330(w, x, y, z, a)) return a;
+                if (k == 0) break;
+            }
+        }
+        return -1.0F;
     }
 
     /** Центр і обидві стійки стоять на твердому, колони стійок вільні (центральна клітинка належить майстру). */
     public static boolean canPlaceP330(World w, int x, int y, int z, float angle) {
         if (!World.doesBlockHaveSolidTopSurface(w, x, y - 1, z)) return false;
         for (int side = -1; side <= 1; side += 2) {
-            int[] l = p330Leg(angle, side);
-            if (!World.doesBlockHaveSolidTopSurface(w, x + l[0], y - 1, z + l[1])) return false;
+            double[] c = p330LegCentre(angle, side);
+            int gx = (int) Math.round(c[0]);
+            int gz = (int) Math.round(c[1]);
+            if (!World.doesBlockHaveSolidTopSurface(w, x + gx, y - 1, z + gz)) return false;
             for (int dy = 0; dy < Lep330.HEIGHT; dy++) {
-                if (y + dy >= 256 || !freeCell(w, x + l[0], y + dy, z + l[1])) return false;
+                if (y + dy >= 256) return false;
+                for (int[] cell : p330Cells(angle, side, dy)) {
+                    if (!freeCell(w, x + cell[0], y + dy, z + cell[1])) return false;
+                }
             }
         }
         return true;
@@ -325,17 +381,21 @@ public final class LepMultiblock {
 
     public static void buildP330(World w, int x, int y, int z, float angle) {
         for (int side = -1; side <= 1; side += 2) {
-            int[] l = p330Leg(angle, side);
             for (int dy = 0; dy < Lep330.HEIGHT; dy++) {
-                setDummy(w, x + l[0], y + dy, z + l[1], x, y, z);
+                for (int[] cell : p330Cells(angle, side, dy)) {
+                    setDummy(w, x + cell[0], y + dy, z + cell[1], x, y, z);
+                }
             }
         }
     }
 
     public static void removeP330(World w, int x, int y, int z, float angle) {
         for (int side = -1; side <= 1; side += 2) {
-            int[] l = p330Leg(angle, side);
-            for (int dy = 0; dy < Lep330.HEIGHT; dy++) removeOwnDummy(w, x + l[0], y + dy, z + l[1], x, y, z);
+            for (int dy = 0; dy < Lep330.HEIGHT; dy++) {
+                for (int[] cell : p330Cells(angle, side, dy)) {
+                    removeOwnDummy(w, x + cell[0], y + dy, z + cell[1], x, y, z);
+                }
+            }
         }
     }
 
