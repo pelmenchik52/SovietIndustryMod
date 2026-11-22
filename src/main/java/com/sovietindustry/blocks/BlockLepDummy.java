@@ -144,14 +144,19 @@ public class BlockLepDummy extends BlockContainer {
     }
 
     @Override
-    public void breakBlock(World world, int x, int y, int z, Block block, int meta) {
-        TileEntityLepDummy d = getDummy(world, x, y, z);
-        if (d != null && isTower(world.getBlock(d.mx, d.my, d.mz))) {
-            // ламаємо майстер-блок із дропом; він сам приберe решту сегментів і дроти
-            world.func_147480_a(d.mx, d.my, d.mz, true);
+public void breakBlock(World world, int x, int y, int z, Block block, int meta) {
+    TileEntity te = world.getTileEntity(x, y, z);
+    if (te instanceof TileEntityLepDummy) {
+        TileEntityLepDummy d = (TileEntityLepDummy) te;
+        if (d.valid && !world.isAirBlock(d.mx, d.my, d.mz)) {
+            Block master = world.getBlock(d.mx, d.my, d.mz);
+            if (master != this) {
+                world.setBlockToAir(d.mx, d.my, d.mz); // викличе breakBlock майстра і знесе все
+            }
         }
-        super.breakBlock(world, x, y, z, block, meta);
     }
+    super.breakBlock(world, x, y, z, block, meta);
+}
 
     @Override
     public ItemStack getPickBlock(MovingObjectPosition target, World world, int x, int y, int z, EntityPlayer player) {

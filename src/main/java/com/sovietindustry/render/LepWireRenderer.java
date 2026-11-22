@@ -446,8 +446,8 @@ public final class LepWireRenderer {
                         // Зсув шлейфу вбік від вежі, щоб не проходив крізь ґратку:
                         // ліва вежа (0) обходить вліво (-2.2), середня (1) вправо (+2.2),
                         // права вежа (2) обходить вправо через бічну консоль із підвіскою (+2.8, як на Фото 1)
-                        double sideShift = (mountIdx == 0) ? -2.2D : ((mountIdx == 2) ? 2.8D : 2.2D);
-                        double dropY = (mountIdx == 2) ? 1.85D : 1.55D;
+                        double sideShift = (mountIdx == 0) ? -2.1D : ((mountIdx == 2) ? 2.6D : 2.1D);
+                        double dropY = (mountIdx == 2) ? 1.2D : 1.4D;
 
                         Vec3 mPos = (mountIdx >= 0 && mountIdx < mine.length) ? mine[mountIdx] : null;
                         double midBaseX = mPos != null ? mPos.xCoord : (ends.get(0)[0] + ends.get(1)[0]) * 0.5D;
