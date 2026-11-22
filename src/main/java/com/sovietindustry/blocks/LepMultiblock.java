@@ -568,8 +568,10 @@ public final class LepMultiblock {
 
     // --- Анкерно-кутова 750 кВ (3 вежі як одна структура)
 
+    // --- Анкерно-кутова 750 кВ (3 вежі як одна структура)
+
     public static double a750Half(int dy) {
-        return Math.min(0.5D, Lep750.angleHalf(dy) + 0.06D);
+        return Lep750.angleHalf(dy) + 0.06D;
     }
 
     public static double[] a750TowerCentre(float angle, int towerIdx) {

@@ -444,10 +444,10 @@ public final class LepWireRenderer {
 
                         int mountIdx = e.getKey().intValue();
                         // Зсув шлейфу вбік від вежі, щоб не проходив крізь ґратку:
-                        // ліва вежа (0) обходить вліво (-1.2), середня (1) вправо (+1.2),
-                        // права вежа (2) обходить вправо через консоль із підвіскою (+1.6, як на Фото 2)
-                        double sideShift = (mountIdx == 0) ? -1.2D : ((mountIdx == 2) ? 1.6D : 1.2D);
-                        double dropY = (mountIdx == 2) ? 1.2D : 0.8D;
+                        // ліва вежа (0) обходить вліво (-2.2), середня (1) вправо (+2.2),
+                        // права вежа (2) обходить вправо через бічну консоль із підвіскою (+2.8, як на Фото 1)
+                        double sideShift = (mountIdx == 0) ? -2.2D : ((mountIdx == 2) ? 2.8D : 2.2D);
+                        double dropY = (mountIdx == 2) ? 1.85D : 1.55D;
 
                         Vec3 mPos = (mountIdx >= 0 && mountIdx < mine.length) ? mine[mountIdx] : null;
                         double midBaseX = mPos != null ? mPos.xCoord : (ends.get(0)[0] + ends.get(1)[0]) * 0.5D;
@@ -476,8 +476,8 @@ public final class LepWireRenderer {
                                 midY + sy,
                                 midZ + towerVec[2] * sx
                             };
-                            wire(t, a, m, 0.20D, WIRE_HALF);
-                            wire(t, m, b, 0.20D, WIRE_HALF);
+                            wire(t, a, m, 0.35D, WIRE_HALF);
+                            wire(t, m, b, 0.35D, WIRE_HALF);
                         }
                     } else {
                         double sign = dot(axes.get(0), axes.get(1)) < 0.0D ? -1.0D : 1.0D;
