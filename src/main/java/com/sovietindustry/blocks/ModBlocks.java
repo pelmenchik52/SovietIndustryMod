@@ -244,7 +244,7 @@ public class ModBlocks {
             .setBlockName("substationPort110kV");
         GameRegistry.registerBlock(substationPort110kV, "substationPort110kV");
 
-        // Трансформаторна підстанція 330 кВ (мультиблок 6x7x8): вхід від анкерно-кутової 330 кВ, 3 кабельні виводи NTM
+        // Трансформаторна підстанція 330 кВ (мультиблок 7x6x8): вхід від анкерно-кутової 330 кВ, 3 кабельні виводи NTM
         substation330kV = new BlockSubstation330kV()
             .setBlockName("substation330kV")
             .setCreativeTab(SovietIndustryMod.tabSoviet);

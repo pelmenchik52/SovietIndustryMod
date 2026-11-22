@@ -186,7 +186,7 @@ public class ItemRenderLepPylon implements IItemRenderer {
         }
     }
 
-    /** Підстанція 330 кВ 6x7x8 (модель центрована по плиті): трохи менший масштаб, ніж у підстанції 110 кВ. */
+    /** Підстанція 330 кВ 7x6x8 (модель центрована по плиті): трохи менший масштаб, ніж у підстанції 110 кВ. */
     private static void applySubstation330Transform(ItemRenderType type) {
         switch (type) {
             case INVENTORY:

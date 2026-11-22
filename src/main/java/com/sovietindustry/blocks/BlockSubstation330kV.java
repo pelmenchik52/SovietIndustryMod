@@ -26,11 +26,11 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 
 /**
- * Трансформаторна підстанція 330 кВ: мультиблок 6 (ширина) x 7 (довжина) x 8 (висота).
+ * Трансформаторна підстанція 330 кВ: мультиблок 7 (ширина) x 6 (довжина) x 8 (висота).
  * Портал входу на одному торці (приймає дріт лише від анкерно-кутової опори 330 кВ),
  * три кабельні виводи NTM на протилежному торці. Поворот кратний 90 градусам.
  *
- * Майстер-блок стоїть у клітинці (0, 0) локальної сітки (lx -3..+2, lz -3..+3), решта це dummy-блоки
+ * Майстер-блок стоїть у клітинці (0, 0) локальної сітки (lx -3..+3, lz -3..+2), решта це dummy-блоки
  * (lep110Dummy), чия колізія береться з Substation330.localBox.
  */
 public class BlockSubstation330kV extends BlockContainer {
@@ -90,7 +90,7 @@ public class BlockSubstation330kV extends BlockContainer {
     }
 
     /**
-     * Точна перевірка місця для вже відомого повороту (canPlaceBlockAt поворот не знає, а площа 6x7 не квадрат).
+     * Точна перевірка місця для вже відомого повороту (canPlaceBlockAt поворот не знає, а площа 7x6 не квадрат).
      */
     private static boolean canBuild(World w, int x, int y, int z, int k) {
         if (y + Substation330.HEIGHT > 256) return false;
@@ -129,7 +129,7 @@ public class BlockSubstation330kV extends BlockContainer {
             if (placer instanceof EntityPlayer) {
                 EntityPlayer p = (EntityPlayer) placer;
                 p.addChatMessage(new ChatComponentText(EnumChatFormatting.RED
-                    + "Not enough space: the substation needs a flat 6x7 area and 8 free blocks of height"));
+                    + "Not enough space: the substation needs a flat 7x6 area and 8 free blocks of height"));
                 if (!p.capabilities.isCreativeMode) {
                     ItemStack back = new ItemStack(this);
                     if (!p.inventory.addItemStackToInventory(back)) {

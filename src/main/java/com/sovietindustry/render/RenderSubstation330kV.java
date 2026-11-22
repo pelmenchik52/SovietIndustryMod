@@ -24,8 +24,8 @@ public class RenderSubstation330kV extends TileEntitySpecialRenderer {
         GL11.glPushMatrix();
         GL11.glTranslated(x + 0.5D, y, z + 0.5D);
         GL11.glRotatef(-sub.angle, 0.0F, 1.0F, 0.0F);
-        // модель центрована по плиті 6x7, а майстер-блок стоїть у клітинці lx = 0 (центр плити в lx = -0.5)
-        GL11.glTranslated(Substation330.CENTER_X, 0.0D, 0.0D);
+        // модель центрована по плиті 7x6, а майстер-блок стоїть у клітинці (0, 0): центр плити зсунутий по Z на -0.5
+        GL11.glTranslated(Substation330.CENTER_X, 0.0D, Substation330.CENTER_Z);
         GL11.glDisable(GL11.GL_CULL_FACE);
         model.renderAll();
         GL11.glEnable(GL11.GL_CULL_FACE);
