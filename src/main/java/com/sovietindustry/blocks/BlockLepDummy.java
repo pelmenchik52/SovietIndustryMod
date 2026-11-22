@@ -18,6 +18,9 @@ import com.hbm.tileentity.network.TileEntityPylonBase;
 import com.sovietindustry.items.ItemWireCoil;
 import com.sovietindustry.tileentities.TileEntityLepDummy;
 import com.sovietindustry.tileentities.TileEntityLepPylon;
+import com.sovietindustry.tileentities.TileEntitySubstation330kV;
+import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.EnumChatFormatting;
 
 /**
  * Невидимий блок-заповнювач опор ЛЕП. Тепер має TileEntity з координатами майстер-блока,
@@ -81,7 +84,8 @@ public class BlockLepDummy extends BlockContainer {
     private static boolean isTower(Block b) {
         return b == ModBlocks.lep110v1 || b == ModBlocks.lep110Angle || b == ModBlocks.substation110kV
             || b == ModBlocks.lep110x2 || b == ModBlocks.lep110x2Angle
-            || b == ModBlocks.lep330 || b == ModBlocks.lep330Angle;
+            || b == ModBlocks.lep330 || b == ModBlocks.lep330Angle
+            || b == ModBlocks.substation330kV;
     }
 
     @Override
@@ -117,6 +121,14 @@ public class BlockLepDummy extends BlockContainer {
         if (held == null || !ItemWireCoil.isNtmWiring(held) || player.isSneaking()) return false;
         TileEntityPylonBase target = ItemWireCoil.resolve(world, x, y, z);
         if (target == null) return false;
+        if (target instanceof TileEntitySubstation330kV) {
+            // підстанція 330 кВ приймає дріт лише від анкерно-кутової 330 кВ котушкою цього мода
+            if (!world.isRemote) {
+                player.addChatMessage(new ChatComponentText(EnumChatFormatting.RED
+                    + "Use the Soviet Industry Wire Coil with a 330 kV angle tower on this substation"));
+            }
+            return true;
+        }
         return held.getItem().onItemUse(held, player, world, target.xCoord, target.yCoord, target.zCoord,
             side, hitX, hitY, hitZ);
     }

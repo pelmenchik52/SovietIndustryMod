@@ -4,6 +4,8 @@ import com.sovietindustry.render.LepWireRenderer;
 import com.sovietindustry.tileentities.TileEntityLepPylon;
 import net.minecraft.tileentity.TileEntity;
 import com.sovietindustry.render.RenderSubstation110kV;
+import com.sovietindustry.render.RenderSubstation330kV;
+import com.sovietindustry.tileentities.TileEntitySubstation330kV;
 import com.sovietindustry.tileentities.TileEntitySubstation110kV;
 import com.sovietindustry.tileentities.TileEntitySubstationPort110kV;
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
@@ -57,6 +59,7 @@ public class ClientProxy extends CommonProxy {
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep330.class, l330Renderer);
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep330Angle.class, l330Renderer);
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstation110kV.class, new RenderSubstation110kV());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstation330kV.class, new RenderSubstation330kV());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstationPort110kV.class, new TileEntitySpecialRenderer() {
             @Override
             public void renderTileEntityAt(TileEntity te, double x, double y, double z, float partialTicks) {
@@ -97,6 +100,10 @@ public class ClientProxy extends CommonProxy {
         MinecraftForgeClient.registerItemRenderer(
             Item.getItemFromBlock(ModBlocks.substation110kV),
             new ItemRenderLepPylon(false, true)
+        );
+        MinecraftForgeClient.registerItemRenderer(
+            Item.getItemFromBlock(ModBlocks.substation330kV),
+            new ItemRenderLepPylon(ItemRenderLepPylon.KIND_SUBSTATION_330)
         );
     }
 }

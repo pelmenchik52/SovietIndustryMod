@@ -27,6 +27,7 @@ public class ModBlocks {
     public static Block lep330Angle;
     public static Block substation110kV;
     public static Block substationPort110kV;
+    public static Block substation330kV;
     public static Block lep110Dummy;
 
     // Нові будівельні блоки та конструкції
@@ -242,6 +243,12 @@ public class ModBlocks {
         substationPort110kV = new BlockSubstationPort110kV()
             .setBlockName("substationPort110kV");
         GameRegistry.registerBlock(substationPort110kV, "substationPort110kV");
+
+        // Трансформаторна підстанція 330 кВ (мультиблок 6x7x8): вхід від анкерно-кутової 330 кВ, 3 кабельні виводи NTM
+        substation330kV = new BlockSubstation330kV()
+            .setBlockName("substation330kV")
+            .setCreativeTab(SovietIndustryMod.tabSoviet);
+        GameRegistry.registerBlock(substation330kV, "substation330kV");
     }
 
     public static void registerRenderers() {

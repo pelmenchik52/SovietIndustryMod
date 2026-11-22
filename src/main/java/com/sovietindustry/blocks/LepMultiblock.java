@@ -10,6 +10,7 @@ import net.minecraft.world.World;
 import com.sovietindustry.tileentities.TileEntityLep110Angle;
 import com.sovietindustry.tileentities.Lep110x2;
 import com.sovietindustry.tileentities.Lep330;
+import com.sovietindustry.tileentities.Substation330;
 import com.sovietindustry.tileentities.TileEntityLepDummy;
 
 /**
@@ -82,6 +83,9 @@ public final class LepMultiblock {
     public static float[] bounds(Block master, int dx, int dy, int dz, float rot) {
         if (master == ModBlocks.substation110kV) {
             return substationBounds(dx, dy, dz);
+        }
+        if (master == ModBlocks.substation330kV) {
+            return Substation330.worldBounds(dx, dy, dz, rot);
         }
         if (master == ModBlocks.lep330) {
             if (dx == 0 && dz == 0) return new float[] { 0.2F, 0.0F, 0.2F, 0.8F, 0.15F, 0.8F };

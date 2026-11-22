@@ -20,7 +20,9 @@ import com.sovietindustry.tileentities.TileEntityLepDummy;
 import com.sovietindustry.tileentities.TileEntityLep110Angle;
 import com.sovietindustry.tileentities.TileEntityLep110x2;
 import com.sovietindustry.tileentities.TileEntityLep110x2Base;
+import com.sovietindustry.tileentities.TileEntityLep330Angle;
 import com.sovietindustry.tileentities.TileEntityLep330Base;
+import com.sovietindustry.tileentities.TileEntitySubstation330kV;
 import com.sovietindustry.tileentities.TileEntityLepPylon;
 import com.sovietindustry.tileentities.TileEntitySubstation110kV;
 import com.sovietindustry.tileentities.TileEntitySubstationPort110kV;
@@ -144,6 +146,30 @@ public class ItemWireCoil extends Item {
         return null;
     }
 
+    /** Опори рівня 330 кВ: лінійні опори 330 кВ і підстанція 330 кВ. */
+    private static boolean is330(TileEntityPylonBase t) {
+        return t instanceof TileEntityLep330Base || t instanceof TileEntitySubstation330kV;
+    }
+
+    /**
+     * Правила підстанції 330 кВ: вхід приймає дріт ТІЛЬКИ від анкерно-кутової опори 330 кВ (У330-3),
+     * і лише один прольот. Повертає текст помилки або null, якщо з'єднання дозволене.
+     */
+    private static String substation330Check(TileEntityPylonBase first, TileEntityPylonBase second) {
+        boolean a = first instanceof TileEntitySubstation330kV;
+        boolean b = second instanceof TileEntitySubstation330kV;
+        if (!a && !b) return null;
+        TileEntitySubstation330kV sub = (TileEntitySubstation330kV) (a ? first : second);
+        TileEntityPylonBase other = a ? second : first;
+        if (!(other instanceof TileEntityLep330Angle)) {
+            return "The 330 kV substation accepts a wire only from a 330 kV angle tower (U330-3)";
+        }
+        if (!sub.getLinks().isEmpty()) {
+            return "The 330 kV substation input is already connected";
+        }
+        return null;
+    }
+
     private static boolean full(TileEntityPylonBase t) {
         if (t instanceof TileEntityLep110x2Base) return false; // місткість перевіряє sixWireCheck
         return t instanceof TileEntityLepPylon
@@ -204,7 +230,7 @@ public class ItemWireCoil extends Item {
             return true;
         }
         if (first instanceof TileEntityLepPylon && second instanceof TileEntityLepPylon
-            && (first instanceof TileEntityLep330Base) != (second instanceof TileEntityLep330Base)) {
+            && is330(first) != is330(second)) {
             msg(player, EnumChatFormatting.RED, "Voltage mismatch: 330 kV towers connect only to 330 kV towers");
             return true;
         }
@@ -218,6 +244,11 @@ public class ItemWireCoil extends Item {
         }
         if (linked(first, second)) {
             msg(player, EnumChatFormatting.RED, "These pylons are already connected");
+            return true;
+        }
+        String subErr = substation330Check(first, second);
+        if (subErr != null) {
+            msg(player, EnumChatFormatting.RED, subErr);
             return true;
         }
         String sixErr = sixWireCheck(first, second);
