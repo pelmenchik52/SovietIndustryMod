@@ -85,6 +85,41 @@ public final class LepWireRenderer {
         return a.zCoord < b.zCoord;
     }
 
+    /**
+     * Перевпорядковує точки кріплення двох наших опор для одного прольоту. Вісь "поперек" береться за канонічним
+     * напрямком (від нижчої опори до вищої за координатами), тому обидві опори, що малюють свою частину дроту,
+     * отримують однакову пару, а перестановка після повороту прольоту дає ті самі фізичні пари.
+     */
+    private static int[][] pairByPosition(TileEntity te, Vec3[] mine, int[] mi, TileEntity o, Vec3[] om, int[] oi) {
+        boolean lower = isLower(te, o);
+        TileEntity a = lower ? te : o;
+        TileEntity b = lower ? o : te;
+        double sx = b.xCoord - a.xCoord, sz = b.zCoord - a.zCoord;
+        double sl = Math.sqrt(sx * sx + sz * sz);
+        if (sl < 1.0E-6D) return new int[][] { mi, oi };
+        double ux = -sz / sl, uz = sx / sl; // поперек прольоту (горизонтально)
+
+        Vec3[] ma = lower ? mine : om;
+        Vec3[] mb = lower ? om : mine;
+        int[] ia = lower ? mi : oi;
+        int[] ib = lower ? oi : mi;
+
+        double[] la = new double[ia.length], ya = new double[ia.length];
+        double[] lb = new double[ib.length], yb = new double[ib.length];
+        for (int i = 0; i < ia.length; i++) {
+            if (ia[i] >= ma.length) return new int[][] { mi, oi };
+            la[i] = ma[ia[i]].xCoord * ux + ma[ia[i]].zCoord * uz;
+            ya[i] = ma[ia[i]].yCoord;
+        }
+        for (int i = 0; i < ib.length; i++) {
+            if (ib[i] >= mb.length) return new int[][] { mi, oi };
+            lb[i] = mb[ib[i]].xCoord * ux + mb[ib[i]].zCoord * uz;
+            yb[i] = mb[ib[i]].yCoord;
+        }
+        int[][] r = MountMatcher.reorder(ia, la, ya, ib, lb, yb);
+        return lower ? new int[][] { r[0], r[1] } : new int[][] { r[1], r[0] };
+    }
+
     private static double[] unit(double x, double y, double z) {
         double l = Math.sqrt(x * x + y * y + z * z);
         if (l < 1.0E-6D) return new double[] { 0.0D, -1.0D, 0.0D };
@@ -125,6 +160,15 @@ public final class LepWireRenderer {
             if (mi == null) mi = all(mine.length);
             int[] oi = ours ? oth.getLinkMounts(te.xCoord, te.yCoord, te.zCoord) : null;
             if (oi == null) oi = all(om.length);
+
+            // дроти між нашими опорами зіставляються за ПОЛОЖЕННЯМ точок поперек прольоту й по висоті, а не за номером,
+            // тому вони не перехрещуються, хоч як опори повернуті одна до одної. Для опор NTM номер лишається:
+            // свою половину дроту NTM малює сам за власним порядком.
+            if (ours && mi.length == oi.length && mi.length > 1) {
+                int[][] ord = pairByPosition(te, mine, mi, o, om, oi);
+                mi = ord[0];
+                oi = ord[1];
+            }
 
             int n = Math.min(mi.length, oi.length);
             double ox = o.xCoord - te.xCoord;

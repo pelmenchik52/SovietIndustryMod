@@ -20,7 +20,7 @@ import net.minecraft.util.ResourceLocation;
  *                          ґратчаста траверса з виступом праворуч, два розкоси, що сходяться під траверсою;
  *   лінійна комірка        на кожну фазу роз'єднувач (два опорні ізолятори й ніж) та ОПН, що висить на шлейфі;
  *   трансформатор          бак із двома батареями радіаторів, консерватор-циліндр, три вводи ВН угору, три вводи НН;
- *   вихід (z' = +2 .. +3)  три кабельні порти: повні блоки 1x1x1 з оранжевою плитою на торці.
+ *   вихід (z' = +2 .. +3)  три кабельні порти: повні блоки 1x1x1, оформлені як металеві кабельні шафи з оранжевою плитою розміром із кабель.
  *
  * Координати центровані по плиті: центр (0, 0, 0), x' -3.5..+3.5, z' -3..+3, y 0..8.
  * Рендерер зсуває модель на (CENTER_X, 0, CENTER_Z), тому майстер-блок лишається в клітинці (0, 0).
@@ -129,9 +129,9 @@ public class ModelSubstation330kV {
         // фундамент шафи керування
         LepGeo.boxTiled(t, Substation330.CAB_X, SLAB_H + 0.05D, Substation330.CAB_Z, 0.30D, 0.05D, 0.55D, 0.5D);
 
-        // вихідні кабельні порти: повні блоки 1x1x1 (трохи більші за клітинку, щоб не мерехтіли грані з плитою)
+        // цоколь під кабельними шафами портів (шафа стоїть на ньому, а не просто на плиті)
         for (int lx : Substation330.PORT_LX) {
-            LepGeo.boxTiled(t, Substation330.cellX(lx), 0.5D, Substation330.PORT_Z, 0.502D, 0.5D, 0.502D, 1.0D);
+            LepGeo.boxTiled(t, Substation330.cellX(lx), SLAB_H + 0.02D, Substation330.PORT_Z, 0.46D, 0.02D, 0.46D, 1.0D);
         }
     }
 
@@ -298,6 +298,16 @@ public class ModelSubstation330kV {
             LepGeo.box(t, fx + 0.22D, 0.55D, Substation330.ARR_Z, 0.025D, 0.30D, 0.04D);
         }
 
+        // 5b. фланець під кабель на кожній шафі порту (рамка навколо оранжевої плити)
+        for (int lx : Substation330.PORT_LX) {
+            double cx = Substation330.cellX(lx);
+            double fh = Substation330.PORT_PAD_HALF + 0.07D;
+            LepGeo.box(t, cx, Substation330.PORT_PAD_Y, Substation330.END_Z + 0.012D, fh, fh, 0.012D);
+            // ребра жорсткості-стійки по краях шафи
+            LepGeo.box(t, cx - 0.47D, 0.5D, Substation330.END_Z + 0.006D, 0.03D, 0.47D, 0.006D);
+            LepGeo.box(t, cx + 0.47D, 0.5D, Substation330.END_Z + 0.006D, 0.03D, 0.47D, 0.006D);
+        }
+
         // 6. сторона НН: шини від трьох вводів до верхівок вихідних портів-блоків
         for (int i = 0; i < 3; i++) {
             double portX = Substation330.cellX(Substation330.PORT_LX[i]);
@@ -385,14 +395,26 @@ public class ModelSubstation330kV {
 
     private static void cabinets(Tessellator t) {
         LepGeo.box(t, Substation330.CAB_X, SLAB_H + 0.60D, Substation330.CAB_Z, 0.20D, 0.60D, 0.45D);
+
+        // кабельні шафи вихідних портів: повний блок 1x1x1 (колізія й підключення кабелю NTM), але виглядає як
+        // металева кабельна шафа з дахом-козирком, а не як голий куб
+        for (int lx : Substation330.PORT_LX) {
+            double cx = Substation330.cellX(lx);
+            double cz = Substation330.PORT_Z;
+            // корпус на всю клітинку (на 0.002 більший, щоб грані не мерехтіли з плитою)
+            LepGeo.box(t, cx, 0.5D, cz, 0.502D, 0.5D, 0.502D);
+            // дах-козирок
+            LepGeo.box(t, cx, 1.02D, cz, 0.53D, 0.03D, 0.53D);
+        }
     }
 
     // ------------------------------------------------------------ оранжеві плити на торцях портів
 
     private static void ports(Tessellator t) {
-        // оранжева плита 0.75x0.75 на зовнішній грані порту (z' = +3), туди ставиться кабель NTM
+        // оранжева плита розміром із ядро кабелю NTM (6x6 пікселів) по центру зовнішньої грані порту (z' = +3)
         for (int lx : Substation330.PORT_LX) {
-            padZ(t, Substation330.END_Z + 0.004D, Substation330.cellX(lx), 0.5D, 0.375D);
+            padZ(t, Substation330.END_Z + 0.026D, Substation330.cellX(lx), Substation330.PORT_PAD_Y,
+                Substation330.PORT_PAD_HALF);
         }
     }
 
