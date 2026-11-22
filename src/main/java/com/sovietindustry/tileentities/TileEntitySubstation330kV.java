@@ -23,7 +23,7 @@ import net.minecraftforge.common.util.ForgeDirection;
  */
 public class TileEntitySubstation330kV extends TileEntityLepPylon implements IBundledPylon {
 
-    public static final double MAX_SPAN_330 = 128.0D;
+    public static final double MAX_SPAN_330 = 200.0D;
 
     // ------------------------------------------------------------ геометрія
 

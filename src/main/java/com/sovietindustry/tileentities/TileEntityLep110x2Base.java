@@ -25,6 +25,14 @@ public abstract class TileEntityLep110x2Base extends TileEntityLepPylon implemen
 
     public static final int MAX_PER_MOUNT = 2;
 
+    /** Максимальна довжина прольоту 6-контактних опор 110 кВ у блоках. */
+    public static final double MAX_SPAN_110_X2 = 125.0D;
+
+    @Override
+    public double getMaxWireLength() {
+        return MAX_SPAN_110_X2;
+    }
+
     /** Зв'язки з 3-контактними сусідами: {x, y, z, група}. */
     private final List<int[]> groups = new ArrayList<int[]>();
 

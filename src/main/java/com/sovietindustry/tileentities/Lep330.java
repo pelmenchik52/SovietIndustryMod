@@ -63,6 +63,18 @@ public final class Lep330 {
     public static final double A_JUMPER_DROP = 2.03D;
     public static final double A_JUMPER_Z = 0.22D;
     public static final double A_TOP = 16.9D;
+
+    // Відступ кореня натяжної гірлянди від каркаса (щоб гірлянда не проходила крізь ґратку опори)
+    /** Бічні фази: півсторони зони кінця траверси (по X і Z), всередині якої гірлянда не починається. */
+    public static final double A_SIDE_CLEAR_X = 0.45D;
+    public static final double A_SIDE_CLEAR_Z = 0.55D;
+    /** Центральна фаза: зона тіла опори (X) і рамки центральної голівки (Z) з запасом під диски гірлянди. */
+    public static final double A_CENTER_CLEAR_X = 0.85D;
+    public static final double A_CENTER_CLEAR_Z = 1.25D;
+    /** Верхня межа відступу, щоб підвіска не ставала занадто довгою при дивних кутах. */
+    public static final double A_STANDOFF_MAX = 1.8D;
+    /** Мінімальний відступ, при якому ще малюється сталева підвіска. */
+    public static final double A_STANDOFF_MIN = 0.05D;
     public static final double A_GROUND_Y = 16.9D;
 
     private static final double[][] A_KEYS = {

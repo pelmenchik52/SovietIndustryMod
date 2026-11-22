@@ -15,7 +15,7 @@ import net.minecraft.util.Vec3;
  */
 public abstract class TileEntityLep330Base extends TileEntityLepPylon implements IBundledPylon, IMultiGroundWired {
 
-    public static final double MAX_SPAN_330 = 128.0D;
+    public static final double MAX_SPAN_330 = 200.0D;
 
     /** Локальні координати точок кріплення тросів [x, y, z]. */
     protected abstract double[][] getLocalGround();

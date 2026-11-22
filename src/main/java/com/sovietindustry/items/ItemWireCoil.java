@@ -22,6 +22,7 @@ import com.sovietindustry.tileentities.TileEntityLep110x2;
 import com.sovietindustry.tileentities.TileEntityLep110x2Base;
 import com.sovietindustry.tileentities.TileEntityLep330Angle;
 import com.sovietindustry.tileentities.TileEntityLep330Base;
+import com.sovietindustry.tileentities.TileEntityLep750Base;
 import com.sovietindustry.tileentities.TileEntitySubstation330kV;
 import com.sovietindustry.tileentities.TileEntityLepPylon;
 import com.sovietindustry.tileentities.TileEntitySubstation110kV;
@@ -151,6 +152,11 @@ public class ItemWireCoil extends Item {
         return t instanceof TileEntityLep330Base || t instanceof TileEntitySubstation330kV;
     }
 
+    /** Опори рівня 750 кВ: лінійні опори 750 кВ. */
+    private static boolean is750(TileEntityPylonBase t) {
+        return t instanceof TileEntityLep750Base;
+    }
+
     /**
      * Правила підстанції 330 кВ: вхід приймає дріт ТІЛЬКИ від анкерно-кутової опори 330 кВ (У330-3),
      * і лише один прольот. Повертає текст помилки або null, якщо з'єднання дозволене.
@@ -166,6 +172,26 @@ public class ItemWireCoil extends Item {
         }
         if (!sub.getLinks().isEmpty()) {
             return "The 330 kV substation input is already connected";
+        }
+        return null;
+    }
+
+    /**
+     * Обмеження довжини прольоту за типом опори: 110 кВ 3-контактна 75, 110 кВ 6-контактна 125, 330 кВ 200 блоків.
+     * Для пари береться менший ліміт (6-контактна анкерна з 3-контактною анкерною, значить 75).
+     * Повертає текст помилки або null.
+     */
+    private static String spanCheck(TileEntityPylonBase first, TileEntityPylonBase second) {
+        double limit = Double.MAX_VALUE;
+        if (first instanceof TileEntityLepPylon) limit = Math.min(limit, ((TileEntityLepPylon) first).getMaxWireLength());
+        if (second instanceof TileEntityLepPylon) limit = Math.min(limit, ((TileEntityLepPylon) second).getMaxWireLength());
+        if (limit == Double.MAX_VALUE) return null;
+        double dx = first.xCoord - second.xCoord;
+        double dy = first.yCoord - second.yCoord;
+        double dz = first.zCoord - second.zCoord;
+        double dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        if (dist > limit) {
+            return "Span too long: " + (int) Math.ceil(dist) + " blocks, maximum for this pair is " + (int) limit;
         }
         return null;
     }
@@ -234,8 +260,18 @@ public class ItemWireCoil extends Item {
             msg(player, EnumChatFormatting.RED, "Voltage mismatch: 330 kV towers connect only to 330 kV towers");
             return true;
         }
+        if (first instanceof TileEntityLepPylon && second instanceof TileEntityLepPylon
+            && is750(first) != is750(second)) {
+            msg(player, EnumChatFormatting.RED, "Voltage mismatch: 750 kV towers connect only to 750 kV towers");
+            return true;
+        }
         if (first.getConnectionType() != second.getConnectionType()) {
             msg(player, EnumChatFormatting.RED, "Pylon types do not match (phase count mismatch)");
+            return true;
+        }
+        String spanErr = spanCheck(first, second);
+        if (spanErr != null) {
+            msg(player, EnumChatFormatting.RED, spanErr);
             return true;
         }
         if (TileEntityPylonBase.canConnect(first, second) != 0) {

@@ -25,6 +25,8 @@ public class ModBlocks {
     public static Block lep110x2Angle;
     public static Block lep330;
     public static Block lep330Angle;
+    public static Block lep750;
+    public static Block lep750Angle;
     public static Block substation110kV;
     public static Block substationPort110kV;
     public static Block substation330kV;
@@ -234,6 +236,18 @@ public class ModBlocks {
             .setBlockName("lep330Angle")
             .setCreativeTab(SovietIndustryMod.tabSoviet);
         GameRegistry.registerBlock(lep330Angle, "lep330Angle");
+
+        // Проміжна опора 750 кВ (мультиблок, ширина 9, висота 29)
+        lep750 = new BlockLep750()
+            .setBlockName("lep750")
+            .setCreativeTab(SovietIndustryMod.tabSoviet);
+        GameRegistry.registerBlock(lep750, "lep750");
+
+        // Анкерно-кутова опора 750 кВ (мультиблок, 3 вежі як одна структура, ширина 12, висота 25)
+        lep750Angle = new BlockLep750Angle()
+            .setBlockName("lep750Angle")
+            .setCreativeTab(SovietIndustryMod.tabSoviet);
+        GameRegistry.registerBlock(lep750Angle, "lep750Angle");
 
         substation110kV = new BlockSubstation110kV()
             .setBlockName("substation110kV")

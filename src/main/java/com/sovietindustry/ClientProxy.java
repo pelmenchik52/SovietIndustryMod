@@ -32,8 +32,11 @@ import com.sovietindustry.tileentities.TileEntityLep110x2;
 import com.sovietindustry.tileentities.TileEntityLep110x2Angle;
 import com.sovietindustry.render.RenderLep110x2;
 import com.sovietindustry.render.RenderLep330;
+import com.sovietindustry.render.RenderLep750;
 import com.sovietindustry.tileentities.TileEntityLep330;
 import com.sovietindustry.tileentities.TileEntityLep330Angle;
+import com.sovietindustry.tileentities.TileEntityLep750;
+import com.sovietindustry.tileentities.TileEntityLep750Angle;
 import com.sovietindustry.tileentities.TileEntityPO2Fence;
 
 import cpw.mods.fml.client.registry.ClientRegistry;
@@ -58,6 +61,9 @@ public class ClientProxy extends CommonProxy {
         RenderLep330 l330Renderer = new RenderLep330();
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep330.class, l330Renderer);
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep330Angle.class, l330Renderer);
+        RenderLep750 l750Renderer = new RenderLep750();
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep750.class, l750Renderer);
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep750Angle.class, l750Renderer);
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstation110kV.class, new RenderSubstation110kV());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstation330kV.class, new RenderSubstation330kV());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstationPort110kV.class, new TileEntitySpecialRenderer() {
@@ -96,6 +102,14 @@ public class ClientProxy extends CommonProxy {
         MinecraftForgeClient.registerItemRenderer(
             Item.getItemFromBlock(ModBlocks.lep330Angle),
             new ItemRenderLepPylon(ItemRenderLepPylon.KIND_330_ANGLE)
+        );
+        MinecraftForgeClient.registerItemRenderer(
+            Item.getItemFromBlock(ModBlocks.lep750),
+            new ItemRenderLepPylon(ItemRenderLepPylon.KIND_750)
+        );
+        MinecraftForgeClient.registerItemRenderer(
+            Item.getItemFromBlock(ModBlocks.lep750Angle),
+            new ItemRenderLepPylon(ItemRenderLepPylon.KIND_750_ANGLE)
         );
         MinecraftForgeClient.registerItemRenderer(
             Item.getItemFromBlock(ModBlocks.substation110kV),

@@ -101,8 +101,8 @@ public final class Substation330 {
     /** Центрований z' центра порту і торця плити. */
     public static final double PORT_Z = 2.5D;
     public static final double END_Z = 3.0D;
-    /** Півсторона оранжевої плити кабельного виводу: 6x6 пікселів = розмір ядра кабелю NTM (0.375 блока). */
-    public static final double PORT_PAD_HALF = 0.1875D;
+    /** Півсторона оранжевої плити кабельного виводу: 4x4 пікселі (0.25 блока, півсторона 2/16). */
+    public static final double PORT_PAD_HALF = 2.0D / 16.0D;
     /** Висота центра кабелю над низом блока (кабель NTM лежить по центру клітинки). */
     public static final double PORT_PAD_Y = 0.5D;
 

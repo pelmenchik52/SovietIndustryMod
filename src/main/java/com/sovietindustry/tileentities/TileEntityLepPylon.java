@@ -26,8 +26,8 @@ import net.minecraftforge.common.util.ForgeDirection;
  */
 public abstract class TileEntityLepPylon extends TileEntityPylonBase implements IWiredPylon {
 
-    /** Максимальна довжина прольоту в блоках. */
-    public static final double MAX_SPAN = 96.0D;
+    /** Максимальна довжина прольоту 3-контактних опор 110 кВ у блоках. */
+    public static final double MAX_SPAN = 75.0D;
     /** Максимум з'єднань на одну лінійну опору (вхід + вихід). */
     public static final int MAX_LINE_CONNECTIONS = 2;
 

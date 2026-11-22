@@ -301,7 +301,7 @@ public class ModelSubstation330kV {
         // 5b. фланець під кабель на кожній шафі порту (рамка навколо оранжевої плити)
         for (int lx : Substation330.PORT_LX) {
             double cx = Substation330.cellX(lx);
-            double fh = Substation330.PORT_PAD_HALF + 0.07D;
+            double fh = Substation330.PORT_PAD_HALF + 0.05D;
             LepGeo.box(t, cx, Substation330.PORT_PAD_Y, Substation330.END_Z + 0.012D, fh, fh, 0.012D);
             // ребра жорсткості-стійки по краях шафи
             LepGeo.box(t, cx - 0.47D, 0.5D, Substation330.END_Z + 0.006D, 0.03D, 0.47D, 0.006D);
@@ -411,7 +411,7 @@ public class ModelSubstation330kV {
     // ------------------------------------------------------------ оранжеві плити на торцях портів
 
     private static void ports(Tessellator t) {
-        // оранжева плита розміром із ядро кабелю NTM (6x6 пікселів) по центру зовнішньої грані порту (z' = +3)
+        // оранжева плита 4x4 пікселі по центру зовнішньої грані порту (z' = +3)
         for (int lx : Substation330.PORT_LX) {
             padZ(t, Substation330.END_Z + 0.026D, Substation330.cellX(lx), Substation330.PORT_PAD_Y,
                 Substation330.PORT_PAD_HALF);

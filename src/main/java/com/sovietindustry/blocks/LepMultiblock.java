@@ -10,6 +10,7 @@ import net.minecraft.world.World;
 import com.sovietindustry.tileentities.TileEntityLep110Angle;
 import com.sovietindustry.tileentities.Lep110x2;
 import com.sovietindustry.tileentities.Lep330;
+import com.sovietindustry.tileentities.Lep750;
 import com.sovietindustry.tileentities.Substation330;
 import com.sovietindustry.tileentities.TileEntityLepDummy;
 
@@ -86,6 +87,31 @@ public final class LepMultiblock {
         }
         if (master == ModBlocks.substation330kV) {
             return Substation330.worldBounds(dx, dy, dz, rot);
+        }
+        if (master == ModBlocks.lep750) {
+            if (dx == 0 && dz == 0) return new float[] { 0.2F, 0.0F, 0.2F, 0.8F, 0.15F, 0.8F };
+            double r = p750Reach(dy, rot);
+            for (int side = -1; side <= 1; side += 2) {
+                double[] c = p750LegCentre(rot, side, dy);
+                double x0 = Math.max(0.0D, c[0] - r - (dx - 0.5D)), x1 = Math.min(1.0D, c[0] + r - (dx - 0.5D));
+                double z0 = Math.max(0.0D, c[1] - r - (dz - 0.5D)), z1 = Math.min(1.0D, c[1] + r - (dz - 0.5D));
+                if (x1 - x0 > 0.02D && z1 - z0 > 0.02D) {
+                    return new float[] { (float) x0, 0.0F, (float) z0, (float) x1, 1.0F, (float) z1 };
+                }
+            }
+            return new float[] { 0.45F, 0.0F, 0.45F, 0.55F, 1.0F, 0.55F };
+        }
+        if (master == ModBlocks.lep750Angle) {
+            double r = a750Reach(dy, rot);
+            for (int idx = -1; idx <= 1; idx++) {
+                double[] c = a750TowerCentre(rot, idx);
+                double x0 = Math.max(0.0D, c[0] - r - (dx - 0.5D)), x1 = Math.min(1.0D, c[0] + r - (dx - 0.5D));
+                double z0 = Math.max(0.0D, c[1] - r - (dz - 0.5D)), z1 = Math.min(1.0D, c[1] + r - (dz - 0.5D));
+                if (x1 - x0 > 0.02D && z1 - z0 > 0.02D) {
+                    return new float[] { (float) x0, 0.0F, (float) z0, (float) x1, 1.0F, (float) z1 };
+                }
+            }
+            return new float[] { 0.45F, 0.0F, 0.45F, 0.55F, 1.0F, 0.55F };
         }
         if (master == ModBlocks.lep330) {
             if (dx == 0 && dz == 0) return new float[] { 0.2F, 0.0F, 0.2F, 0.8F, 0.15F, 0.8F };
@@ -448,6 +474,181 @@ public final class LepMultiblock {
                 for (int dz = -2; dz <= 2; dz++) {
                     if (dx == 0 && dz == 0 && dy == 0) continue;
                     if (a330HasBlock(dx, dy, dz)) removeOwnDummy(w, x + dx, y + dy, z + dz, x, y, z);
+                }
+            }
+        }
+    }
+
+    // ------------------------------------------------------------ опори 750 кВ
+
+    /** Півширина колізії стійки проміжної опори 750 кВ. */
+    public static double p750Half(int dy) {
+        return Math.min(0.5D, Lep750.legHalf(dy) + 0.08D);
+    }
+
+    /** Центр стійки на рівні dy відносно центру майстра (x, z) з урахуванням нахилу й повороту. */
+    public static double[] p750LegCentre(float angle, int side, int dy) {
+        double th = Math.toRadians(-angle);
+        double lx = side * Lep750.legCentreX(dy);
+        return new double[] { lx * Math.cos(th), -lx * Math.sin(th) };
+    }
+
+    public static double p750Reach(int dy, float angle) {
+        double th = Math.toRadians(angle);
+        return p750Half(dy) * (Math.abs(Math.cos(th)) + Math.abs(Math.sin(th)));
+    }
+
+    private static List<int[]> p750Cells(float angle, int side, int dy) {
+        double[] c = p750LegCentre(angle, side, dy);
+        double r = p750Reach(dy, angle);
+        int x0 = (int) Math.floor(c[0] - r + 0.5D), x1 = (int) Math.floor(c[0] + r - 1.0E-6D + 0.5D);
+        int z0 = (int) Math.floor(c[1] - r + 0.5D), z1 = (int) Math.floor(c[1] + r - 1.0E-6D + 0.5D);
+        List<int[]> out = new ArrayList<int[]>();
+        for (int cx = x0; cx <= x1; cx++) {
+            for (int cz = z0; cz <= z1; cz++) {
+                out.add(new int[] { cx, cz });
+            }
+        }
+        return out;
+    }
+
+    public static boolean canPlaceP750Any(World w, int x, int y, int z) {
+        return pickP750Angle(w, x, y, z, 0.0F) >= 0.0F;
+    }
+
+    public static float pickP750Angle(World w, int x, int y, int z, float preferred) {
+        for (int k = 0; k <= 6; k++) {
+            for (int sg = -1; sg <= 1; sg += 2) {
+                float a = preferred + sg * 30.0F * k;
+                while (a < 0.0F) a += 360.0F;
+                while (a >= 360.0F) a -= 360.0F;
+                if (canPlaceP750(w, x, y, z, a)) return a;
+                if (k == 0) break;
+            }
+        }
+        return -1.0F;
+    }
+
+    public static boolean canPlaceP750(World w, int x, int y, int z, float angle) {
+        if (!World.doesBlockHaveSolidTopSurface(w, x, y - 1, z)) return false;
+        for (int side = -1; side <= 1; side += 2) {
+            double[] c = p750LegCentre(angle, side, 0);
+            int gx = (int) Math.round(c[0]);
+            int gz = (int) Math.round(c[1]);
+            if (!World.doesBlockHaveSolidTopSurface(w, x + gx, y - 1, z + gz)) return false;
+            for (int dy = 0; dy < Lep750.HEIGHT; dy++) {
+                if (y + dy >= 256) return false;
+                for (int[] cell : p750Cells(angle, side, dy)) {
+                    if (!freeCell(w, x + cell[0], y + dy, z + cell[1])) return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public static void buildP750(World w, int x, int y, int z, float angle) {
+        for (int side = -1; side <= 1; side += 2) {
+            for (int dy = 0; dy < Lep750.HEIGHT; dy++) {
+                for (int[] cell : p750Cells(angle, side, dy)) {
+                    setDummy(w, x + cell[0], y + dy, z + cell[1], x, y, z);
+                }
+            }
+        }
+    }
+
+    public static void removeP750(World w, int x, int y, int z, float angle) {
+        for (int side = -1; side <= 1; side += 2) {
+            for (int dy = 0; dy < Lep750.HEIGHT; dy++) {
+                for (int[] cell : p750Cells(angle, side, dy)) {
+                    removeOwnDummy(w, x + cell[0], y + dy, z + cell[1], x, y, z);
+                }
+            }
+        }
+    }
+
+    // --- Анкерно-кутова 750 кВ (3 вежі як одна структура)
+
+    public static double a750Half(int dy) {
+        return Math.min(0.5D, Lep750.angleHalf(dy) + 0.06D);
+    }
+
+    public static double[] a750TowerCentre(float angle, int towerIdx) {
+        double th = Math.toRadians(-angle);
+        double tx = towerIdx * Lep750.A_TOWER_X;
+        return new double[] { tx * Math.cos(th), -tx * Math.sin(th) };
+    }
+
+    public static double a750Reach(int dy, float angle) {
+        double th = Math.toRadians(angle);
+        return a750Half(dy) * (Math.abs(Math.cos(th)) + Math.abs(Math.sin(th)));
+    }
+
+    private static List<int[]> a750Cells(float angle, int towerIdx, int dy) {
+        double[] c = a750TowerCentre(angle, towerIdx);
+        double r = a750Reach(dy, angle);
+        int x0 = (int) Math.floor(c[0] - r + 0.5D), x1 = (int) Math.floor(c[0] + r - 1.0E-6D + 0.5D);
+        int z0 = (int) Math.floor(c[1] - r + 0.5D), z1 = (int) Math.floor(c[1] + r - 1.0E-6D + 0.5D);
+        List<int[]> out = new ArrayList<int[]>();
+        for (int cx = x0; cx <= x1; cx++) {
+            for (int cz = z0; cz <= z1; cz++) {
+                out.add(new int[] { cx, cz });
+            }
+        }
+        return out;
+    }
+
+    public static boolean canPlaceA750Any(World w, int x, int y, int z) {
+        return pickA750Angle(w, x, y, z, 0.0F) >= 0.0F;
+    }
+
+    public static float pickA750Angle(World w, int x, int y, int z, float preferred) {
+        for (int k = 0; k <= 6; k++) {
+            for (int sg = -1; sg <= 1; sg += 2) {
+                float a = preferred + sg * 30.0F * k;
+                while (a < 0.0F) a += 360.0F;
+                while (a >= 360.0F) a -= 360.0F;
+                if (canPlaceA750(w, x, y, z, a)) return a;
+                if (k == 0) break;
+            }
+        }
+        return -1.0F;
+    }
+
+    public static boolean canPlaceA750(World w, int x, int y, int z, float angle) {
+        if (!World.doesBlockHaveSolidTopSurface(w, x, y - 1, z)) return false;
+        for (int idx = -1; idx <= 1; idx++) {
+            double[] c = a750TowerCentre(angle, idx);
+            int gx = (int) Math.round(c[0]);
+            int gz = (int) Math.round(c[1]);
+            if (!World.doesBlockHaveSolidTopSurface(w, x + gx, y - 1, z + gz)) return false;
+            for (int dy = 0; dy < Lep750.A_HEIGHT; dy++) {
+                if (y + dy >= 256) return false;
+                for (int[] cell : a750Cells(angle, idx, dy)) {
+                    if (idx == 0 && dy == 0 && cell[0] == 0 && cell[1] == 0) continue;
+                    if (!freeCell(w, x + cell[0], y + dy, z + cell[1])) return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public static void buildA750(World w, int x, int y, int z, float angle) {
+        for (int idx = -1; idx <= 1; idx++) {
+            for (int dy = 0; dy < Lep750.A_HEIGHT; dy++) {
+                for (int[] cell : a750Cells(angle, idx, dy)) {
+                    if (idx == 0 && dy == 0 && cell[0] == 0 && cell[1] == 0) continue;
+                    setDummy(w, x + cell[0], y + dy, z + cell[1], x, y, z);
+                }
+            }
+        }
+    }
+
+    public static void removeA750(World w, int x, int y, int z, float angle) {
+        for (int idx = -1; idx <= 1; idx++) {
+            for (int dy = 0; dy < Lep750.A_HEIGHT; dy++) {
+                for (int[] cell : a750Cells(angle, idx, dy)) {
+                    if (idx == 0 && dy == 0 && cell[0] == 0 && cell[1] == 0) continue;
+                    removeOwnDummy(w, x + cell[0], y + dy, z + cell[1], x, y, z);
                 }
             }
         }
