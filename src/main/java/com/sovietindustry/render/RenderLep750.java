@@ -20,6 +20,7 @@ public class RenderLep750 extends TileEntitySpecialRenderer {
     @Override
     public void renderTileEntityAt(TileEntity te, double x, double y, double z, float partialTicks) {
         TileEntityLep750Base lep = (TileEntityLep750Base) te;
+        if (!lep.isSynced()) return;
 
         GL11.glPushMatrix();
         GL11.glTranslated(x + 0.5D, y, z + 0.5D);

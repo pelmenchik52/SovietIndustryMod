@@ -85,7 +85,8 @@ public class BlockLepDummy extends BlockContainer {
         return b == ModBlocks.lep110v1 || b == ModBlocks.lep110Angle || b == ModBlocks.substation110kV
             || b == ModBlocks.lep110x2 || b == ModBlocks.lep110x2Angle
             || b == ModBlocks.lep330 || b == ModBlocks.lep330Angle
-            || b == ModBlocks.substation330kV;
+            || b == ModBlocks.substation330kV
+            || b == ModBlocks.lep750 || b == ModBlocks.lep750Angle;
     }
 
     @Override
@@ -137,6 +138,8 @@ public class BlockLepDummy extends BlockContainer {
     public void onNeighborBlockChange(World world, int x, int y, int z, Block neighbor) {
         if (world.isRemote) return;
         TileEntityLepDummy d = getDummy(world, x, y, z);
+        // чанк майстра ще не завантажений (опора між чанками): world.getBlock() дав би повітря й знищив би всю опору
+        if (d != null && !world.blockExists(d.mx, d.my, d.mz)) return;
         // без валідного майстра (наприклад, dummy зі старого світу) самознищуємось
         if (d == null || !isTower(world.getBlock(d.mx, d.my, d.mz))) {
             world.setBlockToAir(x, y, z);

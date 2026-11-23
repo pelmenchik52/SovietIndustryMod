@@ -80,21 +80,21 @@ public abstract class TileEntityLep750Base extends TileEntityLepPylon implements
 
     @Override
     protected double renderHeight() {
-        return 28.0D;
+        return 36.0D;
     }
 
     @Override
     @SideOnly(Side.CLIENT)
     public AxisAlignedBB getRenderBoundingBox() {
-        double minX = xCoord - 25.0D, minY = yCoord - 1.0D, minZ = zCoord - 25.0D;
-        double maxX = xCoord + 26.0D, maxY = yCoord + renderHeight(), maxZ = zCoord + 26.0D;
+        double minX = xCoord - 40.0D, minY = yCoord - 1.0D, minZ = zCoord - 40.0D;
+        double maxX = xCoord + 41.0D, maxY = yCoord + renderHeight(), maxZ = zCoord + 41.0D;
         for (int[] p : getLinks()) {
-            minX = Math.min(minX, p[0] - 25.0D);
+            minX = Math.min(minX, p[0] - 40.0D);
             minY = Math.min(minY, p[1] - 1.0D);
-            minZ = Math.min(minZ, p[2] - 25.0D);
-            maxX = Math.max(maxX, p[0] + 26.0D);
-            maxY = Math.max(maxY, p[1] + 28.0D);
-            maxZ = Math.max(maxZ, p[2] + 26.0D);
+            minZ = Math.min(minZ, p[2] - 40.0D);
+            maxX = Math.max(maxX, p[0] + 41.0D);
+            maxY = Math.max(maxY, p[1] + 36.0D);
+            maxZ = Math.max(maxZ, p[2] + 41.0D);
         }
         return AxisAlignedBB.getBoundingBox(minX, minY, minZ, maxX, maxY, maxZ);
     }

@@ -6,35 +6,41 @@ public final class Lep750 {
 
     public static final double MAX_SPAN_750 = 250.0D;
 
-    // Поздовжні подвійні гірлянди + розщеплена фаза з 4 проводів квадратом
+    // Подвійні гірлянди вздовж лінії + розщеплена фаза з 4 проводів квадратом
     public static final int STRINGS = 2;
-    public static final double STRING_SPACING = 0.70D; // рознос гірлянд уздовж осі Z (вздовж дроту)
+    public static final double STRING_SPACING = 0.70D;
     public static final int WIRES_PER_STRING = 4;
     public static final double BUNDLE_HALF = 0.22D;
     public static final double WIRE_SPACING = BUNDLE_HALF * 2.0D;
 
-    // ---------------------------------------------------------------- проміжна опора (Фото 2: два трикутники)
-    /** Висота ~24 блоки (з масивними рогами), ширина траверси 18 блоків. */
-    public static final int HEIGHT = 24;
+    // ---------------------------------------------------------------- проміжна опора ПП750 (Креслення 1)
+    public static final int HEIGHT = 25;
 
-    public static final double LEG_BASE_X = 4.6D;
-    public static final double LEG_TOP_Y = 19.5D;
-    public static final double LEG_TOP_X = 3.8D;
+    // Пропорції з креслення: основа 16600, верх ніг 17000 (половина 8500), виліт консолі 18000
+    public static final double LEG_BASE_X = 11.8D;
+    public static final double LEG_TOP_X = 6.2D;
+    public static final double LEG_TOP_Y = 20.5D;
 
-    public static final double ARM_Y = 19.5D;
-    public static final double ARM_HALF = 9.0D; // ширина траверси 18 блоків (-9.0 .. +9.0)
+    public static final double ARM_HALF = 13.4D;
+    /** Нижній пояс траверси на краях і в центрі. */
+    public static final double ARM_Y = 22.8D;
+    /** Верхній пояс траверси над ногами. */
+    public static final double ARM_TOP_LEG_Y = 24.2D;
+    /** Верхній пояс траверси в центрі (підйом «чайкою» як на кресленні ПП750). */
+    public static final double ARM_TOP_MID_Y = 25.0D;
 
-    public static final double HORN_TOP_Y = 23.4D;
-    public static final double HORN_TOP_X = 4.8D;
-    public static final double GROUND_X = 5.2D;
-    public static final double GROUND_Y = 23.0D;
+    public static final double HORN_TOP_Y = 29.2D;
+    public static final double HORN_SPREAD = 2.4D;
+    public static final double HORN_TIP_OUT = 1.35D;
+    public static final double GROUND_X = LEG_TOP_X + HORN_SPREAD + HORN_TIP_OUT;
+    public static final double GROUND_Y = HORN_TOP_Y - 0.15D;
 
-    public static final double[] PHASE_X = { -8.2D, 0.0D, 8.2D };
+    public static final double[] PHASE_X = { -13.0D, 0.0D, 13.0D };
 
     public static final int DISCS = 20;
     public static final double STRING_TOP = ARM_Y - 0.10D;
-    public static final double YOKE_Y = 15.55D;
-    public static final double MOUNT_Y = 15.15D;
+    public static final double YOKE_Y = ARM_Y - 3.95D;
+    public static final double MOUNT_Y = ARM_Y - 4.35D;
 
     public static double discY(int k) {
         return STRING_TOP - 0.28D - k * 0.175D;
@@ -46,23 +52,36 @@ public final class Lep750 {
     }
 
     public static double legHalf(double y) {
-        double f = Math.max(0.0D, Math.min(1.0D, y / LEG_TOP_Y));
-        return 0.52D + (0.34D - 0.52D) * f;
+        // По всій висоті нога однакової ширини (0.62), а біля самого фундаменту (нижні 2.2 блока)
+        // звужується гострим трикутним конусом у точку опори (як на кресленні ПП750)
+        if (y < 2.2D) {
+            return 0.08D + (0.62D - 0.08D) * (y / 2.2D);
+        }
+        return 0.62D;
     }
 
-    public static double hornCentreX(double y) {
-        double f = Math.max(0.0D, Math.min(1.0D, (y - LEG_TOP_Y) / (HORN_TOP_Y - LEG_TOP_Y)));
-        return LEG_TOP_X + (HORN_TOP_X - LEG_TOP_X) * f;
+    /** Профіль нижнього пояса траверси: 0 на краях і в центрі, 1 над вершинами ніг. */
+    public static double armTri(double ax) {
+        ax = Math.abs(ax);
+        if (ax <= LEG_TOP_X) return ax / LEG_TOP_X;
+        return Math.max(0.0D, 1.0D - (ax - LEG_TOP_X) / (ARM_HALF - LEG_TOP_X));
     }
 
-    public static double hornHalf(double y) {
-        double f = Math.max(0.0D, Math.min(1.0D, (y - LEG_TOP_Y) / (HORN_TOP_Y - LEG_TOP_Y)));
-        return 0.34D + (0.18D - 0.34D) * f;
+    /** Висота нижнього пояса траверси в точці x. */
+    public static double armBottomY(double x) {
+        return ARM_Y - (ARM_Y - LEG_TOP_Y) * armTri(x);
     }
 
-    // Відтяжки проміжної опори
-    public static final double GUY_ANCHOR_X = 6.2D;
-    public static final double GUY_ANCHOR_Z = 6.5D;
+    /** Висота верхнього пояса траверси (двоскатний злам на кресленні ПП750). */
+    public static double armTopY(double x) {
+        double ax = Math.abs(x);
+        if (ax <= LEG_TOP_X) {
+            double f = 1.0D - ax / LEG_TOP_X;
+            return ARM_TOP_LEG_Y + (ARM_TOP_MID_Y - ARM_TOP_LEG_Y) * f;
+        }
+        double f = Math.min(1.0D, (ax - LEG_TOP_X) / (ARM_HALF - LEG_TOP_X));
+        return ARM_TOP_LEG_Y + (ARM_Y - ARM_TOP_LEG_Y) * f;
+    }
 
     public static double[][] pMounts() {
         return new double[][] {
@@ -72,27 +91,62 @@ public final class Lep750 {
         };
     }
 
-    // ---------------------------------------------------------------- анкерно-кутова опора (Фото 1: широка база + стрімка верхня секція)
-    /** Висота ~20.5 блока, три вежі на X = -8.5, 0, +8.5 (ширина по базі ~20.5 блоків). */
-    public static final int A_HEIGHT = 20;
-    public static final double A_NECK_Y = 14.5D; // рівень перемички, де закінчується широка нижня башта
-    public static final double A_TOP = 20.0D;
-    public static final double A_TOWER_X = 8.5D;
+    // ---------------------------------------------------------------- анкерно-кутова опора УС750-1 (Креслення 2)
+    // Пропорції з креслення УС750-1:
+    // Крок між вежами = 21000 мм -> беремо 15.0 блоків (коеф. ~0.714 блока на 1000 мм)
+    // Ширина основи вежі = 8770 мм -> півширина 3.15 блока (повна ширина 6.3 блока, а не 12.4!)
+    // Ширина на переломі (20000 мм) = 1800 мм -> півширина 0.68 блока
+    // Висота перелому = 15.5 блоків; верх бічних веж (+9100 мм) = 22.2 блоків
+    public static final int A_HEIGHT = 23;
+    public static final double A_NECK_Y = 15.5D;
+    public static final double A_MID_TOP = 16.2D;
+    public static final double A_TOP = 22.2D;
+    public static final double A_BASE_HALF = 3.15D;
+    public static final double A_NECK_HALF = 0.68D;
+    public static final double A_TOP_HALF = 0.36D;
+    public static final double A_TOWER_X = 15.0D;
 
-    public static final double A_MOUNT_Y = 14.5D;
-    public static final double A_STRING_LEN = 3.4D;
-    public static final double A_GROUND_Y = 20.0D;
-    public static final double A_CORONA_RING_R = 0.48D;
-    public static final double A_STANDOFF = 0.95D;
+    public static final double A_MOUNT_Y = 15.2D;
+    public static final double A_STRING_LEN = 3.2D;
+    public static final double A_GROUND_Y = A_TOP + 0.35D;
+    public static final double A_CORONA_RING_R = 0.44D;
+    public static final double A_STANDOFF = 1.25D;
 
-    /** Двосекційний профіль вежі: широка основа (1.65) до перемички (0.52) і вузька стрімка верхня секція (0.52 -> 0.16). */
+    /** Ліва вежа (idx = -1): мала трикутна консоль вправо (3850 мм на кресленні -> 2.8 блока). */
+    public static final double A_LEFT_ARM_LEN = 2.8D;
+    public static final double A_LEFT_ARM_DEPTH = 1.35D;
+
+    /** Права вежа (idx = 1): велика консоль-прапор вправо (10500 мм на кресленні -> 7.5 блока). */
+    public static final double A_ARM_Y = A_TOP;
+    public static final double A_ARM_DEPTH = 2.1D;
+    public static final double A_ARM_LEN = 7.5D;
+    public static final double A_ARM_RISE = 0.0D;
+    public static final double A_JUMP_Z = 0.35D;
+    public static final double A_JUMP_LEN = 3.8D;
+    public static final int A_JUMPER_MOUNT = 2;
+
+    /** Бічна підтримка шлейфу фаз 0 і 1: горизонтальна гірлянда від сусідньої вежі. */
+    public static final double A_SUP_REACH = 3.2D;
+    public static final double A_SUP_STUB = 0.65D;
+
+    /** Точка кріплення похилої підтримувальної гірлянди на сусідній вежі (вище точки кріплення фази, як на фото). */
+    public static double[] aSupportAttach(int mount) {
+        double attachY = A_MOUNT_Y + 3.6D;
+        return new double[] { mount * A_TOWER_X - (angleHalf(attachY) + A_SUP_STUB), attachY, 0.0D };
+    }
+
+    /** Кінець підтримувальної гірлянди (нахилена вниз до точки обходу шлейфу). */
+    public static double[] aSupportEnd(int mount) {
+        return new double[] { (mount - 1) * A_TOWER_X + 3.4D, A_MOUNT_Y + 0.6D, 0.0D };
+    }
+
     public static double angleHalf(double y) {
         if (y <= A_NECK_Y) {
             double f = Math.max(0.0D, y / A_NECK_Y);
-            return 1.65D + (0.52D - 1.65D) * f;
+            return A_BASE_HALF + (A_NECK_HALF - A_BASE_HALF) * f;
         }
         double f = Math.min(1.0D, (y - A_NECK_Y) / (A_TOP - A_NECK_Y));
-        return 0.52D + (0.16D - 0.52D) * f;
+        return A_NECK_HALF + (A_TOP_HALF - A_NECK_HALF) * f;
     }
 
     public static double[][] aMounts() {
@@ -100,6 +154,17 @@ public final class Lep750 {
             { -A_TOWER_X, A_MOUNT_Y, 0.0D },
             {  0.0D,      A_MOUNT_Y, 0.0D },
             {  A_TOWER_X, A_MOUNT_Y, 0.0D }
+        };
+    }
+
+    /** Верхні підвісні гірлянди правої вежі: {верх, низ}, локальні координати. */
+    public static double[][][] aJumperStrings() {
+        double x = A_TOWER_X + A_ARM_LEN;
+        double top = A_ARM_Y - 0.1D;
+        double bot = top - A_JUMP_LEN;
+        return new double[][][] {
+            { { x, top,  A_JUMP_Z }, { x, bot,  A_JUMP_Z } },
+            { { x, top, -A_JUMP_Z }, { x, bot, -A_JUMP_Z } }
         };
     }
 }

@@ -235,25 +235,25 @@ public class ItemRenderLepPylon implements IItemRenderer {
         switch (type) {
             case INVENTORY:
                 GL11.glTranslatef(0.0F, -0.48F, 0.0F);
-                GL11.glScalef(0.024F, 0.024F, 0.024F);
+                GL11.glScalef(0.011F, 0.011F, 0.011F);
                 GL11.glRotatef(25.0F, 0.0F, 1.0F, 0.0F);
                 break;
             case EQUIPPED:
                 GL11.glTranslatef(0.5F, 0.15F, 0.5F);
-                GL11.glScalef(0.032F, 0.032F, 0.032F);
+                GL11.glScalef(0.012F, 0.012F, 0.012F);
                 GL11.glRotatef(35.0F, 0.0F, 1.0F, 0.0F);
                 break;
             case EQUIPPED_FIRST_PERSON:
                 GL11.glTranslatef(0.55F, 0.05F, 0.45F);
-                GL11.glScalef(0.028F, 0.028F, 0.028F);
+                GL11.glScalef(0.013F, 0.013F, 0.013F);
                 GL11.glRotatef(-35.0F, 0.0F, 1.0F, 0.0F);
                 break;
             case ENTITY:
                 GL11.glTranslatef(0.0F, -0.25F, 0.0F);
-                GL11.glScalef(0.025F, 0.025F, 0.025F);
+                GL11.glScalef(0.012F, 0.012F, 0.012F);
                 break;
             default:
-                GL11.glScalef(0.025F, 0.025F, 0.025F);
+                GL11.glScalef(0.012F, 0.012F, 0.012F);
                 break;
         }
     }

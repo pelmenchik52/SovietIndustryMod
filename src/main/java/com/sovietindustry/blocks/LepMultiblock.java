@@ -568,10 +568,11 @@ public final class LepMultiblock {
 
     // --- Анкерно-кутова 750 кВ (3 вежі як одна структура)
 
-    // --- Анкерно-кутова 750 кВ (3 вежі як одна структура)
+
+   // --- Анкерно-кутова 750 кВ (3 вежі як одна структура)
 
     public static double a750Half(int dy) {
-        return Lep750.angleHalf(dy) + 0.06D;
+        return Lep750.angleHalf(dy) + 0.05D;
     }
 
     public static double[] a750TowerCentre(float angle, int towerIdx) {
@@ -583,6 +584,11 @@ public final class LepMultiblock {
     public static double a750Reach(int dy, float angle) {
         double th = Math.toRadians(angle);
         return a750Half(dy) * (Math.abs(Math.cos(th)) + Math.abs(Math.sin(th)));
+    }
+
+    private static int a750TowerHeight(int idx) {
+        // Середня вежа на кресленні УС750-1 нижча за бічні (без верхньої тросостійки)
+        return (idx == 0) ? (int) Math.ceil(Lep750.A_MID_TOP) : Lep750.A_HEIGHT;
     }
 
     private static List<int[]> a750Cells(float angle, int towerIdx, int dy) {
@@ -623,7 +629,8 @@ public final class LepMultiblock {
             int gx = (int) Math.round(c[0]);
             int gz = (int) Math.round(c[1]);
             if (!World.doesBlockHaveSolidTopSurface(w, x + gx, y - 1, z + gz)) return false;
-            for (int dy = 0; dy < Lep750.A_HEIGHT; dy++) {
+            int maxH = a750TowerHeight(idx);
+            for (int dy = 0; dy < maxH; dy++) {
                 if (y + dy >= 256) return false;
                 for (int[] cell : a750Cells(angle, idx, dy)) {
                     if (idx == 0 && dy == 0 && cell[0] == 0 && cell[1] == 0) continue;
@@ -636,7 +643,8 @@ public final class LepMultiblock {
 
     public static void buildA750(World w, int x, int y, int z, float angle) {
         for (int idx = -1; idx <= 1; idx++) {
-            for (int dy = 0; dy < Lep750.A_HEIGHT; dy++) {
+            int maxH = a750TowerHeight(idx);
+            for (int dy = 0; dy < maxH; dy++) {
                 for (int[] cell : a750Cells(angle, idx, dy)) {
                     if (idx == 0 && dy == 0 && cell[0] == 0 && cell[1] == 0) continue;
                     setDummy(w, x + cell[0], y + dy, z + cell[1], x, y, z);
@@ -647,7 +655,8 @@ public final class LepMultiblock {
 
     public static void removeA750(World w, int x, int y, int z, float angle) {
         for (int idx = -1; idx <= 1; idx++) {
-            for (int dy = 0; dy < Lep750.A_HEIGHT; dy++) {
+            int maxH = a750TowerHeight(idx);
+            for (int dy = 0; dy < maxH; dy++) {
                 for (int[] cell : a750Cells(angle, idx, dy)) {
                     if (idx == 0 && dy == 0 && cell[0] == 0 && cell[1] == 0) continue;
                     removeOwnDummy(w, x + cell[0], y + dy, z + cell[1], x, y, z);

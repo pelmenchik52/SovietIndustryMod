@@ -34,6 +34,13 @@ public abstract class TileEntityLepPylon extends TileEntityPylonBase implements 
     /** Кут повороту навколо Y в градусах (крок 30°). */
     public float angle = 0.0F;
 
+    /** Клієнт: true, коли від сервера вже прийшли дані (кут і дроти). До цього опору й дроти не малюємо. */
+    private boolean clientSynced = false;
+
+    public boolean isSynced() {
+        return worldObj == null || !worldObj.isRemote || clientSynced;
+    }
+
     /** Локальні точки кріплення [pin][x,y,z] (блоки, від центру основи, до повороту). */
     protected abstract double[][] getLocalMounts();
 
@@ -160,6 +167,7 @@ public abstract class TileEntityLepPylon extends TileEntityPylonBase implements 
     public void readFromNBT(NBTTagCompound nbt) {
         super.readFromNBT(nbt);
         angle = nbt.getFloat("angle");
+        if (worldObj != null && worldObj.isRemote) clientSynced = true;
     }
 
     @Override
