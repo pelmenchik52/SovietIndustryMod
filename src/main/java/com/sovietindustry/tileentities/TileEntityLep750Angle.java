@@ -41,16 +41,17 @@ public class TileEntityLep750Angle extends TileEntityLep750Base implements IStan
         return Lep750.A_STRING_LEN;
     }
 
-    @Override
+   @Override
     public Vec3[] getSideSupport(int mount) {
-        if (mount < 0 || mount > 1) return null;
-        double[][] loc = { Lep750.aSupportAttach(mount), Lep750.aSupportEnd(mount) };
-        Vec3[] r = new Vec3[2];
-        for (int i = 0; i < 2; i++) {
-            double[] w = toWorldOffset(loc[i][0], loc[i][1], loc[i][2]);
-            r[i] = Vec3.createVectorHelper(0.5D + w[0], w[1], 0.5D + w[2]);
-        }
-        return r;
+        double[] a = Lep750.aSupportAttach(mount);
+        double[] b = Lep750.aSupportEnd(mount);
+        if (a == null || b == null) return null;
+        double[] wa = toWorldOffset(a[0], a[1], a[2]);
+        double[] wb = toWorldOffset(b[0], b[1], b[2]);
+        return new Vec3[] {
+            Vec3.createVectorHelper(0.5D + wa[0], wa[1], 0.5D + wa[2]),
+            Vec3.createVectorHelper(0.5D + wb[0], wb[1], 0.5D + wb[2])
+        };
     }
 
     @Override

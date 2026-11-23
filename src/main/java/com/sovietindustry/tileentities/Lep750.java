@@ -113,8 +113,9 @@ public final class Lep750 {
     public static final double A_STANDOFF = 1.25D;
 
     /** Ліва вежа (idx = -1): мала трикутна консоль вправо (3850 мм на кресленні -> 2.8 блока). */
-    public static final double A_LEFT_ARM_LEN = 2.8D;
-    public static final double A_LEFT_ARM_DEPTH = 1.35D;
+    public static final double A_LEFT_ARM_LEN = 4.2D;
+    public static final double A_LEFT_ARM_DEPTH = 1.6D;
+    public static final double A_LEFT_JUMP_LEN = 4.2D;
 
     /** Права вежа (idx = 1): велика консоль-прапор вправо (10500 мм на кресленні -> 7.5 блока). */
     public static final double A_ARM_Y = A_TOP;
@@ -131,16 +132,16 @@ public final class Lep750 {
 
     /** Точка кріплення похилої підтримувальної гірлянди на сусідній вежі (вище точки кріплення фази, як на фото). */
     public static double[] aSupportAttach(int mount) {
-        // mount=0 (ліва фаза) -> кріпиться до центральної вежі (towerIdx = 0)
-        // mount=1 (центральна фаза) -> кріпиться до правої вежі (towerIdx = 1)
-        int supportTowerIdx = mount;
+        if (mount != 1) return null;
         double attachY = A_NECK_Y;
-        return new double[] { supportTowerIdx * A_TOWER_X - (angleHalf(attachY) + 0.35D), attachY, 0.0D };
+        // Правий край лівої вежі (-A_TOWER_X + halfWidth)
+        return new double[] { -A_TOWER_X + (angleHalf(attachY) + 0.35D), attachY, 0.0D };
     }
 
     public static double[] aSupportEnd(int mount) {
-        int phaseTowerIdx = mount - 1;
-        return new double[] { phaseTowerIdx * A_TOWER_X + 3.4D, A_MOUNT_Y + 0.4D, 0.0D };
+        if (mount != 1) return null;
+        // Шлейф середньої вежі обходить її зліва (-3.4D)
+        return new double[] { -3.4D, A_MOUNT_Y + 0.4D, 0.0D };
     }
 
     public static double angleHalf(double y) {
@@ -161,6 +162,17 @@ public final class Lep750 {
     }
 
     /** Верхні підвісні гірлянди правої вежі: {верх, низ}, локальні координати. */
+   public static double[][][] aLeftJumperStrings() {
+        double x = -A_TOWER_X + A_LEFT_ARM_LEN;
+        double top = A_TOP - 0.1D;
+        double bot = top - A_LEFT_JUMP_LEN;
+        return new double[][][] {
+            { { x, top,  A_JUMP_Z }, { x, bot,  A_JUMP_Z } },
+            { { x, top, -A_JUMP_Z }, { x, bot, -A_JUMP_Z } }
+        };
+    }
+
+    /** Верхні підвісні гірлянди правої вежі (mount = 2): {верх, низ}, локальні координати. */
     public static double[][][] aJumperStrings() {
         double x = A_TOWER_X + A_ARM_LEN;
         double top = A_ARM_Y - 0.1D;

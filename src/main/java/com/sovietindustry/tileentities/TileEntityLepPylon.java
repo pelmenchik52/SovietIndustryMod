@@ -2,6 +2,8 @@ package com.sovietindustry.tileentities;
 
 import java.util.ArrayList;
 import java.util.List;
+import com.sovietindustry.SovietIndustryMod;
+import com.sovietindustry.network.PacketRequestPylonSync;
 
 import com.hbm.tileentity.network.TileEntityPylonBase;
 import com.sovietindustry.api.IWiredPylon;
@@ -36,6 +38,9 @@ public abstract class TileEntityLepPylon extends TileEntityPylonBase implements 
 
     /** Клієнт: true, коли від сервера вже прийшли дані (кут і дроти). До цього опору й дроти не малюємо. */
     private boolean clientSynced = false;
+
+    private int syncRequestCooldown = 0;
+
 
     public boolean isSynced() {
         return worldObj == null || !worldObj.isRemote || clientSynced;
@@ -202,22 +207,26 @@ public abstract class TileEntityLepPylon extends TileEntityPylonBase implements 
     @Override
     @SideOnly(Side.CLIENT)
     public AxisAlignedBB getRenderBoundingBox() {
-        double minX = xCoord - 5.0D, minY = yCoord - 1.0D, minZ = zCoord - 5.0D;
-        double maxX = xCoord + 6.0D, maxY = yCoord + renderHeight(), maxZ = zCoord + 6.0D;
-        for (int[] p : getLinks()) {
-            minX = Math.min(minX, p[0] - 5.0D);
-            minY = Math.min(minY, p[1] - 1.0D);
-            minZ = Math.min(minZ, p[2] - 5.0D);
-            maxX = Math.max(maxX, p[0] + 6.0D);
-            maxY = Math.max(maxY, p[1] + 20.0D);
-            maxZ = Math.max(maxZ, p[2] + 6.0D);
-        }
-        return AxisAlignedBB.getBoundingBox(minX, minY, minZ, maxX, maxY, maxZ);
+        return INFINITE_EXTENT_AABB;
     }
 
     @Override
     @SideOnly(Side.CLIENT)
     public double getMaxRenderDistanceSquared() {
         return 65536.0D;
+    }
+
+    @Override
+    public void updateEntity() {
+        super.updateEntity();
+        // Якщо клієнт завантажив чанк, але ще не отримав S35PacketUpdateTileEntity з кутом та проводами:
+        if (worldObj != null && worldObj.isRemote && !clientSynced) {
+            if (syncRequestCooldown <= 0) {
+                SovietIndustryMod.network.sendToServer(new PacketRequestPylonSync(xCoord, yCoord, zCoord));
+                syncRequestCooldown = 20; // повторюємо раз на секунду, доки сервер не надішле пакет
+            } else {
+                syncRequestCooldown--;
+            }
+        }
     }
 }
