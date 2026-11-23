@@ -30,6 +30,7 @@ public class ModBlocks {
     public static Block substation110kV;
     public static Block substationPort110kV;
     public static Block substation330kV;
+    public static Block substation750kV;
     public static Block lep110Dummy;
 
     // Нові будівельні блоки та конструкції
@@ -263,6 +264,12 @@ public class ModBlocks {
             .setBlockName("substation330kV")
             .setCreativeTab(SovietIndustryMod.tabSoviet);
         GameRegistry.registerBlock(substation330kV, "substation330kV");
+
+        // Трансформаторна підстанція 750 кВ (мультиблок 9x9x15): вхід лише від анкерно-кутової 750 кВ, 4 кабельні виводи NTM
+        substation750kV = new BlockSubstation750kV()
+            .setBlockName("substation750kV")
+            .setCreativeTab(SovietIndustryMod.tabSoviet);
+        GameRegistry.registerBlock(substation750kV, "substation750kV");
     }
 
     public static void registerRenderers() {

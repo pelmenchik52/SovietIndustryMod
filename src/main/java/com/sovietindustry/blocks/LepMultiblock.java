@@ -14,6 +14,7 @@ import com.sovietindustry.tileentities.Lep110x2;
 import com.sovietindustry.tileentities.Lep330;
 import com.sovietindustry.tileentities.Lep750;
 import com.sovietindustry.tileentities.Substation330;
+import com.sovietindustry.tileentities.Substation750;
 import com.sovietindustry.tileentities.TileEntityLepDummy;
 
 /**
@@ -103,6 +104,9 @@ public final class LepMultiblock {
     public static float[] bounds(Block master, int dx, int dy, int dz, float rot) {
         if (master == ModBlocks.substation110kV) {
             return substationBounds(dx, dy, dz);
+        }
+        if (master == ModBlocks.substation750kV) {
+            return Substation750.worldBounds(dx, dy, dz, rot);
         }
         if (master == ModBlocks.substation330kV) {
             return Substation330.worldBounds(dx, dy, dz, rot);

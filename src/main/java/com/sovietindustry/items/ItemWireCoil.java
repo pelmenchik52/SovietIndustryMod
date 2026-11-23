@@ -22,7 +22,9 @@ import com.sovietindustry.tileentities.TileEntityLep110x2;
 import com.sovietindustry.tileentities.TileEntityLep110x2Base;
 import com.sovietindustry.tileentities.TileEntityLep330Angle;
 import com.sovietindustry.tileentities.TileEntityLep330Base;
+import com.sovietindustry.tileentities.TileEntityLep750Angle;
 import com.sovietindustry.tileentities.TileEntityLep750Base;
+import com.sovietindustry.tileentities.TileEntitySubstation750kV;
 import com.sovietindustry.tileentities.TileEntitySubstation330kV;
 import com.sovietindustry.tileentities.TileEntityLepPylon;
 import com.sovietindustry.tileentities.TileEntitySubstation110kV;
@@ -154,7 +156,7 @@ public class ItemWireCoil extends Item {
 
     /** Опори рівня 750 кВ: лінійні опори 750 кВ. */
     private static boolean is750(TileEntityPylonBase t) {
-        return t instanceof TileEntityLep750Base;
+        return t instanceof TileEntityLep750Base || t instanceof TileEntitySubstation750kV;
     }
 
     /**
@@ -172,6 +174,25 @@ public class ItemWireCoil extends Item {
         }
         if (!sub.getLinks().isEmpty()) {
             return "The 330 kV substation input is already connected";
+        }
+        return null;
+    }
+
+    /**
+     * Правила підстанції 750 кВ: вхід приймає дріт ТІЛЬКИ від анкерно-кутової опори 750 кВ і лише один проліт.
+     * Повертає текст помилки або null, якщо з'єднання дозволене.
+     */
+    private static String substation750Check(TileEntityPylonBase first, TileEntityPylonBase second) {
+        boolean a = first instanceof TileEntitySubstation750kV;
+        boolean b = second instanceof TileEntitySubstation750kV;
+        if (!a && !b) return null;
+        TileEntitySubstation750kV sub = (TileEntitySubstation750kV) (a ? first : second);
+        TileEntityPylonBase other = a ? second : first;
+        if (!(other instanceof TileEntityLep750Angle)) {
+            return "The 750 kV substation accepts a wire only from a 750 kV angle tower";
+        }
+        if (!sub.getLinks().isEmpty()) {
+            return "The 750 kV substation input is already connected";
         }
         return null;
     }
@@ -285,6 +306,11 @@ public class ItemWireCoil extends Item {
         String subErr = substation330Check(first, second);
         if (subErr != null) {
             msg(player, EnumChatFormatting.RED, subErr);
+            return true;
+        }
+        String sub750Err = substation750Check(first, second);
+        if (sub750Err != null) {
+            msg(player, EnumChatFormatting.RED, sub750Err);
             return true;
         }
         String sixErr = sixWireCheck(first, second);

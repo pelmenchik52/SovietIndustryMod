@@ -425,10 +425,10 @@ public final class LepWireRenderer {
                         double[] zAxis = (te instanceof TileEntityLepPylon)
                             ? ((TileEntityLepPylon) te).toWorldOffset(0.0D, 0.0D, 1.0D)
                             : new double[] { 0.0D, 0.0D, 1.0D };
-                        // коронні кільця надіті на пучок у вершині дуги (перпендикулярно проводу, а не гірлянді)
-                        endFitting(t, new double[][] { m }, supTan.get(si0), bun);
-                        // сталева хомутина від кільця до коренів обох гірлянд-перемичок
-                        double[] ringPt = shift(m, u, -(SUP_RING_OFF - 0.06D));
+                        // дистанційна розпірка пучка 4 проводів у вершині (квадратна рамка з хрестовиною й затискачами)
+                        spacerFrame(t, m, supTan.get(si0));
+                        // тяга від краю рамки до коромисла з коренями обох гірлянд-перемичок
+                        double[] ringPt = shift(m, u, -Lep750.BUNDLE_HALF);
                         double[] first = null, last = null;
                         for (int si = 0; si < bun.getStringsPerMount(); si++) {
                             double[] r = shift(b, zAxis, stringOffset(bun, si));
@@ -1053,6 +1053,33 @@ public final class LepWireRenderer {
         // Арматура на кінцях гірлянди
         LepGeo.beam(t, sx, sy, sz, sx + ux * 0.10D, sy + uy * 0.10D, sz + uz * 0.10D, 0.12D);
         LepGeo.beam(t, b[0] - ux * 0.10D, b[1] - uy * 0.10D, b[2] - uz * 0.10D, b[0], b[1], b[2], 0.13D);
+    }
+
+    /**
+     * Дистанційна розпірка пучка 750 кВ: квадратна рамка зі стороною 2*BUNDLE_HALF, хрестовина по діагоналях
+     * й затискач на кожному з 4 проводів. Площина рамки перпендикулярна проводу (u).
+     */
+    private static void spacerFrame(Tessellator t, double[] c, double[] u) {
+        double ax = u[1] * 0.0D - u[2] * 1.0D, ay = u[2] * 0.0D - u[0] * 0.0D, az = u[0] * 1.0D - u[1] * 0.0D;
+        // a = u x up
+        double la = Math.sqrt(ax * ax + ay * ay + az * az);
+        if (la < 1.0E-6D) return;
+        ax /= la; ay /= la; az /= la;
+        double h = Lep750.BUNDLE_HALF;
+        double[][] k = new double[4][];
+        for (int i = 0; i < 4; i++) {
+            k[i] = new double[] { c[0] + ax * SIGN[i][0] * h, c[1] + SIGN[i][1] * h, c[2] + az * SIGN[i][0] * h };
+        }
+        for (int i = 0; i < 4; i++) {
+            double[] p = k[i], q = k[(i + 1) & 3];
+            LepGeo.beamUV(t, p[0], p[1], p[2], q[0], q[1], q[2], 0.05D, A_STEEL, ATLAS_SIZE);
+            LepGeo.beamUV(t, p[0] - u[0] * 0.03D, p[1] - u[1] * 0.03D, p[2] - u[2] * 0.03D,
+                             p[0] + u[0] * 0.14D, p[1] + u[1] * 0.14D, p[2] + u[2] * 0.14D, 0.08D, A_CAP, ATLAS_SIZE);
+        }
+        LepGeo.beamUV(t, k[0][0], k[0][1], k[0][2], k[2][0], k[2][1], k[2][2], 0.035D, A_STEEL_DARK, ATLAS_SIZE);
+        LepGeo.beamUV(t, k[1][0], k[1][1], k[1][2], k[3][0], k[3][1], k[3][2], 0.035D, A_STEEL_DARK, ATLAS_SIZE);
+        LepGeo.beamUV(t, c[0] - u[0] * 0.05D, c[1], c[2] - u[2] * 0.05D, c[0] + u[0] * 0.05D, c[1], c[2] + u[2] * 0.05D,
+                         0.09D, A_STEEL, ATLAS_SIZE);
     }
 
     /** Корінь перемички: від вершини дуги m на SUP_RING_OFF у горизонтальному напрямку до упору a на сусідній вежі. */

@@ -10,6 +10,7 @@ import com.sovietindustry.models.ModelLep330;
 import com.sovietindustry.models.ModelLep750;
 import com.sovietindustry.models.ModelSubstation110kV;
 import com.sovietindustry.models.ModelSubstation330kV;
+import com.sovietindustry.models.ModelSubstation750kV;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -35,8 +36,10 @@ public class ItemRenderLepPylon implements IItemRenderer {
     public static final int KIND_SUBSTATION_330 = 7;
     public static final int KIND_750 = 8;
     public static final int KIND_750_ANGLE = 9;
+    public static final int KIND_SUBSTATION_750 = 10;
 
     private final ModelSubstation330kV modelSubstation330 = new ModelSubstation330kV();
+    private final ModelSubstation750kV modelSubstation750 = new ModelSubstation750kV();
 
     private final ModelLep330 model330 = new ModelLep330(false);
     private final ModelLep330 model330Angle = new ModelLep330(true);
@@ -85,6 +88,15 @@ public class ItemRenderLepPylon implements IItemRenderer {
             applySubstation330Transform(type);
             GL11.glDisable(GL11.GL_CULL_FACE);
             modelSubstation330.renderAll();
+            GL11.glEnable(GL11.GL_CULL_FACE);
+            GL11.glPopMatrix();
+            return;
+        }
+
+        if (x2Kind == KIND_SUBSTATION_750) {
+            applySubstation750Transform(type);
+            GL11.glDisable(GL11.GL_CULL_FACE);
+            modelSubstation750.renderAll();
             GL11.glEnable(GL11.GL_CULL_FACE);
             GL11.glPopMatrix();
             return;
@@ -226,6 +238,35 @@ public class ItemRenderLepPylon implements IItemRenderer {
                 break;
             default:
                 GL11.glScalef(0.058F, 0.058F, 0.058F);
+                break;
+        }
+    }
+
+    /** Підстанція 750 кВ 9x9x15 (модель центрована по плиті): масштаб менший, ніж у підстанції 330 кВ. */
+    private static void applySubstation750Transform(ItemRenderType type) {
+        switch (type) {
+            case INVENTORY:
+                GL11.glTranslatef(0.0F, -0.50F, 0.0F);
+                GL11.glScalef(0.058F, 0.058F, 0.058F);
+                GL11.glRotatef(20.0F, 1.0F, 0.0F, 0.0F);
+                GL11.glRotatef(35.0F, 0.0F, 1.0F, 0.0F);
+                break;
+            case EQUIPPED:
+                GL11.glTranslatef(0.5F, 0.15F, 0.5F);
+                GL11.glScalef(0.048F, 0.048F, 0.048F);
+                GL11.glRotatef(35.0F, 0.0F, 1.0F, 0.0F);
+                break;
+            case EQUIPPED_FIRST_PERSON:
+                GL11.glTranslatef(0.55F, 0.05F, 0.45F);
+                GL11.glScalef(0.044F, 0.044F, 0.044F);
+                GL11.glRotatef(-35.0F, 0.0F, 1.0F, 0.0F);
+                break;
+            case ENTITY:
+                GL11.glTranslatef(0.0F, -0.25F, 0.0F);
+                GL11.glScalef(0.038F, 0.038F, 0.038F);
+                break;
+            default:
+                GL11.glScalef(0.038F, 0.038F, 0.038F);
                 break;
         }
     }

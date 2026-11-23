@@ -19,6 +19,7 @@ import com.sovietindustry.items.ItemWireCoil;
 import com.sovietindustry.tileentities.TileEntityLepDummy;
 import com.sovietindustry.tileentities.TileEntityLepPylon;
 import com.sovietindustry.tileentities.TileEntitySubstation330kV;
+import com.sovietindustry.tileentities.TileEntitySubstation750kV;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
 
@@ -85,7 +86,7 @@ public class BlockLepDummy extends BlockContainer {
         return b == ModBlocks.lep110v1 || b == ModBlocks.lep110Angle || b == ModBlocks.substation110kV
             || b == ModBlocks.lep110x2 || b == ModBlocks.lep110x2Angle
             || b == ModBlocks.lep330 || b == ModBlocks.lep330Angle
-            || b == ModBlocks.substation330kV
+            || b == ModBlocks.substation330kV || b == ModBlocks.substation750kV
             || b == ModBlocks.lep750 || b == ModBlocks.lep750Angle;
     }
 
@@ -127,6 +128,14 @@ public class BlockLepDummy extends BlockContainer {
             if (!world.isRemote) {
                 player.addChatMessage(new ChatComponentText(EnumChatFormatting.RED
                     + "Use the Soviet Industry Wire Coil with a 330 kV angle tower on this substation"));
+            }
+            return true;
+        }
+        if (target instanceof TileEntitySubstation750kV) {
+            // підстанція 750 кВ приймає дріт лише від анкерно-кутової 750 кВ котушкою цього мода
+            if (!world.isRemote) {
+                player.addChatMessage(new ChatComponentText(EnumChatFormatting.RED
+                    + "Use the Soviet Industry Wire Coil with a 750 kV angle tower on this substation"));
             }
             return true;
         }
