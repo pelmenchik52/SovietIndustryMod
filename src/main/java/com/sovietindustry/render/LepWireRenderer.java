@@ -1074,61 +1074,30 @@ public final class LepWireRenderer {
     }
 
     /**
-     * Пучок із 4 проводів, що йде плавною дугою a -> m -> b. a і b: кінці натяжних гірлянд (da, db: одиничні напрямки
-     * цих гірлянд від опори), m: вершина дуги. На кінцях дуга продовжує напрямок дроту (до опори й від неї), у вершині
-     * іде вздовж a -> b. Перетин пучка весь час перпендикулярний проводу, тож на кінцях збігається з кільцями гірлянд.
+     * Пучок із 4 проводів: пряма від кінця однієї натяжної гірлянди до вершини (кріплення перемички) і пряма
+     * від вершини до кінця другої гірлянди, з легким провисанням (так само, як шлейф правої вежі).
+     * Вісь пучка на кожній точці перпендикулярна проводу, тому на кінцях збігається з кільцями гірлянд.
      */
     private static void arcLoop(Tessellator t, double[] a, double[] da, double[] m, double[] b, double[] db) {
-        double dax = da[0], daz = da[2], dbx = db[0], dbz = db[2];
-        double la = Math.sqrt(dax * dax + daz * daz), lb = Math.sqrt(dbx * dbx + dbz * dbz);
-        if (la < 1.0E-6D || lb < 1.0E-6D) return;
-        dax /= la; daz /= la; dbx /= lb; dbz /= lb;
-
         double tx = b[0] - a[0], tz = b[2] - a[2];
         double tl = Math.sqrt(tx * tx + tz * tz);
         if (tl < 1.0E-6D) return;
         tx /= tl; tz /= tl;
-
-        double ha = Math.sqrt((m[0] - a[0]) * (m[0] - a[0]) + (m[2] - a[2]) * (m[2] - a[2]));
-        double hb = Math.sqrt((m[0] - b[0]) * (m[0] - b[0]) + (m[2] - b[2]) * (m[2] - b[2]));
-        double ka = ARC_K_END * ha, kam = ARC_K_APEX * ha;
-        double kb = ARC_K_END * hb, kbm = ARC_K_APEX * hb;
-
-        // перша половина a -> m: спершу в напрямку до опори (проти гірлянди), у вершині вздовж a -> b
-        double[] a1 = { a[0] - dax * ka, a[1], a[2] - daz * ka };
-        double[] a2 = { m[0] - tx * kam, m[1], m[2] - tz * kam };
-        // друга половина m -> b: з вершини далі вздовж a -> b, на кінці уздовж гірлянди від опори
-        double[] b1 = { m[0] + tx * kbm, m[1], m[2] + tz * kbm };
-        double[] b2 = { b[0] - dbx * kb, b[1], b[2] - dbz * kb };
-
-        int n = 2 * ARC_SEGS + 1;
-        double[][] c = new double[n][];
-        for (int i = 0; i <= ARC_SEGS; i++) c[i] = bez(a, a1, a2, m, (double) i / ARC_SEGS);
-        for (int i = 1; i <= ARC_SEGS; i++) c[ARC_SEGS + i] = bez(m, b1, b2, b, (double) i / ARC_SEGS);
-
-        // поперечна горизонтальна вісь пучка H = up x T у кожній точці
-        double[][] hh = new double[n][];
-        double px = 0.0D, pz = 1.0D;
-        for (int i = 0; i < n; i++) {
-            double[] p0 = c[Math.max(0, i - 1)], p1 = c[Math.min(n - 1, i + 1)];
-            double ex = p1[0] - p0[0], ez = p1[2] - p0[2];
-            double el = Math.sqrt(ex * ex + ez * ez);
-            if (el > 1.0E-6D) {
-                px = ez / el;
-                pz = -ex / el;
-            }
-            hh[i] = new double[] { px, 0.0D, pz };
-        }
-
+        double la = Math.sqrt(da[0] * da[0] + da[2] * da[2]), lb = Math.sqrt(db[0] * db[0] + db[2] * db[2]);
+        if (la < 1.0E-6D || lb < 1.0E-6D) return;
+        // вісь пучка H = up x (напрямок руху)
+        double[] ha = { da[2] / la, 0.0D, -da[0] / la };   // на кінці a провід їде проти гірлянди
+        ha[0] = -ha[0]; ha[2] = -ha[2];
+        double[] hm = { tz, 0.0D, -tx };
+        double[] hb = { db[2] / lb, 0.0D, -db[0] / lb };
         double h = Lep750.BUNDLE_HALF;
         for (int k = 0; k < 4; k++) {
             double sx = SIGN[k][0] * h, sy = SIGN[k][1] * h;
-            double[] prev = null;
-            for (int i = 0; i < n; i++) {
-                double[] cur = { c[i][0] + hh[i][0] * sx, c[i][1] + sy, c[i][2] + hh[i][2] * sx };
-                if (prev != null) ribbon(t, prev[0], prev[1], prev[2], cur[0], cur[1], cur[2], WIRE_HALF);
-                prev = cur;
-            }
+            double[] pa = { a[0] + ha[0] * sx, a[1] + sy, a[2] + ha[2] * sx };
+            double[] pm = { m[0] + hm[0] * sx, m[1] + sy, m[2] + hm[2] * sx };
+            double[] pb = { b[0] + hb[0] * sx, b[1] + sy, b[2] + hb[2] * sx };
+            wire(t, pa, pm, Math.min(0.5D, dist(pa, pm) * 0.08D), WIRE_HALF);
+            wire(t, pm, pb, Math.min(0.5D, dist(pm, pb) * 0.08D), WIRE_HALF);
         }
     }
 
