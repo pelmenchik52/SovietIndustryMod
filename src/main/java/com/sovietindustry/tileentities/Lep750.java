@@ -92,11 +92,6 @@ public final class Lep750 {
     }
 
     // ---------------------------------------------------------------- анкерно-кутова опора УС750-1 (Креслення 2)
-    // Пропорції з креслення УС750-1:
-    // Крок між вежами = 21000 мм -> беремо 15.0 блоків (коеф. ~0.714 блока на 1000 мм)
-    // Ширина основи вежі = 8770 мм -> півширина 3.15 блока (повна ширина 6.3 блока, а не 12.4!)
-    // Ширина на переломі (20000 мм) = 1800 мм -> півширина 0.68 блока
-    // Висота перелому = 15.5 блоків; верх бічних веж (+9100 мм) = 22.2 блоків
     public static final int A_HEIGHT = 23;
     public static final double A_NECK_Y = 15.5D;
     public static final double A_MID_TOP = 16.2D;
@@ -112,12 +107,12 @@ public final class Lep750 {
     public static final double A_CORONA_RING_R = 0.44D;
     public static final double A_STANDOFF = 1.25D;
 
-    /** Ліва вежа (idx = -1): мала трикутна консоль вправо (3850 мм на кресленні -> 2.8 блока). */
-    public static final double A_LEFT_ARM_LEN = 4.2D;
-    public static final double A_LEFT_ARM_DEPTH = 1.6D;
-    public static final double A_LEFT_JUMP_LEN = 4.2D;
+    /** Ліва вежа (idx = -1): мала трикутна консоль вправо. */
+    public static final double A_LEFT_ARM_LEN = 2.8D;
+    public static final double A_LEFT_ARM_DEPTH = 1.4D;
+    public static final double A_LEFT_JUMP_LEN = 3.8D;
 
-    /** Права вежа (idx = 1): велика консоль-прапор вправо (10500 мм на кресленні -> 7.5 блока). */
+    /** Права вежа (idx = 1): велика консоль-прапор вправо. */
     public static final double A_ARM_Y = A_TOP;
     public static final double A_ARM_DEPTH = 2.1D;
     public static final double A_ARM_LEN = 7.5D;
@@ -126,22 +121,19 @@ public final class Lep750 {
     public static final double A_JUMP_LEN = 3.8D;
     public static final int A_JUMPER_MOUNT = 2;
 
-    /** Бічна підтримка шлейфу фаз 0 і 1: горизонтальна гірлянда від сусідньої вежі. */
     public static final double A_SUP_REACH = 3.2D;
     public static final double A_SUP_STUB = 0.65D;
 
-    /** Точка кріплення похилої підтримувальної гірлянди на сусідній вежі (вище точки кріплення фази, як на фото). */
+    /** Підтримувальна гірлянда для середньої фази (mount = 1) — іде вліво до лівої вежі. */
     public static double[] aSupportAttach(int mount) {
         if (mount != 1) return null;
         double attachY = A_NECK_Y;
-        // Правий край лівої вежі (-A_TOWER_X + halfWidth)
         return new double[] { -A_TOWER_X + (angleHalf(attachY) + 0.35D), attachY, 0.0D };
     }
 
     public static double[] aSupportEnd(int mount) {
         if (mount != 1) return null;
-        // Шлейф середньої вежі обходить її зліва (-3.4D)
-        return new double[] { -3.4D, A_MOUNT_Y + 0.4D, 0.0D };
+        return new double[] { -2.8D, A_MOUNT_Y + 0.4D, 0.0D };
     }
 
     public static double angleHalf(double y) {

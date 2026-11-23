@@ -19,6 +19,7 @@ import com.sovietindustry.api.IStandoffPylon;
 import com.sovietindustry.api.IWiredPylon;
 import com.sovietindustry.tileentities.Lep750;
 import com.sovietindustry.tileentities.TileEntityLepPylon;
+import com.sovietindustry.tileentities.TileEntityLep750Angle;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -291,6 +292,15 @@ public final class LepWireRenderer {
                 }
             }
         }
+        boolean leftJumperUsed = false;
+        TileEntityLep750Angle angle750 = (te instanceof TileEntityLep750Angle) ? (TileEntityLep750Angle) te : null;
+        if (angle750 != null && bun != null) {
+            for (Link l : list) {
+                for (int i = 0; i < l.mine.length; i++) {
+                    if (l.mine[i] != null && l.mi[i] == 0 && l.pm != null) leftJumperUsed = true;
+                }
+            }
+        }
 
         // допоміжні горизонтальні гірлянди на сусідній вежі (шлейф проходить через них)
         List<Vec3[]> supDraw = new ArrayList<Vec3[]>();
@@ -355,6 +365,12 @@ public final class LepWireRenderer {
                                   new double[] { js[1].xCoord, js[1].yCoord, js[1].zCoord });
                 }
             }
+            if (leftJumperUsed) {
+                for (Vec3[] js : angle750.getLeftJumperStrings()) {
+                    hangString(t, new double[] { js[0].xCoord, js[0].yCoord, js[0].zCoord },
+                                new double[] { js[1].xCoord, js[1].yCoord, js[1].zCoord });
+                }
+            }
             t.draw();
 
             // сталевий кружок/арматура на гірлянди (як на фото) із затискачами (для 750 кВ — екрануючі кільця від корони)
@@ -404,6 +420,15 @@ public final class LepWireRenderer {
                         }
                     } else {
                         endFitting(t, ends, u, bun);
+                    }
+                }
+                if (leftJumperUsed) {
+                    Vec3[][] jsAll = angle750.getLeftJumperStrings();
+                    double[] u = unit(jsAll[0][1].xCoord - jsAll[0][0].xCoord, jsAll[0][1].yCoord - jsAll[0][0].yCoord,
+                                    jsAll[0][1].zCoord - jsAll[0][0].zCoord);
+                    for (Vec3[] js1 : jsAll) {
+                        double[] e1 = new double[] { js1[1].xCoord, js1[1].yCoord, js1[1].zCoord };
+                        endFitting(t, new double[][] { e1 }, u, bun);
                     }
                 }
                 t.draw();
@@ -489,7 +514,8 @@ public final class LepWireRenderer {
                 }
             }
             for (Map.Entry<Integer, List<double[]>> e : perMount.entrySet()) {
-                if (jump != null && e.getKey().intValue() == jm) continue; // цей шлейф іде через верхні гірлянди
+                if (jump != null && e.getKey().intValue() == jm) continue;
+                if (leftJumperUsed && e.getKey().intValue() == 0) continue; 
                 List<double[]> ends = e.getValue();
                 List<double[]> axes = perAxis.get(e.getKey());
                 if (ends.size() < 2) continue;
@@ -569,7 +595,7 @@ public final class LepWireRenderer {
             }
         }
 
-        // шлейф центральної фази: від кінця натяжної гірлянди вгору до верхньої гірлянди й з неї назад вниз
+       // шлейф центральної фази: від кінця натяжної гірлянди вгору до верхньої гірлянди й з неї назад вниз
         if (jumperUsed) {
             Vec3[][] js = jump.getJumperStrings();
             double[] jax = jump.getJumperAxis();
@@ -624,6 +650,45 @@ public final class LepWireRenderer {
                     double o = stringOffset(bun, si);
                     double[] a = shift(clamp[0], jax, o);
                     double[] c = shift(clamp[1], jax, o);
+                    wire(t, a, c, Math.min(0.45D, dist(a, c) * 0.3D), WIRE_HALF);
+                }
+            }
+        }
+
+        if (leftJumperUsed) {
+            Vec3[][] js = angle750.getLeftJumperStrings();
+            double[] jax = angle750.getJumperAxis();
+            double[][] clamp = new double[js.length][];
+            for (int k = 0; k < js.length; k++) {
+                clamp[k] = new double[] { js[k][1].xCoord, js[k][1].yCoord, js[k][1].zCoord };
+            }
+            boolean[] used = new boolean[js.length];
+            for (Link l : list) {
+                for (int i = 0; i < l.mine.length; i++) {
+                    if (l.mine[i] == null || l.mi[i] != 0 || l.pm == null) continue;
+                    int best = 0;
+                    double bestD = Double.MAX_VALUE;
+                    for (int k = 0; k < clamp.length; k++) {
+                        double dd = dist(l.mine[i], clamp[k]);
+                        if (dd < bestD) { bestD = dd; best = k; }
+                    }
+                    used[best] = true;
+                    double sg = dot(l.pm, jax) < 0.0D ? -1.0D : 1.0D;
+                    double h = Lep750.BUNDLE_HALF;
+                    for (int k = 0; k < 4; k++) {
+                        double sx = SIGN[k][0] * h, sy = SIGN[k][1] * h;
+                        double[] a = { l.mine[i][0] + l.pm[0] * sx, l.mine[i][1] + sy, l.mine[i][2] + l.pm[2] * sx };
+                        double[] c = { clamp[best][0] + jax[0] * sx * sg, clamp[best][1] + sy, clamp[best][2] + jax[2] * sx * sg };
+                        wire(t, a, c, Math.min(0.5D, dist(a, c) * 0.08D), WIRE_HALF);
+                    }
+                }
+            }
+            if (clamp.length >= 2 && used[0] && used[1]) {
+                double h = Lep750.BUNDLE_HALF;
+                for (int k = 0; k < 4; k++) {
+                    double sx = SIGN[k][0] * h, sy = SIGN[k][1] * h;
+                    double[] a = { clamp[0][0] + jax[0] * sx, clamp[0][1] + sy, clamp[0][2] + jax[2] * sx };
+                    double[] c = { clamp[1][0] + jax[0] * sx, clamp[1][1] + sy, clamp[1][2] + jax[2] * sx };
                     wire(t, a, c, Math.min(0.45D, dist(a, c) * 0.3D), WIRE_HALF);
                 }
             }

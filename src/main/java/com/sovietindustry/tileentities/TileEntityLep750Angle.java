@@ -71,6 +71,17 @@ public class TileEntityLep750Angle extends TileEntityLep750Base implements IStan
         }
         return r;
     }
+    public Vec3[][] getLeftJumperStrings() {
+        double[][][] loc = Lep750.aLeftJumperStrings();
+        Vec3[][] r = new Vec3[loc.length][2];
+        for (int i = 0; i < loc.length; i++) {
+            for (int j = 0; j < 2; j++) {
+                double[] w = toWorldOffset(loc[i][j][0], loc[i][j][1], loc[i][j][2]);
+                r[i][j] = Vec3.createVectorHelper(0.5D + w[0], w[1], 0.5D + w[2]);
+            }
+        }
+        return r;
+    }
 
     @Override
     public double[] getJumperAxis() {
@@ -83,4 +94,5 @@ public class TileEntityLep750Angle extends TileEntityLep750Base implements IStan
         // винос кореня гірлянди назовні за каркас вежі вздовж напрямку дроту
         return Lep750.A_STANDOFF;
     }
+    
 }
