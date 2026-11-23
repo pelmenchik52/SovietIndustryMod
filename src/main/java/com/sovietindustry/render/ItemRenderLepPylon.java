@@ -242,31 +242,31 @@ public class ItemRenderLepPylon implements IItemRenderer {
         }
     }
 
-    /** Підстанція 750 кВ 9x9x15 (модель центрована по плиті): масштаб менший, ніж у підстанції 330 кВ. */
+    /** Підстанція 750 кВ 13x13x20 (модель центрована по плиті): масштаб менший, ніж у підстанції 330 кВ. */
     private static void applySubstation750Transform(ItemRenderType type) {
         switch (type) {
             case INVENTORY:
                 GL11.glTranslatef(0.0F, -0.50F, 0.0F);
-                GL11.glScalef(0.058F, 0.058F, 0.058F);
+                GL11.glScalef(0.040F, 0.040F, 0.040F);
                 GL11.glRotatef(20.0F, 1.0F, 0.0F, 0.0F);
                 GL11.glRotatef(35.0F, 0.0F, 1.0F, 0.0F);
                 break;
             case EQUIPPED:
                 GL11.glTranslatef(0.5F, 0.15F, 0.5F);
-                GL11.glScalef(0.048F, 0.048F, 0.048F);
+                GL11.glScalef(0.033F, 0.033F, 0.033F);
                 GL11.glRotatef(35.0F, 0.0F, 1.0F, 0.0F);
                 break;
             case EQUIPPED_FIRST_PERSON:
                 GL11.glTranslatef(0.55F, 0.05F, 0.45F);
-                GL11.glScalef(0.044F, 0.044F, 0.044F);
+                GL11.glScalef(0.030F, 0.030F, 0.030F);
                 GL11.glRotatef(-35.0F, 0.0F, 1.0F, 0.0F);
                 break;
             case ENTITY:
                 GL11.glTranslatef(0.0F, -0.25F, 0.0F);
-                GL11.glScalef(0.038F, 0.038F, 0.038F);
+                GL11.glScalef(0.026F, 0.026F, 0.026F);
                 break;
             default:
-                GL11.glScalef(0.038F, 0.038F, 0.038F);
+                GL11.glScalef(0.026F, 0.026F, 0.026F);
                 break;
         }
     }

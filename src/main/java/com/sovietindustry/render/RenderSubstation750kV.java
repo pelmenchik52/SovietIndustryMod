@@ -20,11 +20,13 @@ public class RenderSubstation750kV extends TileEntitySpecialRenderer {
     @Override
     public void renderTileEntityAt(TileEntity te, double x, double y, double z, float partialTicks) {
         TileEntitySubstation750kV sub = (TileEntitySubstation750kV) te;
+        // поки від сервера не прийшов кут, не малюємо: інакше на мить видно плиту в неправильному місці
+        if (!sub.isSynced()) return;
 
         GL11.glPushMatrix();
         GL11.glTranslated(x + 0.5D, y, z + 0.5D);
         GL11.glRotatef(-sub.angle, 0.0F, 1.0F, 0.0F);
-        // модель центрована по плиті 9x9, а майстер-блок стоїть у середині краю, у клітинці (0, 0): центр плити зсунутий по Z на -4
+        // модель центрована по плиті 13x13, а майстер-блок стоїть у середині краю, у клітинці (0, 0): центр плити зсунутий по Z на -6
         GL11.glTranslated(Substation750.CENTER_X, 0.0D, Substation750.CENTER_Z);
         GL11.glDisable(GL11.GL_CULL_FACE);
         model.renderAll();

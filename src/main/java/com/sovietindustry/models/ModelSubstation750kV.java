@@ -14,14 +14,14 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.util.ResourceLocation;
 
 /**
- * Модель трансформаторної підстанції 750 кВ 9x9x15 (ширина x довжина x висота), компоновка як на реальному ВРП:
+ * Модель трансформаторної підстанції 750 кВ 13x13x20 (ширина x довжина x висота), компоновка як на реальному ВРП:
  *
- *   вхід (z' = +4)         лінійний портал: дві конічні бетонні стійки з ґратчастими щоглами-блискавкоприймачами,
+ *   вхід (z' = +6)         лінійний портал: дві конічні бетонні стійки з ґратчастими щоглами-блискавкоприймачами,
  *                          ґратчаста траверса з виступом праворуч, два розкоси, що сходяться під траверсою;
  *   лінійна комірка        на кожну фазу роз'єднувач (два опорні ізолятори й ніж) та ОПН, що висить на шлейфі;
  *   трансформатор          великий бак із двома батареями радіаторів, консерватор-циліндр, три високі вводи ВН,
  *                          чотири вводи НН;
- *   вихід (z' = -4)        чотири кабельні порти: повні блоки 1x1x1 з оранжевою плитою розміром із кабель;
+ *   вихід (z' = -6)        чотири кабельні порти: повні блоки 1x1x1 з оранжевою плитою розміром із кабель;
  *   кути виходу            два блискавкоприймальні ґратчасті щогли.
  *
  * Координати центровані по плиті: центр (0, 0, 0), x' -4.5..+4.5, z' -4.5..+4.5, y 0..15.
@@ -95,22 +95,17 @@ public class ModelSubstation750kV {
 
     private static void concrete(Tessellator t) {
         double pz = Substation750.PORTAL_Z;
+        // плита 13x13 (0.5 блока на тайл => шви кожні 2 блоки)
+        LepGeo.boxTiled(t, 0.0D, SLAB_H * 0.5D, 0.0D, 6.5D, SLAB_H * 0.5D, 6.5D, 0.5D);
 
-        // плита 9x9 (0.5 блока на тайл => шви кожні 2 блоки)
-        LepGeo.boxTiled(t, 0.0D, SLAB_H * 0.5D, 0.0D, 4.5D, SLAB_H * 0.5D, 4.5D, 0.5D);
-
-        // конічні бетонні стійки порталу (звужуються вгору) на фундаментних плитах
+        // фундаментні башмаки під чотири ноги кожної стійки порталу
         for (int s = -1; s <= 1; s += 2) {
             double cx = s * Substation750.PORTAL_X;
-            LepGeo.boxTiled(t, cx, SLAB_H + 0.05D, pz, 0.60D, 0.05D, 0.60D, 0.5D);
-            int segs = 10;
-            double h = (Substation750.COLUMN_TOP - SLAB_H - 0.10D) / segs;
-            for (int i = 0; i < segs; i++) {
-                double f = (i + 0.5D) / segs;
-                double half = Substation750.COLUMN_HALF_BOTTOM
-                    + (Substation750.COLUMN_HALF_TOP - Substation750.COLUMN_HALF_BOTTOM) * f;
-                double y0 = SLAB_H + 0.10D + i * h;
-                LepGeo.boxTiled(t, cx, y0 + h * 0.5D, pz, half, h * 0.5D, half, 1.0D);
+            double w = Substation750.COLUMN_HALF_BOTTOM;
+            for (int i = -1; i <= 1; i += 2) {
+                for (int j = -1; j <= 1; j += 2) {
+                    LepGeo.boxTiled(t, cx + i * w, SLAB_H + 0.06D, pz + j * w, 0.22D, 0.06D, 0.22D, 0.5D);
+                }
             }
         }
 
@@ -124,20 +119,17 @@ public class ModelSubstation750kV {
         LepGeo.boxTiled(t, -fhx, SLAB_H + 0.06D, cz, 0.05D, 0.06D, fhz, 0.5D);
         LepGeo.boxTiled(t, fhx, SLAB_H + 0.06D, cz, 0.05D, 0.06D, fhz, 0.5D);
 
-        // фундаменти лінійної комірки: під роз'єднувач і під ОПН кожної фази
+        // фундаменти апаратів: роз'єднувач, трансформатор струму, ОПН на кожну фазу
         for (double px : Substation750.PHASE_X) {
-            LepGeo.boxTiled(t, px, SLAB_H + 0.05D, Substation750.DISC_Z, 0.60D, 0.05D, 0.20D, 0.5D);
-            LepGeo.boxTiled(t, px, SLAB_H + 0.10D, Substation750.ARR_Z, 0.16D, 0.10D, 0.16D, 0.5D);
+            LepGeo.boxTiled(t, px, SLAB_H + 0.05D, Substation750.DISC_Z, 0.80D, 0.05D, 0.35D, 0.5D);
+            LepGeo.boxTiled(t, px, SLAB_H + 0.05D, Substation750.CT_Z, 0.40D, 0.05D, 0.40D, 0.5D);
+            LepGeo.boxTiled(t, px, SLAB_H + 0.08D, Substation750.ARR_Z, 0.22D, 0.08D, 0.22D, 0.5D);
         }
 
-        // фундамент шафи керування
-        LepGeo.boxTiled(t, Substation750.CAB_X, SLAB_H + 0.05D, Substation750.CAB_Z, 0.28D, 0.05D, 0.55D, 0.5D);
-        // фундаменти блискавкоприймальних щогл
+        LepGeo.boxTiled(t, Substation750.CAB_X, SLAB_H + 0.05D, Substation750.CAB_Z, 0.30D, 0.05D, 0.55D, 0.5D);
         for (int s = -1; s <= 1; s += 2) {
             LepGeo.boxTiled(t, s * Substation750.LIGHT_X, SLAB_H + 0.05D, Substation750.LIGHT_Z, 0.40D, 0.05D, 0.40D, 0.5D);
         }
-
-        // цоколь під кабельними шафами портів (шафа стоїть на ньому, а не просто на плиті)
         for (int lx : Substation750.PORT_LX) {
             LepGeo.boxTiled(t, Substation750.cellX(lx), SLAB_H + 0.02D, Substation750.PORT_Z, 0.46D, 0.02D, 0.46D, 1.0D);
         }
@@ -226,27 +218,29 @@ public class ModelSubstation750kV {
         double pz = Substation750.PORTAL_Z;
         double px = Substation750.PORTAL_X;
 
-        // 1. щогли-блискавкоприймачі над бетонними стійками (ґратчасті, звужуються вгору)
-        latticeMast(t, -px, pz, Substation750.COLUMN_TOP - 0.05D, Substation750.MAST_TOP, 0.32D, 0.10D, 6);
-        latticeMast(t, px, pz, Substation750.COLUMN_TOP - 0.05D, Substation750.MAST_TOP, 0.32D, 0.10D, 6);
-
-        // блискавкоприймальні щогли на виході: ґратчасті, на бетонному фундаменті
+        // 1. дві ґратчасті стійки (як на фото): ноги розходяться до основи, вся стійка плавно звужується до тонкої
+        //    верхівки-щогли, траверса примикає до неї ближче до верху; стійки стоять усередині траверси, а не по краях
         for (int s = -1; s <= 1; s += 2) {
-            latticeMast(t, s * Substation750.LIGHT_X, Substation750.LIGHT_Z, SLAB_H + 0.10D, Substation750.LIGHT_TOP, 0.26D, 0.07D, 7);
+            latticeColumn(t, s * px, pz, SLAB_H + 0.1D, Substation750.MAST_TOP, 36, 0.05D);
+            // коміри на рівні траверси (місце кріплення поясів)
+            LepGeo.box(t, s * px, Substation750.BEAM_TOP, pz, 0.46D, 0.05D, 0.46D);
+            LepGeo.box(t, s * px, Substation750.BEAM_LOW, pz, 0.46D, 0.05D, 0.46D);
+            LepGeo.box(t, s * px, Substation750.MAST_TOP + 0.08D, pz, 0.22D, 0.06D, 0.22D);
+            LepGeo.box(t, s * px, Substation750.BEAM_LOW - 0.80D, pz, 0.44D, 0.04D, 0.44D);
         }
 
-        // 2. ґратчаста траверса (дві паралельні ферми, як на фото) із виступом праворуч за стійку
+        // 2. ґратчаста траверса (дві паралельні ферми) із виступом праворуч за стійку
         double x0 = Substation750.BEAM_X0, x1 = Substation750.BEAM_X1;
         double top = Substation750.BEAM_TOP, low = Substation750.BEAM_LOW;
-        int segs = 20;
+        int segs = 32;
         double step = (x1 - x0) / segs;
         for (int s = -1; s <= 1; s += 2) {
             double z = pz + s * Substation750.BEAM_PLANE;
-            LepGeo.beam(t, x0, top, z, x1, top, z, 0.14D);
-            LepGeo.beam(t, x0, low, z, x1, low, z, 0.13D);
+            LepGeo.beam(t, x0, top, z, x1, top, z, 0.12D);
+            LepGeo.beam(t, x0, low, z, x1, low, z, 0.11D);
             for (int j = 0; j < segs; j++) {
                 boolean up = (j & 1) == 0;
-                LepGeo.beam(t, x0 + j * step, up ? low : top, z, x0 + (j + 1) * step, up ? top : low, z, 0.06D);
+                LepGeo.beam(t, x0 + j * step, up ? low : top, z, x0 + (j + 1) * step, up ? top : low, z, 0.05D);
             }
         }
         for (int j = 0; j <= segs; j += 2) {
@@ -255,79 +249,73 @@ public class ModelSubstation750kV {
             LepGeo.beam(t, x, low, pz - Substation750.BEAM_PLANE, x, low, pz + Substation750.BEAM_PLANE, 0.05D);
         }
 
-        // 3. два розкоси, що сходяться під траверсою в центрі й упираються в стійки
-        for (int s = -1; s <= 1; s += 2) {
-            double colX = s * (px - Substation750.COLUMN_HALF_TOP + 0.05D);
-            for (int j = -1; j <= 1; j += 2) {
-                double z = pz + j * 0.14D;
-                LepGeo.beam(t, 0.0D, low, z, colX, Substation750.BRACE_Y, z, 0.10D);
-            }
-            // поперечні в'язі розкосу
-            for (int k = 1; k <= 3; k++) {
-                double f = k / 4.0D;
-                double bx = colX * f;
-                double by = low + (Substation750.BRACE_Y - low) * f;
-                LepGeo.beam(t, bx, by, pz - 0.14D, bx, by, pz + 0.14D, 0.05D);
-            }
-        }
-        LepGeo.box(t, 0.0D, low - 0.05D, pz, 0.20D, 0.05D, 0.20D);
-
         // 4. підвіски трьох фаз під траверсою (сюди чіпляються анкерні гірлянди з дротами)
-        for (double fx : Substation750.PHASE_X) {
-            LepGeo.beam(t, fx, low, pz, fx, Substation750.MOUNT_Y, pz, 0.10D);
+        for (double fx : Substation750.MOUNT_X) {
+            LepGeo.beam(t, fx, low, pz, fx, Substation750.MOUNT_Y, pz, 0.14D);
+            // вушко кріплення гірлянди під траверсою (пластина по всій ширині, щоб гірлянда не висіла в повітрі)
+            LepGeo.box(t, fx, Substation750.MOUNT_Y + 0.05D, pz, 0.30D, 0.08D, 0.35D);
         }
 
-        // 5. лінійна комірка: роз'єднувач на кожну фазу (база, дві опори, ніж) і шлейфи
+        // 5. лінійна комірка на кожну фазу
         for (int i = 0; i < 3; i++) {
             double fx = Substation750.PHASE_X[i];
             double dz = Substation750.DISC_Z;
             double hh = Substation750.DISC_HALF;
             double by = Substation750.DISC_BASE_Y;
-            // швелер бази на двох сталевих опорах
-            LepGeo.beam(t, fx - hh - 0.08D, by, dz, fx + hh + 0.08D, by, dz, 0.14D);
-            LepGeo.box(t, fx - hh, (SLAB_H + by) * 0.5D, dz, 0.08D, (by - SLAB_H) * 0.5D, 0.08D);
-            LepGeo.box(t, fx + hh, (SLAB_H + by) * 0.5D, dz, 0.08D, (by - SLAB_H) * 0.5D, 0.08D);
-            // ніж (горизонтальний розрив) між верхівками ізоляторів і клеми
             double ty = Substation750.DISC_BLADE_Y;
-            LepGeo.beam(t, fx - hh, ty, dz, fx + hh - 0.05D, ty + 0.07D, dz, 0.05D);
-            LepGeo.box(t, fx - hh, ty, dz, 0.07D, 0.05D, 0.07D);
-            LepGeo.box(t, fx + hh, ty, dz, 0.07D, 0.05D, 0.07D);
+
+            // роз'єднувач: дві ґратчасті підставки, швелер, ніж
+            latticeMast(t, fx - hh, dz, SLAB_H, by, 0.26D, 0.20D, 3, 0.06D);
+            latticeMast(t, fx + hh, dz, SLAB_H, by, 0.26D, 0.20D, 3, 0.06D);
+            LepGeo.beam(t, fx - hh - 0.10D, by, dz, fx + hh + 0.10D, by, dz, 0.14D);
+            LepGeo.beam(t, fx - hh, ty, dz, fx + hh - 0.05D, ty + 0.08D, dz, 0.06D);
+            LepGeo.box(t, fx - hh, ty, dz, 0.08D, 0.05D, 0.08D);
+            LepGeo.box(t, fx + hh, ty, dz, 0.08D, 0.05D, 0.08D);
+
+            // трансформатор струму: ґратчаста підставка і сталева голівка
+            latticeMast(t, fx, Substation750.CT_Z, SLAB_H, Substation750.CT_BASE_Y, 0.34D, 0.24D, 4, 0.07D);
+            LepGeo.box(t, fx, Substation750.CT_BASE_Y + 0.25D, Substation750.CT_Z, 0.34D, 0.25D, 0.34D);
+            LepGeo.box(t, fx, Substation750.CT_TOP_Y + 0.06D, Substation750.CT_Z, 0.10D, 0.06D, 0.10D);
 
             // шлейф 1: від підвіски порталу до клеми роз'єднувача
-            cable(t, fx, Substation750.MOUNT_Y, pz, fx - hh, ty + 0.05D, dz, 0.20D);
-            // шлейф 2: від другої клеми до верхівки вводу ВН трансформатора
+            cable(t, Substation750.MOUNT_X[i], Substation750.MOUNT_Y, pz, fx - hh, ty + 0.05D, dz, 0.40D);
+            // шлейф 2: від другої клеми до верхівки ТС
+            double cty = Substation750.CT_TOP_Y + 0.12D;
+            cable(t, fx + hh, ty + 0.05D, dz, fx, cty, Substation750.CT_Z, 0.35D);
+            // шлейф 3: від ТС до верхівки вводу ВН трансформатора
             double tx = Substation750.HV_X[i] * Substation750.HV_TILT;
             double ty2 = Substation750.HV_TOP_Y + 0.12D;
-            cable(t, fx + hh, ty + 0.05D, dz, tx, ty2, Substation750.HV_Z, 0.80D);
-            // наконечник на верхівці вводу ВН
+            cable(t, fx, cty, Substation750.CT_Z, tx, ty2, Substation750.HV_Z, 0.90D);
             LepGeo.box(t, tx, ty2, Substation750.HV_Z, 0.09D, 0.07D, 0.09D);
 
-            // ОПН висить на шлейфі: короткий спуск від шлейфа до верхівки ОПН (шунт на землю)
-            double f = (Substation750.ARR_Z - dz) / (Substation750.HV_Z - dz);
-            double[] jp = Substation750.cablePoint(fx + hh, ty + 0.05D, dz, tx, ty2, Substation750.HV_Z, 0.80D, f);
+            // ОПН висить на шлейфі 3: короткий спуск до верхівки ОПН (шунт на землю)
+            double f = (Substation750.ARR_Z - Substation750.CT_Z) / (Substation750.HV_Z - Substation750.CT_Z);
+            double[] jp = Substation750.cablePoint(fx, cty, Substation750.CT_Z, tx, ty2, Substation750.HV_Z, 0.90D, f);
             LepGeo.beam(t, fx, Substation750.ARR_TOP_Y + 0.08D, Substation750.ARR_Z, jp[0], jp[1], jp[2], 0.03D);
-            // вирівнювальне кільце на верхівці ОПН і заземлювальна смуга
-            LepGeo.box(t, fx, Substation750.ARR_TOP_Y + 0.04D, Substation750.ARR_Z, 0.17D, 0.03D, 0.17D);
-            LepGeo.box(t, fx + 0.22D, 0.55D, Substation750.ARR_Z, 0.025D, 0.30D, 0.04D);
+            LepGeo.box(t, fx, Substation750.ARR_TOP_Y + 0.04D, Substation750.ARR_Z, 0.20D, 0.03D, 0.20D);
+            LepGeo.box(t, fx + 0.25D, 0.60D, Substation750.ARR_Z, 0.025D, 0.33D, 0.04D);
         }
 
-        // 5b. фланець під кабель на кожній шафі порту (рамка навколо оранжевої плити)
+        // 5a. блискавкоприймальні щогли на виході
+        for (int s = -1; s <= 1; s += 2) {
+            latticeMast(t, s * Substation750.LIGHT_X, Substation750.LIGHT_Z, SLAB_H + 0.10D, Substation750.LIGHT_TOP, 0.26D, 0.07D, 9);
+        }
+
+        // 5b. фланець під кабель на кожній шафі порту
         for (int lx : Substation750.PORT_LX) {
             double cx = Substation750.cellX(lx);
             double fh = Substation750.PORT_PAD_HALF + 0.05D;
             LepGeo.box(t, cx, Substation750.PORT_PAD_Y, Substation750.END_Z - 0.012D, fh, fh, 0.012D);
-            // ребра жорсткості-стійки по краях шафи
             LepGeo.box(t, cx - 0.47D, 0.5D, Substation750.END_Z - 0.006D, 0.03D, 0.47D, 0.006D);
             LepGeo.box(t, cx + 0.47D, 0.5D, Substation750.END_Z - 0.006D, 0.03D, 0.47D, 0.006D);
         }
 
-        // 6. сторона НН: шини від трьох вводів до верхівок вихідних портів-блоків
+        // 6. сторона НН: шини від чотирьох вводів до верхівок вихідних портів-блоків
         for (int i = 0; i < Substation750.LV_X.length; i++) {
             double portX = Substation750.cellX(Substation750.PORT_LX[i]);
             cable(t, Substation750.LV_X[i], Substation750.LV_TOP_Y + 0.06D, Substation750.LV_Z,
                 portX, 1.12D, Substation750.PORT_Z + 0.15D, 0.60D);
             LepGeo.box(t, Substation750.LV_X[i], Substation750.LV_TOP_Y + 0.07D, Substation750.LV_Z, 0.07D, 0.05D, 0.07D);
-            // кабельна муфта на верхівці порту
             LepGeo.box(t, portX, 1.07D, Substation750.PORT_Z + 0.15D, 0.12D, 0.06D, 0.12D);
         }
     }
@@ -344,9 +332,30 @@ public class ModelSubstation750kV {
         }
     }
 
+    /** Ґратчаста стійка порталу: півширина береться з Substation750.columnHalf(y), тонкі ноги, розкоси й пояси. */
+    private static void latticeColumn(Tessellator t, double cx, double cz, double y0, double y1, int steps, double th) {
+        double dh = (y1 - y0) / steps;
+        double[][] c = { { -1, -1 }, { 1, -1 }, { 1, 1 }, { -1, 1 } };
+        for (int s = 0; s < steps; s++) {
+            double ya = y0 + s * dh, yb = y0 + (s + 1) * dh;
+            double wa = Substation750.columnHalf(ya), wb = Substation750.columnHalf(yb);
+            for (int k = 0; k < 4; k++) {
+                int n = (k + 1) & 3;
+                LepGeo.beam(t, cx + c[k][0] * wa, ya, cz + c[k][1] * wa, cx + c[k][0] * wb, yb, cz + c[k][1] * wb, th);
+                LepGeo.beam(t, cx + c[k][0] * wa, ya, cz + c[k][1] * wa, cx + c[n][0] * wb, yb, cz + c[n][1] * wb, th * 0.6D);
+                LepGeo.beam(t, cx + c[k][0] * wb, yb, cz + c[k][1] * wb, cx + c[n][0] * wb, yb, cz + c[n][1] * wb, th * 0.6D);
+            }
+        }
+    }
+
     /** Ґратчаста щогла на чотирьох ногах, що звужується від півширини w0 до w1, steps секцій із розкосами. */
     private static void latticeMast(Tessellator t, double cx, double cz, double y0, double y1,
                                     double w0, double w1, int steps) {
+        latticeMast(t, cx, cz, y0, y1, w0, w1, steps, 0.05D);
+    }
+
+    private static void latticeMast(Tessellator t, double cx, double cz, double y0, double y1,
+                                    double w0, double w1, int steps, double th) {
         double dh = (y1 - y0) / steps;
         for (int s = 0; s < steps; s++) {
             double ya = y0 + s * dh, yb = y0 + (s + 1) * dh;
@@ -355,15 +364,15 @@ public class ModelSubstation750kV {
             double[][] c = { { -1, -1 }, { 1, -1 }, { 1, 1 }, { -1, 1 } };
             for (int k = 0; k < 4; k++) {
                 int n = (k + 1) & 3;
-                LepGeo.beam(t, cx + c[k][0] * wa, ya, cz + c[k][1] * wa, cx + c[k][0] * wb, yb, cz + c[k][1] * wb, 0.05D);
+                LepGeo.beam(t, cx + c[k][0] * wa, ya, cz + c[k][1] * wa, cx + c[k][0] * wb, yb, cz + c[k][1] * wb, th);
                 // розкіс на грані між ногами k і n
-                LepGeo.beam(t, cx + c[k][0] * wa, ya, cz + c[k][1] * wa, cx + c[n][0] * wb, yb, cz + c[n][1] * wb, 0.035D);
+                LepGeo.beam(t, cx + c[k][0] * wa, ya, cz + c[k][1] * wa, cx + c[n][0] * wb, yb, cz + c[n][1] * wb, th * 0.7D);
                 // горизонтальний пояс на рівні yb
-                LepGeo.beam(t, cx + c[k][0] * wb, yb, cz + c[k][1] * wb, cx + c[n][0] * wb, yb, cz + c[n][1] * wb, 0.035D);
+                LepGeo.beam(t, cx + c[k][0] * wb, yb, cz + c[k][1] * wb, cx + c[n][0] * wb, yb, cz + c[n][1] * wb, th * 0.7D);
             }
         }
         // блискавкоприймальний стрижень на верхівці
-        LepGeo.beam(t, cx, y1, cz, cx, y1 + 0.0D, cz, 0.04D);
+        LepGeo.beam(t, cx, y1, cz, cx, y1 + 0.0D, cz, th);
     }
 
     // ------------------------------------------------------------ фарфор
@@ -380,25 +389,27 @@ public class ModelSubstation750kV {
     }
 
     private static void porcelain(Tessellator t) {
-        // три високі вводи ВН 750 кВ, крайні нахилені назовні
         for (int i = 0; i < 3; i++) {
             double bx = Substation750.HV_X[i];
             bushing(t, bx, Substation750.LID_Y, Substation750.HV_Z,
                 bx * Substation750.HV_TILT, Substation750.HV_TOP_Y, Substation750.HV_Z, 0.26D, 0.22D, 14);
         }
-        // три нижчі вводи НН
         for (int i = 0; i < Substation750.LV_X.length; i++) {
             double bx = Substation750.LV_X[i];
             bushing(t, bx, Substation750.LID_Y, Substation750.LV_Z, bx, Substation750.LV_TOP_Y, Substation750.LV_Z,
                 0.16D, 0.12D, 6);
         }
-        // опорні ізолятори роз'єднувачів (по два на фазу) і колони ОПН
         for (double fx : Substation750.PHASE_X) {
             double hh = Substation750.DISC_HALF;
+            // опорні ізолятори роз'єднувача
             bushing(t, fx - hh, Substation750.DISC_BASE_Y, Substation750.DISC_Z,
                 fx - hh, Substation750.DISC_POST_TOP, Substation750.DISC_Z, 0.16D, 0.12D, 6);
             bushing(t, fx + hh, Substation750.DISC_BASE_Y, Substation750.DISC_Z,
                 fx + hh, Substation750.DISC_POST_TOP, Substation750.DISC_Z, 0.16D, 0.12D, 6);
+            // колона трансформатора струму (високий ребристий ізолятор)
+            bushing(t, fx, Substation750.CT_BASE_Y + 0.5D, Substation750.CT_Z,
+                fx, Substation750.CT_TOP_Y, Substation750.CT_Z, 0.20D, 0.16D, 9);
+            // ОПН
             bushing(t, fx, SLAB_H + 0.20D, Substation750.ARR_Z, fx, Substation750.ARR_TOP_Y, Substation750.ARR_Z,
                 0.16D, 0.12D, 11);
         }

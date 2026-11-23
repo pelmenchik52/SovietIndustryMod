@@ -11,7 +11,7 @@ import net.minecraft.util.AxisAlignedBB;
 import net.minecraftforge.common.util.ForgeDirection;
 
 /**
- * Головний блок трансформаторної підстанції 750 кВ (мультиблок 9x9x15, див. Substation750).
+ * Головний блок трансформаторної підстанції 750 кВ (мультиблок 13x13x23, див. Substation750).
  *
  * Майстер-блок стоїть посередині краю з боку входу (на ту сторону, куди дивився гравець при установці).
  *
@@ -139,7 +139,7 @@ public class TileEntitySubstation750kV extends TileEntityLepPylon implements IBu
 
     @Override
     protected double renderHeight() {
-        return 16.0D;
+        return 25.0D;
     }
 
     @Override

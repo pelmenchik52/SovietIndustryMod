@@ -1,10 +1,10 @@
 package com.sovietindustry.tileentities;
 
 /**
- * Геометрія трансформаторної підстанції 750 кВ: мультиблок 9 (ширина, вісь X) x 9 (довжина, вісь Z) x 15 (висота).
+ * Геометрія трансформаторної підстанції 750 кВ: мультиблок 13 (ширина, вісь X) x 13 (довжина, вісь Z) x 20 (висота).
  *
  * Майстер-блок стоїть у середині КРАЙНЬОГО боку плити, у клітинці (0, 0): це той бік, на який дивиться гравець
- * у момент установки. Плита йде від майстра ДО гравця (lz = -8..0), тому підстанція займає простір перед ним.
+ * у момент установки. Плита йде від майстра ДО гравця (lz = -12..0), тому підстанція займає простір перед ним.
  *
  * Компоновка (як у реальному відкритому розподільчому пристрої 750 кВ), уздовж довжини від входу до виходу:
  *   ряд lz=0      : лінійний портал (дві бетонні стійки з блискавкоприймальними щоглами й ґратчаста траверса),
@@ -14,9 +14,9 @@ package com.sovietindustry.tileentities;
  *   ряд lz=-8     : чотири вихідні кабельні порти (повні блоки) для кабелів NTM.
  * Додатково два блискавкоприймальні щогли по кутах і шафа керування.
  *
- * Модель малюється в "центрованій" системі (x', z'): центр плити (0, 0), x' -4.5..+4.5, z' -4.5..+4.5.
- *   локальний z = z' + CENTER_Z (CENTER_Z = -4), локальний x = x'.
- *   Клітинка lz займає z' від lz+3.5 до lz+4.5; вхід z' = +4, вихід z' = -4.
+ * Модель малюється в "центрованій" системі (x', z'): центр плити (0, 0), x' -6.5..+6.5, z' -6.5..+6.5.
+ *   локальний z = z' + CENTER_Z (CENTER_Z = -6), локальний x = x'.
+ *   Клітинка lz займає z' від lz+3.5 до lz+4.5; вхід z' = +6, вихід z' = -6.
  *
  * Поворот лише кратний 90 градусам (формули ті самі, що й у Substation750).
  */
@@ -24,88 +24,90 @@ public final class Substation750 {
     private Substation750() {
     }
 
-    public static final int LX_MIN = -4;
-    public static final int LX_MAX = 4;
-    public static final int LZ_MIN = -8;
+    public static final int LX_MIN = -6;
+    public static final int LX_MAX = 6;
+    public static final int LZ_MIN = -12;
     public static final int LZ_MAX = 0;
-    public static final int WIDTH = 9;
-    public static final int LENGTH = 9;
-    public static final int HEIGHT = 15;
+    public static final int WIDTH = 13;
+    public static final int LENGTH = 13;
+    public static final int HEIGHT = 23;
 
     /** Зсув центру моделі відносно майстер-блока (локальні координати). */
     public static final double CENTER_X = 0.0D;
-    public static final double CENTER_Z = -4.0D;
+    public static final double CENTER_Z = -6.0D;
     public static final double SLAB_H = 0.25D;
 
-    // ---------------------------------------------------------------- портал входу 750 кВ (центровані x', z')
-    public static final double PORTAL_Z = 4.0D;
-    /** Осі двох бетонних стійок: x' = +-PORTAL_X. */
-    public static final double PORTAL_X = 3.95D;
-    public static final double COLUMN_TOP = 10.4D;
-    public static final double MAST_TOP = 14.8D;
-    public static final double COLUMN_HALF_BOTTOM = 0.45D;
-    public static final double COLUMN_HALF_TOP = 0.30D;
-    /** Ґратчаста траверса: верхній і нижній пояс, виступ праворуч за стійку (як на фото). */
-    public static final double BEAM_TOP = 10.30D;
-    public static final double BEAM_LOW = 9.30D;
-    public static final double BEAM_X0 = -4.30D;
-    public static final double BEAM_X1 = 4.45D;
-    public static final double BEAM_PLANE = 0.20D;
-    /** Нижні кінці двох розкосів, що сходяться в центрі під траверсою. */
-    public static final double BRACE_Y = 6.40D;
-    public static final double[] PHASE_X = { -3.0D, 0.0D, 3.0D };
-    public static final double MOUNT_Y = 8.00D;
+    // ---------------------------------------------------------------- портал входу 750 кВ (ґратчасті стійки)
+    public static final double PORTAL_Z = 5.05D;
+    public static final double PORTAL_X = 3.40D;
+    /** Півширина основи й верху ґратчастої стійки (до COLUMN_TOP), далі тонка щогла до MAST_TOP. */
+    public static final double COLUMN_HALF_BOTTOM = 0.75D;
+    public static final double COLUMN_HALF_TOP = 0.12D;
+    /** Півширина стійки на рівні траверси: від траверси вниз спершу майже пряма, далі плавно розходиться. */
+    public static final double COLUMN_HALF_BEAM = 0.38D;
+    public static final double COLUMN_TOP = 18.5D;
+    public static final double MAST_TOP = 21.8D;
+    public static final double BEAM_TOP = 16.00D;
+    public static final double BEAM_LOW = 15.20D;
+    public static final double BEAM_X0 = -6.30D;
+    public static final double BEAM_X1 = 6.30D;
+    public static final double BEAM_PLANE = 0.22D;
+    public static final double BRACE_Y = 9.50D;
+    public static final double[] PHASE_X = { -4.5D, 0.0D, 4.5D };
+    /** Точки кріплення гірлянд на траверсі: крайні майже на краю порталу, центральна посередині. */
+    public static final double[] MOUNT_X = { -5.5D, 0.0D, 5.5D };
+    public static final double MOUNT_Y = BEAM_LOW - 0.20D;
     /** Така сама довжина гірлянди, як на анкерно-кутовій опорі 750 кВ, щоб дроти двох кінців збігалися. */
     public static final double STRING_LEN = Lep750.A_STRING_LEN;
 
-    // ---------------------------------------------------------------- лінійна комірка
-    public static final double DISC_Z = 3.20D;
-    public static final double ARR_Z = 2.50D;
-    public static final double DISC_BASE_Y = 1.60D;
-    public static final double DISC_POST_TOP = 3.60D;
-    public static final double DISC_BLADE_Y = 3.70D;
-    public static final double DISC_HALF = 0.50D;
-    public static final double ARR_TOP_Y = 4.30D;
+    // ---------------------------------------------------------------- лінійна комірка (на кожну фазу три ряди)
+    /** Роз'єднувач, далі трансформатор струму, далі ОПН (на шлейфі). Усе на ґратчастих підставках. */
+    public static final double DISC_Z = 4.70D;
+    public static final double DISC_BASE_Y = 2.20D;
+    public static final double DISC_POST_TOP = 4.40D;
+    public static final double DISC_BLADE_Y = 4.50D;
+    public static final double DISC_HALF = 0.60D;
+    public static final double CT_Z = 3.00D;
+    public static final double CT_BASE_Y = 2.30D;
+    public static final double CT_TOP_Y = 4.90D;
+    public static final double ARR_Z = 1.60D;
+    public static final double ARR_TOP_Y = 5.20D;
 
-    // ---------------------------------------------------------------- трансформатор
+    // ---------------------------------------------------------------- трансформатор (той самий, що був)
     public static final double TANK_HX = 3.30D;
     public static final double TANK_HZ = 1.20D;
-    public static final double TANK_CZ = -1.00D;
+    public static final double TANK_CZ = -2.00D;
     public static final double TANK_BOT = 0.35D;
     public static final double TANK_TOP = 4.00D;
     public static final double LID_Y = 4.10D;
 
-    public static final double[] HV_X = { -2.6D, 0.0D, 2.6D };
-    public static final double HV_Z = 0.0D;
+    public static final double[] HV_X = { -3.0D, 0.0D, 3.0D };
+    public static final double HV_Z = -1.00D;
     public static final double HV_TOP_Y = 8.20D;
     public static final double HV_TILT = 1.20D;
 
-    /** Чотири вводи НН точно навпроти чотирьох портів. */
     public static final double[] LV_X = { -3.0D, -1.0D, 1.0D, 3.0D };
-    public static final double LV_Z = -1.80D;
+    public static final double LV_Z = -2.80D;
     public static final double LV_TOP_Y = 6.20D;
 
     public static final double CONS_CX = 0.0D;
     public static final double CONS_CY = 5.25D;
-    public static final double CONS_CZ = -0.90D;
+    public static final double CONS_CZ = -1.90D;
     public static final double CONS_R = 0.55D;
     public static final double CONS_HALF = 2.20D;
 
-    /** Шафа керування збоку бака. */
-    public static final double CAB_X = 4.05D;
-    public static final double CAB_Z = -0.50D;
+    public static final double CAB_X = 5.20D;
+    public static final double CAB_Z = -2.00D;
 
     /** Блискавкоприймальні щогли по виходному краю. */
-    public static final double LIGHT_X = 4.0D;
-    public static final double LIGHT_Z = -2.9D;
-    public static final double LIGHT_TOP = 11.8D;
+    public static final double LIGHT_X = 5.9D;
+    public static final double LIGHT_Z = -4.6D;
+    public static final double LIGHT_TOP = 14.0D;
 
-    // ---------------------------------------------------------------- кабельні порти (ряд lz = -8, повні блоки)
-    /** Клітинки lx портів: через одну (кабелі NTM не злипаються), симетрично відносно осі підстанції. */
+    // ---------------------------------------------------------------- кабельні порти (ряд lz = -12, повні блоки)
     public static final int[] PORT_LX = { -3, -1, 1, 3 };
-    public static final double PORT_Z = -4.0D;
-    /** Торець плити з боку виходу. */
-    public static final double END_Z = -4.5D;
+    public static final double PORT_Z = -6.0D;
+    public static final double END_Z = -6.5D;
     public static final double PORT_PAD_HALF = 2.0D / 16.0D;
     public static final double PORT_PAD_Y = 0.5D;
 
@@ -130,37 +132,52 @@ public final class Substation750 {
     }
 
     // ---------------------------------------------------------------- колізійні компоненти: {x0, x1, z0, z1, y0, y1} у центрованих x', z'
+    /** Півширина ґратчастої стійки порталу на висоті y (єдина формула для моделі й колізії). */
+    public static double columnHalf(double y) {
+        if (y <= BEAM_LOW) {
+            double u = Math.max(0.0D, Math.min(1.0D, (BEAM_LOW - y) / (BEAM_LOW - SLAB_H)));
+            return COLUMN_HALF_BEAM + (COLUMN_HALF_BOTTOM - COLUMN_HALF_BEAM) * u;
+        }
+        if (y <= BEAM_TOP) return COLUMN_HALF_BEAM;
+        double f = Math.min(1.0D, (y - BEAM_TOP) / (MAST_TOP - BEAM_TOP));
+        return COLUMN_HALF_BEAM + (COLUMN_HALF_TOP - COLUMN_HALF_BEAM) * f;
+    }
+
     private static final double[][] COMPS = buildComps();
 
     private static double[][] buildComps() {
-        double[][] r = new double[48][];
+        double[][] r = new double[72][];
         int n = 0;
-        // бак із радіаторами на всю ширину, щоб не лишалось щілин
         r[n++] = new double[] { -TANK_HX - 0.2D, TANK_HX + 0.2D, TANK_CZ - TANK_HZ - 0.55D, TANK_CZ + TANK_HZ + 0.55D, SLAB_H, LID_Y };
-        // консерватор разом із опорами
-        r[n++] = new double[] { CONS_CX - CONS_HALF, CONS_CX + CONS_HALF, CONS_CZ - CONS_R, CONS_CZ + CONS_R,
-            LID_Y, CONS_CY + CONS_R };
-        // три вводи ВН (крайні нахилені назовні)
-        r[n++] = new double[] { -3.30D, -2.40D, HV_Z - 0.22D, HV_Z + 0.22D, LID_Y, HV_TOP_Y + 0.12D };
+        r[n++] = new double[] { CONS_CX - CONS_HALF, CONS_CX + CONS_HALF, CONS_CZ - CONS_R, CONS_CZ + CONS_R, LID_Y, CONS_CY + CONS_R };
+        r[n++] = new double[] { -3.80D, -2.80D, HV_Z - 0.22D, HV_Z + 0.22D, LID_Y, HV_TOP_Y + 0.12D };
         r[n++] = new double[] { -0.22D, 0.22D, HV_Z - 0.22D, HV_Z + 0.22D, LID_Y, HV_TOP_Y + 0.12D };
-        r[n++] = new double[] { 2.40D, 3.30D, HV_Z - 0.22D, HV_Z + 0.22D, LID_Y, HV_TOP_Y + 0.12D };
-        // чотири вводи НН
+        r[n++] = new double[] { 2.80D, 3.80D, HV_Z - 0.22D, HV_Z + 0.22D, LID_Y, HV_TOP_Y + 0.12D };
         for (double lvx : LV_X) {
             r[n++] = new double[] { lvx - 0.15D, lvx + 0.15D, LV_Z - 0.15D, LV_Z + 0.15D, LID_Y, LV_TOP_Y };
         }
-        // дві бетонні стійки порталу разом із щоглами
-        r[n++] = new double[] { -PORTAL_X - 0.45D, -PORTAL_X + 0.45D, PORTAL_Z - 0.45D, PORTAL_Z + 0.45D, SLAB_H, MAST_TOP };
-        r[n++] = new double[] { PORTAL_X - 0.45D, PORTAL_X + 0.45D, PORTAL_Z - 0.45D, PORTAL_Z + 0.45D, SLAB_H, MAST_TOP };
-        // лінійна комірка: роз'єднувач + ОПН на кожну фазу
-        for (double px : PHASE_X) {
-            r[n++] = new double[] { px - 0.50D, px + 0.50D, ARR_Z - 0.15D, DISC_Z + 0.30D, SLAB_H, ARR_TOP_Y };
+        // дві ґратчасті стійки порталу: ноги розходяться до основи, угорі стійка тонка й переходить у щоглу;
+        // колізія ступінчаста за висотою (півширина зменшується вгору)
+        double[] bandY = { SLAB_H, 3.0D, 6.0D, 9.0D, 12.0D, 15.0D, 18.0D, MAST_TOP };
+        double[] bandH = new double[bandY.length - 1];
+        for (int k = 0; k < bandH.length; k++) bandH[k] = columnHalf(bandY[k]) + 0.06D;
+        for (int sgn = -1; sgn <= 1; sgn += 2) {
+            for (int k = 0; k < bandH.length; k++) {
+                r[n++] = new double[] { sgn * PORTAL_X - bandH[k], sgn * PORTAL_X + bandH[k],
+                    PORTAL_Z - bandH[k], PORTAL_Z + bandH[k], bandY[k], bandY[k + 1] };
+            }
         }
-        // шафа керування
-        r[n++] = new double[] { CAB_X - 0.20D, CAB_X + 0.20D, CAB_Z - 0.50D, CAB_Z + 0.50D, SLAB_H, 1.60D };
-        // блискавкоприймальні щогли
+        for (double px : PHASE_X) {
+            // роз'єднувач
+            r[n++] = new double[] { px - 0.80D, px + 0.80D, DISC_Z - 0.35D, DISC_Z + 0.35D, SLAB_H, DISC_BLADE_Y + 0.15D };
+            // трансформатор струму
+            r[n++] = new double[] { px - 0.40D, px + 0.40D, CT_Z - 0.40D, CT_Z + 0.40D, SLAB_H, CT_TOP_Y };
+            // ОПН
+            r[n++] = new double[] { px - 0.25D, px + 0.25D, ARR_Z - 0.25D, ARR_Z + 0.25D, SLAB_H, ARR_TOP_Y };
+        }
+        r[n++] = new double[] { CAB_X - 0.22D, CAB_X + 0.22D, CAB_Z - 0.50D, CAB_Z + 0.50D, SLAB_H, 1.60D };
         r[n++] = new double[] { -LIGHT_X - 0.30D, -LIGHT_X + 0.30D, LIGHT_Z - 0.30D, LIGHT_Z + 0.30D, SLAB_H, LIGHT_TOP };
         r[n++] = new double[] { LIGHT_X - 0.30D, LIGHT_X + 0.30D, LIGHT_Z - 0.30D, LIGHT_Z + 0.30D, SLAB_H, LIGHT_TOP };
-        // чотири вихідні порти: ПОВНІ блоки 1x1x1, щоб кабель NTM щільно прилягав
         for (int lx : PORT_LX) {
             double px = cellX(lx);
             r[n++] = new double[] { px - 0.50D, px + 0.50D, PORT_Z - 0.50D, PORT_Z + 0.50D, 0.0D, 1.0D };
@@ -289,9 +306,9 @@ public final class Substation750 {
 
     /** Точки кріплення трьох фаз на порталі: локальні координати (до повороту), відносно центру майстра. */
     public static double[][] mounts() {
-        double[][] m = new double[PHASE_X.length][];
-        for (int i = 0; i < PHASE_X.length; i++) {
-            m[i] = new double[] { PHASE_X[i] + CENTER_X, MOUNT_Y, PORTAL_Z + CENTER_Z };
+        double[][] m = new double[MOUNT_X.length][];
+        for (int i = 0; i < MOUNT_X.length; i++) {
+            m[i] = new double[] { MOUNT_X[i] + CENTER_X, MOUNT_Y, PORTAL_Z + CENTER_Z };
         }
         return m;
     }

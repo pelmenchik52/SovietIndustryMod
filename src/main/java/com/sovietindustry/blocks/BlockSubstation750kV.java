@@ -26,12 +26,12 @@ import net.minecraft.world.IBlockAccess;
 import net.minecraft.world.World;
 
 /**
- * Трансформаторна підстанція 750 кВ: мультиблок 9 (ширина) x 9 (довжина) x 15 (висота).
+ * Трансформаторна підстанція 750 кВ: мультиблок 13 (ширина) x 13 (довжина) x 23 (висота).
  * Портал входу приймає дріт лише від анкерно-кутової опори 750 кВ, чотири кабельні виводи NTM на протилежному торці.
  * Поворот кратний 90 градусам.
  *
  * Майстер-блок стоїть у середині КРАЙНЬОГО боку, на який дивиться гравець при установці (клітинка (0, 0) локальної
- * сітки: lx -4..+4, lz -8..0). Решта плити йде в бік гравця, там же чотири кабельні порти. Усі інші клітинки це
+ * сітки: lx -6..+6, lz -12..0). Решта плити йде в бік гравця, там же чотири кабельні порти. Усі інші клітинки це
  * dummy-блоки (lep110Dummy), чия колізія береться з Substation750.localBox.
  */
 public class BlockSubstation750kV extends BlockContainer {
@@ -121,7 +121,8 @@ public class BlockSubstation750kV extends BlockContainer {
         if (world.isRemote) return;
 
         int dir = Math.round(placer.rotationYaw / 90.0F) & 3;
-        float snapped = dir * 90.0F;
+        // +180: плита йде ВІД гравця, майстер-блок лишається на ближньому краї
+        float snapped = (dir * 90.0F + 180.0F) % 360.0F;
         int k = Substation750.quarter(snapped);
 
         if (!canBuild(world, x, y, z, k)) {
@@ -130,7 +131,7 @@ public class BlockSubstation750kV extends BlockContainer {
             if (placer instanceof EntityPlayer) {
                 EntityPlayer p = (EntityPlayer) placer;
                 p.addChatMessage(new ChatComponentText(EnumChatFormatting.RED
-                    + "Not enough space: the substation needs a flat 9x9 area and 15 free blocks of height"));
+                    + "Not enough space: the substation needs a flat 13x13 area and 23 free blocks of height"));
                 if (!p.capabilities.isCreativeMode) {
                     ItemStack back = new ItemStack(this);
                     if (!p.inventory.addItemStackToInventory(back)) {
