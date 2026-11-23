@@ -157,6 +157,8 @@ public abstract class TileEntityLepPylon extends TileEntityPylonBase implements 
 
     // ------------------------------------------------------------ NBT і синхронізація
 
+    // ------------------------------------------------------------ NBT і синхронізація
+
     @Override
     public void writeToNBT(NBTTagCompound nbt) {
         super.writeToNBT(nbt);
@@ -167,7 +169,6 @@ public abstract class TileEntityLepPylon extends TileEntityPylonBase implements 
     public void readFromNBT(NBTTagCompound nbt) {
         super.readFromNBT(nbt);
         angle = nbt.getFloat("angle");
-        if (worldObj != null && worldObj.isRemote) clientSynced = true;
     }
 
     @Override
@@ -181,8 +182,22 @@ public abstract class TileEntityLepPylon extends TileEntityPylonBase implements 
     public void onDataPacket(NetworkManager net, S35PacketUpdateTileEntity pkt) {
         connected.clear();
         readFromNBT(pkt.func_148857_g());
+        // onDataPacket викликається ТІЛЬКИ на клієнті, і часто коли worldObj ще null!
+        clientSynced = true;
+        if (worldObj != null) {
+            worldObj.markBlockRangeForRenderUpdate(xCoord, yCoord, zCoord, xCoord, yCoord, zCoord);
+        }
     }
 
+    @Override
+    public void validate() {
+        super.validate();
+        // На випадок, якщо клієнт перестворив TileEntity з кешу чанка без нового S35 пакета:
+        // якщо angle != 0 або є з'єднання, вважаємо дані актуальними
+        if (worldObj != null && worldObj.isRemote && (angle != 0.0F || !connected.isEmpty())) {
+            clientSynced = true;
+        }
+    }
     /** Бокс охоплює опору й усі підключені опори, щоб дроти не зникали. */
     @Override
     @SideOnly(Side.CLIENT)

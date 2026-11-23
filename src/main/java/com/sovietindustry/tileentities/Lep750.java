@@ -131,13 +131,16 @@ public final class Lep750 {
 
     /** Точка кріплення похилої підтримувальної гірлянди на сусідній вежі (вище точки кріплення фази, як на фото). */
     public static double[] aSupportAttach(int mount) {
-        double attachY = A_MOUNT_Y + 3.6D;
-        return new double[] { mount * A_TOWER_X - (angleHalf(attachY) + A_SUP_STUB), attachY, 0.0D };
+        // mount=0 (ліва фаза) -> кріпиться до центральної вежі (towerIdx = 0)
+        // mount=1 (центральна фаза) -> кріпиться до правої вежі (towerIdx = 1)
+        int supportTowerIdx = mount;
+        double attachY = A_NECK_Y;
+        return new double[] { supportTowerIdx * A_TOWER_X - (angleHalf(attachY) + 0.35D), attachY, 0.0D };
     }
 
-    /** Кінець підтримувальної гірлянди (нахилена вниз до точки обходу шлейфу). */
     public static double[] aSupportEnd(int mount) {
-        return new double[] { (mount - 1) * A_TOWER_X + 3.4D, A_MOUNT_Y + 0.6D, 0.0D };
+        int phaseTowerIdx = mount - 1;
+        return new double[] { phaseTowerIdx * A_TOWER_X + 3.4D, A_MOUNT_Y + 0.4D, 0.0D };
     }
 
     public static double angleHalf(double y) {

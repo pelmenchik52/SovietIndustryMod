@@ -905,20 +905,34 @@ public final class LepWireRenderer {
 
     /** Верхня гірлянда, що висить униз від a до b: стрижень, 10 тарілок рівномірно по довжині й арматура на кінцях. */
     /** Підвісна/похила гірлянда: стрижень, густі тарілки по всій довжині (крок 0.18 блока) й арматура на кінцях. */
+    /**
+     * Підтримувальна гірлянда шлейфу: 10 тарілок біля проводу (b) + сталевий трос-відтяжка до вежі (a).
+     */
     private static void hangString(Tessellator t, double[] a, double[] b) {
         double len = dist(a, b);
         if (len < 1.0E-4D) return;
         double ux = (b[0] - a[0]) / len, uy = (b[1] - a[1]) / len, uz = (b[2] - a[2]) / len;
 
-        LepGeo.beam(t, a[0], a[1], a[2], b[0], b[1], b[2], 0.065D);
-        int n = Math.max(8, (int) Math.round((len - 0.32D) / 0.18D));
-        for (int k = 0; k < n; k++) {
-            double c = 0.16D + k * ((len - 0.32D) / (n - 1));
+        int discs = 10;
+        double step = 0.175D;
+        double insLen = Math.min(len - 0.25D, 0.28D + (discs - 1) * step);
+        // Точка переходу від сталевого троса до скляної гірлянди
+        double sx = b[0] - ux * insLen, sy = b[1] - uy * insLen, sz = b[2] - uz * insLen;
+
+        // 1. Сталевий трос від вежі (a) до початку тарілок (s)
+        LepGeo.beam(t, a[0], a[1], a[2], sx, sy, sz, 0.025D);
+        // 2. Стрижень самої гірлянди (s -> b)
+        LepGeo.beam(t, sx, sy, sz, b[0], b[1], b[2], 0.065D);
+        // 3. 10 тарілок біля проводу
+        for (int k = 0; k < discs; k++) {
+            double c = k * step + 0.12D;
+            if (c > insLen - 0.10D) break;
             double s0 = c - 0.032D, s1 = c + 0.032D;
-            LepGeo.beam(t, a[0] + ux * s0, a[1] + uy * s0, a[2] + uz * s0,
-                           a[0] + ux * s1, a[1] + uy * s1, a[2] + uz * s1, 0.25D);
+            LepGeo.beam(t, sx + ux * s0, sy + uy * s0, sz + uz * s0,
+                           sx + ux * s1, sy + uy * s1, sz + uz * s1, 0.26D);
         }
-        LepGeo.beam(t, a[0], a[1], a[2], a[0] + ux * 0.12D, a[1] + uy * 0.12D, a[2] + uz * 0.12D, 0.13D);
+        // Арматура на кінцях гірлянди
+        LepGeo.beam(t, sx, sy, sz, sx + ux * 0.10D, sy + uy * 0.10D, sz + uz * 0.10D, 0.12D);
         LepGeo.beam(t, b[0] - ux * 0.10D, b[1] - uy * 0.10D, b[2] - uz * 0.10D, b[0], b[1], b[2], 0.13D);
     }
 
