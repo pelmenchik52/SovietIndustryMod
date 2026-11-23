@@ -18,6 +18,9 @@ import com.sovietindustry.tileentities.TileEntityLep330;
 import com.sovietindustry.tileentities.TileEntityLep330Angle;
 import com.sovietindustry.tileentities.TileEntityLep750;
 import com.sovietindustry.tileentities.TileEntityLep750Angle;
+import com.sovietindustry.tileentities.TileEntityLep750Single;
+import com.sovietindustry.tileentities.TileEntityLep750SingleLeft;
+import com.sovietindustry.tileentities.TileEntityLep750SingleRight;
 
 public class CommonProxy {
     public void registerTileEntities() {
@@ -38,6 +41,9 @@ public class CommonProxy {
         GameRegistry.registerTileEntity(TileEntityLep330Angle.class, "SovietLep330Angle");
         GameRegistry.registerTileEntity(TileEntityLep750.class, "SovietLep750");
         GameRegistry.registerTileEntity(TileEntityLep750Angle.class, "SovietLep750Angle");
+        GameRegistry.registerTileEntity(TileEntityLep750Single.class, "SovietLep750Single");
+        GameRegistry.registerTileEntity(TileEntityLep750SingleLeft.class, "SovietLep750SingleLeft");
+        GameRegistry.registerTileEntity(TileEntityLep750SingleRight.class, "SovietLep750SingleRight");
     }
 
     public void registerRenderers() {}

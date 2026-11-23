@@ -3,6 +3,11 @@ package com.sovietindustry.tileentities;
 import com.sovietindustry.api.IBundledPylon;
 import com.sovietindustry.api.IMultiGroundWired;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.util.AxisAlignedBB;
@@ -72,6 +77,91 @@ public abstract class TileEntityLep750Base extends TileEntityLepPylon implements
         }
         double[] a = toWorldOffset(1.0D, 0.0D, 0.0D);
         return new double[] { a[0], 0.0D, a[2] };
+    }
+
+    // ------------------------------------------------------------ окремі щогли (одна фаза на щоглу)
+
+    private boolean isSingleAt(int x, int y, int z) {
+        return worldObj != null && worldObj.getTileEntity(x, y, z) instanceof TileEntityLep750Single;
+    }
+
+    /** +1 / -1: з якого боку опори (вздовж її локальної осі Z) лежить сусід. */
+    public int sideOf(int x, int z) {
+        double[] az = toWorldOffset(0.0D, 0.0D, 1.0D);
+        double d = (x - xCoord) * az[0] + (z - zCoord) * az[2];
+        return d >= 0.0D ? 1 : -1;
+    }
+
+    public int singlesOnSide(int side) {
+        int n = 0;
+        for (int[] p : getLinks()) {
+            if (isSingleAt(p[0], p[1], p[2]) && sideOf(p[0], p[2]) == side) n++;
+        }
+        return n;
+    }
+
+    public int normalLinkCount() {
+        int n = 0;
+        for (int[] p : getLinks()) {
+            if (!isSingleAt(p[0], p[1], p[2])) n++;
+        }
+        return n;
+    }
+
+    /** Скільки боків опори зайнято окремими щоглами (три щогли з одного боку це одна «сторона»). */
+    public int sidesUsedBySingles() {
+        return (singlesOnSide(1) > 0 ? 1 : 0) + (singlesOnSide(-1) > 0 ? 1 : 0);
+    }
+
+    /** До окремої щогли йде дріт лише від однієї з наших точок кріплення (за положенням щогли поперек лінії). */
+    @Override
+    public int[] getLinkMounts(int x, int y, int z) {
+        if (!isSingleAt(x, y, z)) return null;
+        return new int[] { singleMount(x, y, z) };
+    }
+
+    private int singleMount(int x, int y, int z) {
+        int side = sideOf(x, z);
+        double[] ax = toWorldOffset(1.0D, 0.0D, 0.0D);
+        List<double[]> grp = new ArrayList<double[]>();
+        for (int[] p : getLinks()) {
+            if (!isSingleAt(p[0], p[1], p[2]) || sideOf(p[0], p[2]) != side) continue;
+            double lat = (p[0] - xCoord) * ax[0] + (p[2] - zCoord) * ax[2];
+            grp.add(new double[] { lat, p[0], p[1], p[2] });
+        }
+        Collections.sort(grp, new Comparator<double[]>() {
+            @Override
+            public int compare(double[] a, double[] b) {
+                return Double.compare(a[0], b[0]);
+            }
+        });
+        int k = grp.size();
+        int idx = 0;
+        for (int i = 0; i < k; i++) {
+            double[] g = grp.get(i);
+            if ((int) g[1] == x && (int) g[2] == y && (int) g[3] == z) idx = i;
+        }
+        double[][] lm = getLocalMounts();
+        int n = lm.length;
+        if (k >= n) return Math.min(idx, n - 1);
+        // найкращий набір із k точок кріплення (за зростанням), щоб дроти не перехрещувались
+        int[] best = null;
+        double bestCost = Double.MAX_VALUE;
+        for (int mask = 1; mask < (1 << n); mask++) {
+            if (Integer.bitCount(mask) != k) continue;
+            int[] pick = new int[k];
+            int c = 0;
+            for (int j = 0; j < n; j++) {
+                if ((mask & (1 << j)) != 0) pick[c++] = j;
+            }
+            double cost = 0.0D;
+            for (int i = 0; i < k; i++) cost += Math.abs(grp.get(i)[0] - lm[pick[i]][0]);
+            if (cost < bestCost) {
+                bestCost = cost;
+                best = pick;
+            }
+        }
+        return best == null ? 0 : best[idx];
     }
 
     // ------------------------------------------------------------ рамка рендера

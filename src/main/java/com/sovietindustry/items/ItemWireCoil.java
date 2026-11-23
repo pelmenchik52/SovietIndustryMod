@@ -24,6 +24,8 @@ import com.sovietindustry.tileentities.TileEntityLep330Angle;
 import com.sovietindustry.tileentities.TileEntityLep330Base;
 import com.sovietindustry.tileentities.TileEntityLep750Angle;
 import com.sovietindustry.tileentities.TileEntityLep750Base;
+import com.sovietindustry.tileentities.TileEntityLep750Single;
+import com.sovietindustry.tileentities.TileEntityLep750Base;
 import com.sovietindustry.tileentities.TileEntitySubstation750kV;
 import com.sovietindustry.tileentities.TileEntitySubstation330kV;
 import com.sovietindustry.tileentities.TileEntityLepPylon;
@@ -217,6 +219,27 @@ public class ItemWireCoil extends Item {
         return null;
     }
 
+    /**
+     * Чи не можна додати до опори t ще один дріт до other. Окрема щогла 750 кВ приймає вхід і вихід (2 дроти);
+     * опори 750 кВ із трьома точками кріплення рахують «сторони»: до трьох окремих щогл з одного боку це одна сторона.
+     */
+    private static boolean full(TileEntityPylonBase t, TileEntityPylonBase other) {
+        if (t instanceof TileEntityLep750Single) {
+            return ((TileEntityLep750Single) t).getLinks().size() >= TileEntityLepPylon.MAX_LINE_CONNECTIONS;
+        }
+        if (t instanceof TileEntityLep750Base) {
+            TileEntityLep750Base b = (TileEntityLep750Base) t;
+            if (other instanceof TileEntityLep750Single) {
+                int side = b.sideOf(other.xCoord, other.zCoord);
+                if (b.singlesOnSide(side) >= 3) return true;
+                int units = b.normalLinkCount() + b.sidesUsedBySingles() + (b.singlesOnSide(side) == 0 ? 1 : 0);
+                return units > TileEntityLepPylon.MAX_LINE_CONNECTIONS;
+            }
+            return b.normalLinkCount() + b.sidesUsedBySingles() >= TileEntityLepPylon.MAX_LINE_CONNECTIONS;
+        }
+        return full(t);
+    }
+
     private static boolean full(TileEntityPylonBase t) {
         if (t instanceof TileEntityLep110x2Base) return false; // місткість перевіряє sixWireCheck
         return t instanceof TileEntityLepPylon
@@ -318,7 +341,7 @@ public class ItemWireCoil extends Item {
             msg(player, EnumChatFormatting.RED, sixErr);
             return true;
         }
-        if (full(first) || full(second)) {
+        if (full(first, second) || full(second, first)) {
             msg(player, EnumChatFormatting.RED, "Pylon already has two connections (input and output)");
             return true;
         }

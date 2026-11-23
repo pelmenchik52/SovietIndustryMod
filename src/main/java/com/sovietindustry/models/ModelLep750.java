@@ -30,11 +30,25 @@ public class ModelLep750 {
     private static final int[][] SIGN = { { -1, -1 }, { 1, -1 }, { 1, 1 }, { -1, 1 } };
 
     private final boolean angle;
+    private final boolean single;
+    /** Для окремої щогли: -1 ліва, 0 середня, +1 права (форма вежі як у складі АКО). */
+    private final int variant;
     private int listSteel = -1;
     private int listAtlas = -1;
 
     public ModelLep750(boolean angle) {
+        this(angle, false);
+    }
+
+    /** single = одна окрема щогла (середня вежа анкерно-кутової, без упору під шлейф сусідньої). */
+    public ModelLep750(boolean angle, boolean single) {
+        this(angle, single, 0);
+    }
+
+    public ModelLep750(boolean angle, boolean single, int variant) {
         this.angle = angle;
+        this.single = single;
+        this.variant = variant;
     }
 
     public void renderAll() {
@@ -303,13 +317,17 @@ public class ModelLep750 {
     // ------------------------------------------------------------ анкерно-кутова УС750-1 (Креслення 2)
 
     private void buildAngleSteel(Tessellator t) {
+        if (single) {
+            tower(t, variant, 0.0D);
+            return;
+        }
         for (int idx = -1; idx <= 1; idx++) {
-            tower(t, idx);
+            tower(t, idx, idx * Lep750.A_TOWER_X);
         }
     }
 
-    private void tower(Tessellator t, int idx) {
-        double tx = idx * Lep750.A_TOWER_X;
+    /** idx задає форму вежі (-1 ліва, 0 середня, +1 права), tx її зміщення по X (в окремої щогли 0). */
+    private void tower(Tessellator t, int idx, double tx) {
         boolean isSideTower = (idx != 0);
 
         // 1. Нижня пірамідальна секція (0 .. A_NECK_Y) з характерним портальним вирізом внизу (як на кресленні УС750-1)
@@ -355,11 +373,19 @@ public class ModelLep750 {
         }
 
         // Упор під горизонтальну допоміжну гірлянду шлейфу (на центральній та правій вежах)
-        if (idx >= 0) {
+        if (idx >= 0 && !single) {
             double sh = Lep750.angleHalf(my);
             lb(t, tx - sh, my, 0.0D, tx - sh - Lep750.A_SUP_STUB, my, 0.0D, 0.11D);
             lb(t, tx - sh, my - 0.7D, 0.0D, tx - sh - Lep750.A_SUP_STUB, my, 0.0D, 0.065D);
             LepGeo.box(t, tx - sh - Lep750.A_SUP_STUB, my, 0.0D, 0.09D, 0.12D, 0.12D);
+        }
+
+        // Окрема щогла (ліва/середня): власний упор на +X грані під допоміжну гірлянду шлейфу
+        if (single && idx != 1) {
+            double sh = Lep750.angleHalf(my);
+            lb(t, tx + sh, my, 0.0D, tx + sh + Lep750.A_SUP_STUB, my, 0.0D, 0.11D);
+            lb(t, tx + sh, my - 0.7D, 0.0D, tx + sh + Lep750.A_SUP_STUB, my, 0.0D, 0.065D);
+            LepGeo.box(t, tx + sh + Lep750.A_SUP_STUB, my, 0.0D, 0.09D, 0.12D, 0.12D);
         }
 
         // 2. Верхня частина: у середньої вежі (idx == 0) плоска голівка без високої тросостійки!

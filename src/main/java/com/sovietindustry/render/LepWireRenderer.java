@@ -762,12 +762,11 @@ public final class LepWireRenderer {
                 for (int i = 0; i < og.length; i++) {
                     kb[i] = (sx + og[i].xCoord) * ux + (sz + og[i].zCoord) * uz;
                 }
-                int[] ia = order(ka);
-                int[] ib = order(kb);
-                int cnt = Math.min(ia.length, ib.length);
+                int[][] gp = pairGrounds(ka, kb);
+                int cnt = gp[0].length;
                 for (int k = 0; k < cnt; k++) {
-                    Vec3 g1 = ground[ia[k]];
-                    Vec3 g2 = og[ib[k]];
+                    Vec3 g1 = ground[gp[0][k]];
+                    Vec3 g2 = og[gp[1][k]];
                     double[] a = { g1.xCoord, g1.yCoord, g1.zCoord };
                     double[] b = { o.xCoord - te.xCoord + g2.xCoord, o.yCoord - te.yCoord + g2.yCoord,
                                    o.zCoord - te.zCoord + g2.zCoord };
@@ -814,6 +813,40 @@ public final class LepWireRenderer {
             return g == null ? null : new Vec3[] { g };
         }
         return null;
+    }
+
+    /**
+     * Пари тросових точок двох опор. Коли точок порівну (2 і 2), пари йдуть за порядком поперек прольоту.
+     * Коли в однієї опори менше (окрема щогла з одним тросом проти проміжної з двома), кожна точка меншого боку
+     * бере НАЙБЛИЖЧУ за положенням точку більшого боку, тож права щогла чіпляє правий ріг, а ліва лівий.
+     */
+    private static int[][] pairGrounds(double[] ka, double[] kb) {
+        int[] ia = order(ka);
+        int[] ib = order(kb);
+        if (ka.length == kb.length) return new int[][] { ia, ib };
+        boolean aSmall = ka.length < kb.length;
+        double[] small = aSmall ? ka : kb;
+        double[] big = aSmall ? kb : ka;
+        int[] os = order(small);
+        boolean[] used = new boolean[big.length];
+        int[] ps = new int[small.length];
+        int[] pb = new int[small.length];
+        for (int k = 0; k < os.length; k++) {
+            int best = -1;
+            double bd = Double.MAX_VALUE;
+            for (int j = 0; j < big.length; j++) {
+                if (used[j]) continue;
+                double d = Math.abs(big[j] - small[os[k]]);
+                if (d < bd) {
+                    bd = d;
+                    best = j;
+                }
+            }
+            used[best] = true;
+            ps[k] = os[k];
+            pb[k] = best;
+        }
+        return aSmall ? new int[][] { ps, pb } : new int[][] { pb, ps };
     }
 
     /** Індекси масиву за зростанням значень (для зіставлення тросів двох опор). */

@@ -124,6 +124,15 @@ public final class LepMultiblock {
             }
             return new float[] { 0.49F, 0.0F, 0.49F, 0.51F, 1.0F, 0.51F };
         }
+        if (master instanceof BlockLep750Single) {
+            double r = a750Reach(dy, rot);
+            double x0 = Math.max(0.0D, -r - (dx - 0.5D)), x1 = Math.min(1.0D, r - (dx - 0.5D));
+            double z0 = Math.max(0.0D, -r - (dz - 0.5D)), z1 = Math.min(1.0D, r - (dz - 0.5D));
+            if (x1 - x0 > 0.02D && z1 - z0 > 0.02D) {
+                return new float[] { (float) x0, 0.0F, (float) z0, (float) x1, 1.0F, (float) z1 };
+            }
+            return new float[] { 0.49F, 0.0F, 0.49F, 0.51F, 1.0F, 0.51F };
+        }
         if (master == ModBlocks.lep750Angle) {
             double r = a750Reach(dy, rot);
             for (int idx = -1; idx <= 1; idx++) {
@@ -688,6 +697,41 @@ public final class LepMultiblock {
                     if (idx == 0 && dy == 0 && cell[0] == 0 && cell[1] == 0) continue;
                     removeOwnDummy(w, x + cell[0], y + dy, z + cell[1], x, y, z);
                 }
+            }
+        }
+    }
+
+    // --- Окрема щогла 750 кВ (одна фаза): та сама вежа, що середня в анкерно-кутовій, але без вимоги рівного майданчика
+
+    /** Місце вільне, якщо під майстром є опора й вільна шахта над ним; решта клітинок біля основи може бути в рельєфі. */
+    public static boolean canPlaceS750(World w, int x, int y, int z, int towerIdx) {
+        if (!World.doesBlockHaveSolidTopSurface(w, x, y - 1, z)) return false;
+        int maxH = a750TowerHeight(towerIdx);
+        if (y + maxH >= 256) return false;
+        for (int dy = 1; dy < maxH; dy++) {
+            if (!freeCell(w, x, y + dy, z)) return false;
+        }
+        return true;
+    }
+
+    /** Ставить dummy-блоки лише у вільні клітинки: те, що вже зайняте схилом, пропускається. */
+    public static void buildS750(World w, int x, int y, int z, float angle, int towerIdx) {
+        int maxH = a750TowerHeight(towerIdx);
+        for (int dy = 0; dy < maxH; dy++) {
+            for (int[] cell : a750Cells(angle, 0, dy)) {
+                if (dy == 0 && cell[0] == 0 && cell[1] == 0) continue;
+                if (!freeCell(w, x + cell[0], y + dy, z + cell[1])) continue;
+                setDummy(w, x + cell[0], y + dy, z + cell[1], x, y, z);
+            }
+        }
+    }
+
+    public static void removeS750(World w, int x, int y, int z, float angle, int towerIdx) {
+        int maxH = a750TowerHeight(towerIdx);
+        for (int dy = 0; dy < maxH; dy++) {
+            for (int[] cell : a750Cells(angle, 0, dy)) {
+                if (dy == 0 && cell[0] == 0 && cell[1] == 0) continue;
+                removeOwnDummy(w, x + cell[0], y + dy, z + cell[1], x, y, z);
             }
         }
     }

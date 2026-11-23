@@ -87,7 +87,7 @@ public class BlockLepDummy extends BlockContainer {
             || b == ModBlocks.lep110x2 || b == ModBlocks.lep110x2Angle
             || b == ModBlocks.lep330 || b == ModBlocks.lep330Angle
             || b == ModBlocks.substation330kV || b == ModBlocks.substation750kV
-            || b == ModBlocks.lep750 || b == ModBlocks.lep750Angle;
+            || b == ModBlocks.lep750 || b == ModBlocks.lep750Angle || b instanceof BlockLep750Single;
     }
 
     @Override

@@ -27,6 +27,9 @@ public class ModBlocks {
     public static Block lep330Angle;
     public static Block lep750;
     public static Block lep750Angle;
+    public static Block lep750Single;
+    public static Block lep750SingleLeft;
+    public static Block lep750SingleRight;
     public static Block substation110kV;
     public static Block substationPort110kV;
     public static Block substation330kV;
@@ -249,6 +252,22 @@ public class ModBlocks {
             .setBlockName("lep750Angle")
             .setCreativeTab(SovietIndustryMod.tabSoviet);
         GameRegistry.registerBlock(lep750Angle, "lep750Angle");
+
+        // Окрема анкерно-кутова щогла 750 кВ (одна фаза; три такі замінюють анкерно-кутову опору, наприклад у горах)
+        lep750Single = new BlockLep750Single()
+            .setBlockName("lep750Single")
+            .setCreativeTab(SovietIndustryMod.tabSoviet);
+        GameRegistry.registerBlock(lep750Single, "lep750Single");
+
+        // Ліва й права окремі щогли (тросостійка, консоль): разом із середньою складають повну анкерно-кутову опору з трьох щогл
+        lep750SingleLeft = new BlockLep750SingleLeft()
+            .setBlockName("lep750SingleLeft")
+            .setCreativeTab(SovietIndustryMod.tabSoviet);
+        GameRegistry.registerBlock(lep750SingleLeft, "lep750SingleLeft");
+        lep750SingleRight = new BlockLep750SingleRight()
+            .setBlockName("lep750SingleRight")
+            .setCreativeTab(SovietIndustryMod.tabSoviet);
+        GameRegistry.registerBlock(lep750SingleRight, "lep750SingleRight");
 
         substation110kV = new BlockSubstation110kV()
             .setBlockName("substation110kV")

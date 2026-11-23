@@ -37,6 +37,9 @@ public class ItemRenderLepPylon implements IItemRenderer {
     public static final int KIND_750 = 8;
     public static final int KIND_750_ANGLE = 9;
     public static final int KIND_SUBSTATION_750 = 10;
+    public static final int KIND_750_SINGLE = 11;
+    public static final int KIND_750_SINGLE_LEFT = 12;
+    public static final int KIND_750_SINGLE_RIGHT = 13;
 
     private final ModelSubstation330kV modelSubstation330 = new ModelSubstation330kV();
     private final ModelSubstation750kV modelSubstation750 = new ModelSubstation750kV();
@@ -46,6 +49,9 @@ public class ItemRenderLepPylon implements IItemRenderer {
 
     private final ModelLep750 model750 = new ModelLep750(false);
     private final ModelLep750 model750Angle = new ModelLep750(true);
+    private final ModelLep750 model750Single = new ModelLep750(true, true, 0);
+    private final ModelLep750 model750SingleLeft = new ModelLep750(true, true, -1);
+    private final ModelLep750 model750SingleRight = new ModelLep750(true, true, 1);
 
     private final ModelLep110x2 modelX2 = new ModelLep110x2(false);
     private final ModelLep110x2 modelX2Angle = new ModelLep110x2(true);
@@ -102,10 +108,15 @@ public class ItemRenderLepPylon implements IItemRenderer {
             return;
         }
 
-        if (x2Kind == KIND_750 || x2Kind == KIND_750_ANGLE) {
+        boolean singleKind = x2Kind == KIND_750_SINGLE || x2Kind == KIND_750_SINGLE_LEFT || x2Kind == KIND_750_SINGLE_RIGHT;
+        if (x2Kind == KIND_750 || x2Kind == KIND_750_ANGLE || singleKind) {
             apply750Transform(type);
+            if (singleKind) GL11.glScalef(2.2F, 2.2F, 2.2F);
             GL11.glDisable(GL11.GL_CULL_FACE);
-            (x2Kind == KIND_750_ANGLE ? model750Angle : model750).renderAll();
+            (x2Kind == KIND_750_SINGLE_LEFT ? model750SingleLeft
+                : x2Kind == KIND_750_SINGLE_RIGHT ? model750SingleRight
+                : x2Kind == KIND_750_SINGLE ? model750Single
+                : x2Kind == KIND_750_ANGLE ? model750Angle : model750).renderAll();
             GL11.glEnable(GL11.GL_CULL_FACE);
             GL11.glPopMatrix();
             return;
