@@ -75,9 +75,7 @@ public class BlockLep750Angle extends BlockContainer {
 
     @Override
     public void onBlockPlacedBy(World world, int x, int y, int z, EntityLivingBase placer, ItemStack stack) {
-        float snapped = Math.round(placer.rotationYaw / 30.0F) * 30.0F;
-        while (snapped < 0.0F) snapped += 360.0F;
-        while (snapped >= 360.0F) snapped -= 360.0F;
+        float snapped = LepMultiblock.snapAngle(placer.rotationYaw);
 
         float chosen = LepMultiblock.pickA750Angle(world, x, y, z, snapped);
         if (chosen < 0.0F) {

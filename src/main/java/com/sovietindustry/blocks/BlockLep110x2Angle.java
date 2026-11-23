@@ -76,9 +76,7 @@ public class BlockLep110x2Angle extends BlockContainer {
 
     @Override
     public void onBlockPlacedBy(World world, int x, int y, int z, EntityLivingBase placer, ItemStack stack) {
-        float snapped = Math.round(placer.rotationYaw / 30.0F) * 30.0F;
-        while (snapped < 0.0F) snapped += 360.0F;
-        while (snapped >= 360.0F) snapped -= 360.0F;
+        float snapped = LepMultiblock.snapAngle(placer.rotationYaw);
 
         TileEntity te = world.getTileEntity(x, y, z);
         if (te instanceof TileEntityLepPylon) {

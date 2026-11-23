@@ -64,6 +64,12 @@ public final class LepWireRenderer {
     /** Мінімальний відступ кореня гірлянди, при якому малюється сталева підвіска. */
     private static final double STANDOFF_MIN = 0.05D;
     private static final int[][] SIGN = { { -1, -1 }, { 1, -1 }, { 1, 1 }, { -1, 1 } };
+    /** Дуга проводу анкерної опори 750 кВ: довжина дотичних ручок Безьє як частка відстані до вершини дуги. */
+    private static final double ARC_K_END = 0.20D;
+    private static final double ARC_K_APEX = 0.50D;
+    private static final int ARC_SEGS = 14;
+    /** Відступ кореня гірлянд-перемичок від центру пучка (радіус коронного кільця + запас). */
+    private static final double SUP_RING_OFF = 0.46D;
 
     private LepWireRenderer() {
     }
@@ -294,7 +300,7 @@ public final class LepWireRenderer {
         }
         boolean leftJumperUsed = false;
         TileEntityLep750Angle angle750 = (te instanceof TileEntityLep750Angle) ? (TileEntityLep750Angle) te : null;
-        if (angle750 != null && bun != null) {
+        if (Lep750.LEFT_JUMPER_ENABLED && angle750 != null && bun != null) {
             for (Link l : list) {
                 for (int i = 0; i < l.mine.length; i++) {
                     if (l.mine[i] != null && l.mi[i] == 0 && l.pm != null) leftJumperUsed = true;
@@ -304,19 +310,34 @@ public final class LepWireRenderer {
 
         // допоміжні горизонтальні гірлянди на сусідній вежі (шлейф проходить через них)
         List<Vec3[]> supDraw = new ArrayList<Vec3[]>();
+        // горизонтальна дотична проводу у вершині дуги для кожної допоміжної гірлянди
+        List<double[]> supTan = new ArrayList<double[]>();
         if (te instanceof ISideSupportPylon) {
             Map<Integer, Integer> cnt = new HashMap<Integer, Integer>();
+            Map<Integer, List<double[]>> endsOf = new HashMap<Integer, List<double[]>>();
             for (Link l : list) {
                 for (int i = 0; i < l.mine.length; i++) {
                     if (l.mine[i] == null) continue;
                     Integer c = cnt.get(l.mi[i]);
                     cnt.put(l.mi[i], c == null ? 1 : c + 1);
+                    List<double[]> eo = endsOf.get(l.mi[i]);
+                    if (eo == null) {
+                        eo = new ArrayList<double[]>();
+                        endsOf.put(l.mi[i], eo);
+                    }
+                    eo.add(l.mine[i]);
                 }
             }
             for (Map.Entry<Integer, Integer> e : cnt.entrySet()) {
                 if (e.getValue() < 2 || (jump != null && e.getKey().intValue() == jm)) continue;
                 Vec3[] sp = ((ISideSupportPylon) te).getSideSupport(e.getKey().intValue());
-                if (sp != null) supDraw.add(sp);
+                if (sp == null) continue;
+                List<double[]> eo = endsOf.get(e.getKey());
+                double tx = eo.get(1)[0] - eo.get(0)[0], tz = eo.get(1)[2] - eo.get(0)[2];
+                double tl = Math.sqrt(tx * tx + tz * tz);
+                double[] tw = tl < 1.0E-6D ? new double[] { 0.0D, 0.0D, 1.0D } : new double[] { tx / tl, 0.0D, tz / tl };
+                supDraw.add(sp);
+                supTan.add(tw);
             }
         }
 
@@ -344,31 +365,36 @@ public final class LepWireRenderer {
                     }
                 }
             }
+            int discCount = (bun != null && bun.getWiresPerString() == 4) ? 20 : 10;
+
             for (Vec3[] sp : supDraw) {
-                double[] a = { sp[0].xCoord, sp[0].yCoord, sp[0].zCoord };
-                double[] b = { sp[1].xCoord, sp[1].yCoord, sp[1].zCoord };
+                double[] a = new double[] { sp[0].xCoord, sp[0].yCoord, sp[0].zCoord };
+                // корінь гірлянд-перемичок: на краю коронного кільця у бік сусідньої вежі, а не в центрі пучка проводів
+                double[] b = supRoot(a, new double[] { sp[1].xCoord, sp[1].yCoord, sp[1].zCoord });
                 if (bun != null && bun.getWiresPerString() == 4) {
                     double[] zAxis = (te instanceof TileEntityLepPylon)
                         ? ((TileEntityLepPylon) te).toWorldOffset(0.0D, 0.0D, 1.0D)
                         : new double[] { 0.0D, 0.0D, 1.0D };
                     for (int si = 0; si < bun.getStringsPerMount(); si++) {
                         double o = stringOffset(bun, si);
-                        hangString(t, shift(a, zAxis, o * FORK_ROOT), shift(b, zAxis, o));
+                        hangString(t, shift(a, zAxis, o * FORK_ROOT), shift(b, zAxis, o), discCount);
                     }
                 } else {
-                    hangString(t, a, b);
+                    hangString(t, a, b, discCount);
                 }
             }
             if (jumperUsed) {
-                for (Vec3[] js : jump.getJumperStrings()) {
+                Vec3[][] jsAll = jump.getJumperStrings();
+                for (Vec3[] js : jsAll) {
                     hangString(t, new double[] { js[0].xCoord, js[0].yCoord, js[0].zCoord },
-                                  new double[] { js[1].xCoord, js[1].yCoord, js[1].zCoord });
+                                  new double[] { js[1].xCoord, js[1].yCoord, js[1].zCoord }, discCount);
                 }
             }
             if (leftJumperUsed) {
-                for (Vec3[] js : angle750.getLeftJumperStrings()) {
+                Vec3[][] jsAll = angle750.getLeftJumperStrings();
+                for (Vec3[] js : jsAll) {
                     hangString(t, new double[] { js[0].xCoord, js[0].yCoord, js[0].zCoord },
-                                new double[] { js[1].xCoord, js[1].yCoord, js[1].zCoord });
+                                  new double[] { js[1].xCoord, js[1].yCoord, js[1].zCoord }, discCount);
                 }
             }
             t.draw();
@@ -389,19 +415,30 @@ public final class LepWireRenderer {
                         standoffBracket(t, bun, mine[l.mi[i]], l.root[i], l.pm);
                     }
                 }
-                for (Vec3[] sp : supDraw) {
+                for (int si0 = 0; si0 < supDraw.size(); si0++) {
+                    Vec3[] sp = supDraw.get(si0);
                     double[] a = { sp[0].xCoord, sp[0].yCoord, sp[0].zCoord };
-                    double[] b = { sp[1].xCoord, sp[1].yCoord, sp[1].zCoord };
+                    double[] m = { sp[1].xCoord, sp[1].yCoord, sp[1].zCoord };
+                    double[] b = supRoot(a, m);
                     double[] u = unit(b[0] - a[0], b[1] - a[1], b[2] - a[2]);
                     if (bun.getWiresPerString() == 4) {
                         double[] zAxis = (te instanceof TileEntityLepPylon)
                             ? ((TileEntityLepPylon) te).toWorldOffset(0.0D, 0.0D, 1.0D)
                             : new double[] { 0.0D, 0.0D, 1.0D };
-                        double[][] ends = new double[bun.getStringsPerMount()][];
-                        for (int si = 0; si < ends.length; si++) {
-                            ends[si] = shift(b, zAxis, stringOffset(bun, si));
+                        // коронні кільця надіті на пучок у вершині дуги (перпендикулярно проводу, а не гірлянді)
+                        endFitting(t, new double[][] { m }, supTan.get(si0), bun);
+                        // сталева хомутина від кільця до коренів обох гірлянд-перемичок
+                        double[] ringPt = shift(m, u, -(SUP_RING_OFF - 0.06D));
+                        double[] first = null, last = null;
+                        for (int si = 0; si < bun.getStringsPerMount(); si++) {
+                            double[] r = shift(b, zAxis, stringOffset(bun, si));
+                            LepGeo.beamUV(t, ringPt[0], ringPt[1], ringPt[2], r[0], r[1], r[2], 0.07D, A_STEEL, ATLAS_SIZE);
+                            if (first == null) first = r;
+                            last = r;
                         }
-                        endFitting(t, ends, u, bun);
+                        if (first != null && last != first) {
+                            LepGeo.beamUV(t, first[0], first[1], first[2], last[0], last[1], last[2], 0.08D, A_STEEL_DARK, ATLAS_SIZE);
+                        }
                     } else {
                         endFitting(t, new double[][] { b }, u, bun);
                     }
@@ -498,19 +535,24 @@ public final class LepWireRenderer {
         if (anchor) {
             Map<Integer, List<double[]>> perMount = new HashMap<Integer, List<double[]>>();
             Map<Integer, List<double[]>> perAxis = new HashMap<Integer, List<double[]>>();
+            Map<Integer, List<double[]>> perDir = new HashMap<Integer, List<double[]>>();
             for (Link l : list) {
                 for (int i = 0; i < l.mine.length; i++) {
                     if (l.mine[i] == null) continue;
                     List<double[]> ends = perMount.get(l.mi[i]);
                     List<double[]> axes = perAxis.get(l.mi[i]);
+                    List<double[]> dirs = perDir.get(l.mi[i]);
                     if (ends == null) {
                         ends = new ArrayList<double[]>();
                         axes = new ArrayList<double[]>();
+                        dirs = new ArrayList<double[]>();
                         perMount.put(l.mi[i], ends);
                         perAxis.put(l.mi[i], axes);
+                        perDir.put(l.mi[i], dirs);
                     }
                     ends.add(l.mine[i]);
                     axes.add(l.pm);
+                    dirs.add(unit(l.mine[i][0] - l.root[i][0], l.mine[i][1] - l.root[i][1], l.mine[i][2] - l.root[i][2]));
                 }
             }
             for (Map.Entry<Integer, List<double[]>> e : perMount.entrySet()) {
@@ -520,7 +562,15 @@ public final class LepWireRenderer {
                 List<double[]> axes = perAxis.get(e.getKey());
                 if (ends.size() < 2) continue;
                 if (bun != null && axes.get(0) != null && axes.get(1) != null) {
-                    if (bun.getWiresPerString() == 4) {
+                    Vec3[] spArc = (te instanceof ISideSupportPylon && bun.getWiresPerString() == 4)
+                        ? ((ISideSupportPylon) te).getSideSupport(e.getKey().intValue()) : null;
+                    if (spArc != null) {
+                        // плавна дуга D-подібної форми: від кінця однієї гірлянди через вершину (кріплення перемички) до іншої
+                        List<double[]> dirs = perDir.get(e.getKey());
+                        arcLoop(t, ends.get(0), dirs.get(0),
+                                new double[] { spArc[1].xCoord, spArc[1].yCoord, spArc[1].zCoord },
+                                ends.get(1), dirs.get(1));
+                    } else if (bun.getWiresPerString() == 4) {
                         double sign = dot(axes.get(0), axes.get(1)) < 0.0D ? -1.0D : 1.0D;
                         double h = Lep750.BUNDLE_HALF;
 
@@ -976,25 +1026,26 @@ public final class LepWireRenderer {
     /**
      * Підтримувальна гірлянда шлейфу: 10 тарілок біля проводу (b) + сталевий трос-відтяжка до вежі (a).
      */
-    private static void hangString(Tessellator t, double[] a, double[] b) {
+    private static void hangString(Tessellator t, double[] a, double[] b, int discs) {
         double len = dist(a, b);
         if (len < 1.0E-4D) return;
         double ux = (b[0] - a[0]) / len, uy = (b[1] - a[1]) / len, uz = (b[2] - a[2]) / len;
 
-        int discs = 10;
-        double step = 0.175D;
-        double insLen = Math.min(len - 0.25D, 0.28D + (discs - 1) * step);
-        // Точка переходу від сталевого троса до скляної гірлянди
+        // Для 20 тарілок (750 кВ) ізолятори займають майже всю довжину гірлянди, як у синій натяжній
+        double step = (discs >= 20) ? Math.min(0.165D, (len - 0.35D) / (discs - 1)) : 0.175D;
+        double insLen = Math.min(len - 0.20D, 0.24D + (discs - 1) * step);
         double sx = b[0] - ux * insLen, sy = b[1] - uy * insLen, sz = b[2] - uz * insLen;
 
-        // 1. Сталевий трос від вежі (a) до початку тарілок (s)
-        LepGeo.beam(t, a[0], a[1], a[2], sx, sy, sz, 0.025D);
+        // 1. Сталевий трос/підвіска від точки кріплення (a) до початку тарілок (s)
+        if (dist(a, new double[] { sx, sy, sz }) > 0.05D) {
+            LepGeo.beam(t, a[0], a[1], a[2], sx, sy, sz, 0.025D);
+        }
         // 2. Стрижень самої гірлянди (s -> b)
         LepGeo.beam(t, sx, sy, sz, b[0], b[1], b[2], 0.065D);
-        // 3. 10 тарілок біля проводу
+        // 3. Тарілки ізоляторів
         for (int k = 0; k < discs; k++) {
-            double c = k * step + 0.12D;
-            if (c > insLen - 0.10D) break;
+            double c = k * step + 0.10D;
+            if (c > insLen - 0.08D) break;
             double s0 = c - 0.032D, s1 = c + 0.032D;
             LepGeo.beam(t, sx + ux * s0, sy + uy * s0, sz + uz * s0,
                            sx + ux * s1, sy + uy * s1, sz + uz * s1, 0.26D);
@@ -1002,6 +1053,83 @@ public final class LepWireRenderer {
         // Арматура на кінцях гірлянди
         LepGeo.beam(t, sx, sy, sz, sx + ux * 0.10D, sy + uy * 0.10D, sz + uz * 0.10D, 0.12D);
         LepGeo.beam(t, b[0] - ux * 0.10D, b[1] - uy * 0.10D, b[2] - uz * 0.10D, b[0], b[1], b[2], 0.13D);
+    }
+
+    /** Корінь перемички: від вершини дуги m на SUP_RING_OFF у горизонтальному напрямку до упору a на сусідній вежі. */
+    private static double[] supRoot(double[] a, double[] m) {
+        double dx = a[0] - m[0], dz = a[2] - m[2];
+        double l = Math.sqrt(dx * dx + dz * dz);
+        if (l < 1.0E-6D) return m;
+        return new double[] { m[0] + dx / l * SUP_RING_OFF, m[1], m[2] + dz / l * SUP_RING_OFF };
+    }
+
+    private static double[] bez(double[] p0, double[] p1, double[] p2, double[] p3, double f) {
+        double u = 1.0D - f;
+        double c0 = u * u * u, c1 = 3.0D * u * u * f, c2 = 3.0D * u * f * f, c3 = f * f * f;
+        return new double[] {
+            c0 * p0[0] + c1 * p1[0] + c2 * p2[0] + c3 * p3[0],
+            c0 * p0[1] + c1 * p1[1] + c2 * p2[1] + c3 * p3[1],
+            c0 * p0[2] + c1 * p1[2] + c2 * p2[2] + c3 * p3[2]
+        };
+    }
+
+    /**
+     * Пучок із 4 проводів, що йде плавною дугою a -> m -> b. a і b: кінці натяжних гірлянд (da, db: одиничні напрямки
+     * цих гірлянд від опори), m: вершина дуги. На кінцях дуга продовжує напрямок дроту (до опори й від неї), у вершині
+     * іде вздовж a -> b. Перетин пучка весь час перпендикулярний проводу, тож на кінцях збігається з кільцями гірлянд.
+     */
+    private static void arcLoop(Tessellator t, double[] a, double[] da, double[] m, double[] b, double[] db) {
+        double dax = da[0], daz = da[2], dbx = db[0], dbz = db[2];
+        double la = Math.sqrt(dax * dax + daz * daz), lb = Math.sqrt(dbx * dbx + dbz * dbz);
+        if (la < 1.0E-6D || lb < 1.0E-6D) return;
+        dax /= la; daz /= la; dbx /= lb; dbz /= lb;
+
+        double tx = b[0] - a[0], tz = b[2] - a[2];
+        double tl = Math.sqrt(tx * tx + tz * tz);
+        if (tl < 1.0E-6D) return;
+        tx /= tl; tz /= tl;
+
+        double ha = Math.sqrt((m[0] - a[0]) * (m[0] - a[0]) + (m[2] - a[2]) * (m[2] - a[2]));
+        double hb = Math.sqrt((m[0] - b[0]) * (m[0] - b[0]) + (m[2] - b[2]) * (m[2] - b[2]));
+        double ka = ARC_K_END * ha, kam = ARC_K_APEX * ha;
+        double kb = ARC_K_END * hb, kbm = ARC_K_APEX * hb;
+
+        // перша половина a -> m: спершу в напрямку до опори (проти гірлянди), у вершині вздовж a -> b
+        double[] a1 = { a[0] - dax * ka, a[1], a[2] - daz * ka };
+        double[] a2 = { m[0] - tx * kam, m[1], m[2] - tz * kam };
+        // друга половина m -> b: з вершини далі вздовж a -> b, на кінці уздовж гірлянди від опори
+        double[] b1 = { m[0] + tx * kbm, m[1], m[2] + tz * kbm };
+        double[] b2 = { b[0] - dbx * kb, b[1], b[2] - dbz * kb };
+
+        int n = 2 * ARC_SEGS + 1;
+        double[][] c = new double[n][];
+        for (int i = 0; i <= ARC_SEGS; i++) c[i] = bez(a, a1, a2, m, (double) i / ARC_SEGS);
+        for (int i = 1; i <= ARC_SEGS; i++) c[ARC_SEGS + i] = bez(m, b1, b2, b, (double) i / ARC_SEGS);
+
+        // поперечна горизонтальна вісь пучка H = up x T у кожній точці
+        double[][] hh = new double[n][];
+        double px = 0.0D, pz = 1.0D;
+        for (int i = 0; i < n; i++) {
+            double[] p0 = c[Math.max(0, i - 1)], p1 = c[Math.min(n - 1, i + 1)];
+            double ex = p1[0] - p0[0], ez = p1[2] - p0[2];
+            double el = Math.sqrt(ex * ex + ez * ez);
+            if (el > 1.0E-6D) {
+                px = ez / el;
+                pz = -ex / el;
+            }
+            hh[i] = new double[] { px, 0.0D, pz };
+        }
+
+        double h = Lep750.BUNDLE_HALF;
+        for (int k = 0; k < 4; k++) {
+            double sx = SIGN[k][0] * h, sy = SIGN[k][1] * h;
+            double[] prev = null;
+            for (int i = 0; i < n; i++) {
+                double[] cur = { c[i][0] + hh[i][0] * sx, c[i][1] + sy, c[i][2] + hh[i][2] * sx };
+                if (prev != null) ribbon(t, prev[0], prev[1], prev[2], cur[0], cur[1], cur[2], WIRE_HALF);
+                prev = cur;
+            }
+        }
     }
 
     /** Провисаючий провід (парабола) із двох схрещених стрічок. */

@@ -124,16 +124,29 @@ public final class Lep750 {
     public static final double A_SUP_REACH = 3.2D;
     public static final double A_SUP_STUB = 0.65D;
 
-    /** Підтримувальна гірлянда для середньої фази (mount = 1) — іде вліво до лівої вежі. */
+    /** Чи малювати верхні підвісні гірлянди малої консолі лівої вежі (за схемою ліва вежа йде дугою, тому вимкнено). */
+    public static final boolean LEFT_JUMPER_ENABLED = false;
+
+    /** Дуга проводу фаз 0 і 1: на скільки блоків вправо від осі своєї вежі виходить вершина дуги. */
+    public static final double A_LOOP_R = 7.5D;
+    /** На скільки вершина дуги нижча за упор на сусідній вежі (гірлянда-перемичка йде вгору до сусідньої вежі). */
+    public static final double A_LOOP_RISE = 0.8D;
+
+    /**
+     * Перемичка вершини дуги фази mount (0 або 1): кріпиться до упору на лівій грані СУСІДНЬОЇ вежі праворуч
+     * (фаза 0 -> середня вежа, фаза 1 -> права вежа). Упор є в моделі: tx - angleHalf - A_SUP_STUB.
+     */
     public static double[] aSupportAttach(int mount) {
-        if (mount != 1) return null;
-        double attachY = A_NECK_Y;
-        return new double[] { -A_TOWER_X + (angleHalf(attachY) + 0.35D), attachY, 0.0D };
+        if (mount != 0 && mount != 1) return null;
+        double nextX = mount * A_TOWER_X; // x сусідньої вежі справа: -15 + (mount + 1) * 15
+        return new double[] { nextX - angleHalf(A_MOUNT_Y) - A_SUP_STUB, A_MOUNT_Y, 0.0D };
     }
 
+    /** Вершина дуги проводу (вільний кінець перемички, до нього кріпиться провід). */
     public static double[] aSupportEnd(int mount) {
-        if (mount != 1) return null;
-        return new double[] { -2.8D, A_MOUNT_Y + 0.4D, 0.0D };
+        if (mount != 0 && mount != 1) return null;
+        double ownX = -A_TOWER_X + mount * A_TOWER_X;
+        return new double[] { ownX + A_LOOP_R, A_MOUNT_Y - A_LOOP_RISE, 0.0D };
     }
 
     public static double angleHalf(double y) {

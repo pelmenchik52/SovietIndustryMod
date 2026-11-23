@@ -4,7 +4,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.block.Block;
+import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.world.World;
 
 import com.sovietindustry.tileentities.TileEntityLep110Angle;
@@ -19,11 +21,28 @@ import com.sovietindustry.tileentities.TileEntityLepDummy;
  * Координати dummy задаються зміщенням (dx, dy, dz) від майстер-блока.
  */
 public final class LepMultiblock {
+    /** Єдине місце налаштування кроку повороту всіх опор ЛЕП (у градусах). */
+    public static final float ROTATION_STEP = 15.0F;
     public static final int TOWER_HEIGHT = 13;
     /** Кільце 3x3 навколо стовпа ставиться лише там, де опора ще ширша за 0.62 блока від осі. */
     private static final double RING_MIN_HALF = 0.62D;
 
     private LepMultiblock() {
+    }
+
+    /** Округлює кут погляду гравця до найближчого кратного ROTATION_STEP (0..360). */
+    public static float snapAngle(float yaw) {
+        float a = Math.round(yaw / ROTATION_STEP) * ROTATION_STEP;
+        a %= 360.0F;
+        if (a < 0.0F) a += 360.0F;
+        return a;
+    }
+
+    /** Повертає наступний кут при кліку інструментом (+ROTATION_STEP). */
+    public static float nextAngle(float currentAngle) {
+        float a = (currentAngle + ROTATION_STEP) % 360.0F;
+        if (a < 0.0F) a += 360.0F;
+        return a;
     }
 
     // ------------------------------------------------------------ форма
@@ -80,7 +99,7 @@ public final class LepMultiblock {
         return bounds(master, dx, dy, dz, 0.0F);
     }
 
-    /** Те саме, але з кутом повороту майстра (потрібен П-опорі 330 кВ: стійки не лежать на сітці при 30°). */
+    /** Те саме, але з кутом повороту майстра. */
     public static float[] bounds(Block master, int dx, int dy, int dz, float rot) {
         if (master == ModBlocks.substation110kV) {
             return substationBounds(dx, dy, dz);
@@ -99,7 +118,7 @@ public final class LepMultiblock {
                     return new float[] { (float) x0, 0.0F, (float) z0, (float) x1, 1.0F, (float) z1 };
                 }
             }
-            return new float[] { 0.45F, 0.0F, 0.45F, 0.55F, 1.0F, 0.55F };
+            return new float[] { 0.49F, 0.0F, 0.49F, 0.51F, 1.0F, 0.51F };
         }
         if (master == ModBlocks.lep750Angle) {
             double r = a750Reach(dy, rot);
@@ -111,7 +130,7 @@ public final class LepMultiblock {
                     return new float[] { (float) x0, 0.0F, (float) z0, (float) x1, 1.0F, (float) z1 };
                 }
             }
-            return new float[] { 0.45F, 0.0F, 0.45F, 0.55F, 1.0F, 0.55F };
+            return new float[] { 0.49F, 0.0F, 0.49F, 0.51F, 1.0F, 0.51F };
         }
         if (master == ModBlocks.lep330) {
             if (dx == 0 && dz == 0) return new float[] { 0.2F, 0.0F, 0.2F, 0.8F, 0.15F, 0.8F };
@@ -124,7 +143,7 @@ public final class LepMultiblock {
                     return new float[] { (float) x0, 0.0F, (float) z0, (float) x1, 1.0F, (float) z1 };
                 }
             }
-            return new float[] { 0.45F, 0.0F, 0.45F, 0.55F, 1.0F, 0.55F };
+            return new float[] { 0.49F, 0.0F, 0.49F, 0.51F, 1.0F, 0.51F };
         }
         if (master == ModBlocks.lep330Angle) {
             double h3 = a330Half(dy);
@@ -197,6 +216,10 @@ public final class LepMultiblock {
     // ------------------------------------------------------------ побудова / знесення
 
     private static void setDummy(World w, int x, int y, int z, int mx, int my, int mz) {
+        AxisAlignedBB cellBox = AxisAlignedBB.getBoundingBox(x, y, z, x + 1.0D, y + 1.0D, z + 1.0D);
+        if (!w.getEntitiesWithinAABB(EntityPlayer.class, cellBox).isEmpty()) {
+            return;
+        }
         w.setBlock(x, y, z, ModBlocks.lep110Dummy, 0, 2);
         TileEntity te = w.getTileEntity(x, y, z);
         if (te instanceof TileEntityLepDummy) {
@@ -372,16 +395,17 @@ public final class LepMultiblock {
         return out;
     }
 
-    /** Усі 12 поворотів (крок 30°), як у решти опор мода. */
+    /** Усі повороти з кроком ROTATION_STEP. */
     public static boolean canPlaceP330Any(World w, int x, int y, int z) {
         return pickP330Angle(w, x, y, z, 0.0F) >= 0.0F;
     }
 
-    /** Найближчий до preferred кут із кроком 30°, де опора вміщається; -1, якщо ніде. */
+    /** Найближчий до preferred кут із кроком ROTATION_STEP, де опора вміщається; -1, якщо ніде. */
     public static float pickP330Angle(World w, int x, int y, int z, float preferred) {
-        for (int k = 0; k <= 6; k++) {
+        int halfSteps = Math.max(1, Math.round(180.0F / ROTATION_STEP));
+        for (int k = 0; k <= halfSteps; k++) {
             for (int sg = -1; sg <= 1; sg += 2) {
-                float a = preferred + sg * 30.0F * k;
+                float a = preferred + sg * ROTATION_STEP * k;
                 while (a < 0.0F) a += 360.0F;
                 while (a >= 360.0F) a -= 360.0F;
                 if (canPlaceP330(w, x, y, z, a)) return a;
@@ -517,9 +541,10 @@ public final class LepMultiblock {
     }
 
     public static float pickP750Angle(World w, int x, int y, int z, float preferred) {
-        for (int k = 0; k <= 6; k++) {
+        int halfSteps = Math.max(1, Math.round(180.0F / ROTATION_STEP));
+        for (int k = 0; k <= halfSteps; k++) {
             for (int sg = -1; sg <= 1; sg += 2) {
-                float a = preferred + sg * 30.0F * k;
+                float a = preferred + sg * ROTATION_STEP * k;
                 while (a < 0.0F) a += 360.0F;
                 while (a >= 360.0F) a -= 360.0F;
                 if (canPlaceP750(w, x, y, z, a)) return a;
@@ -568,11 +593,8 @@ public final class LepMultiblock {
 
     // --- Анкерно-кутова 750 кВ (3 вежі як одна структура)
 
-
-   // --- Анкерно-кутова 750 кВ (3 вежі як одна структура)
-
     public static double a750Half(int dy) {
-        return Lep750.angleHalf(dy) + 0.05D;
+        return Lep750.angleHalf(dy);
     }
 
     public static double[] a750TowerCentre(float angle, int towerIdx) {
@@ -610,9 +632,10 @@ public final class LepMultiblock {
     }
 
     public static float pickA750Angle(World w, int x, int y, int z, float preferred) {
-        for (int k = 0; k <= 6; k++) {
+        int halfSteps = Math.max(1, Math.round(180.0F / ROTATION_STEP));
+        for (int k = 0; k <= halfSteps; k++) {
             for (int sg = -1; sg <= 1; sg += 2) {
-                float a = preferred + sg * 30.0F * k;
+                float a = preferred + sg * ROTATION_STEP * k;
                 while (a < 0.0F) a += 360.0F;
                 while (a >= 360.0F) a -= 360.0F;
                 if (canPlaceA750(w, x, y, z, a)) return a;
