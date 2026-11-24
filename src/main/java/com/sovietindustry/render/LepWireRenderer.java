@@ -1200,30 +1200,39 @@ public final class LepWireRenderer {
      * від вершини до кінця другої гірлянди, з легким провисанням (так само, як шлейф правої вежі).
      * Вісь пучка на кожній точці перпендикулярна проводу, тому на кінцях збігається з кільцями гірлянд.
      */
+    /**
+     * Шлейф пучка із 4 проводів: фізично провисаючі параболи від кінців натяжних гірлянд
+     * до вершини підтримувальної гірлянди (або вільного провисання) і назад.
+     */
     private static void arcLoop(Tessellator t, double[] a, double[] da, double[] m, double[] b, double[] db) {
         double tx = b[0] - a[0], tz = b[2] - a[2];
         double tl = Math.sqrt(tx * tx + tz * tz);
         if (tl < 1.0E-6D) return;
         tx /= tl; tz /= tl;
-        double la = Math.sqrt(da[0] * da[0] + da[2] * da[2]), lb = Math.sqrt(db[0] * db[0] + db[2] * db[2]);
+
+        double la = Math.sqrt(da[0] * da[0] + da[2] * da[2]);
+        double lb = Math.sqrt(db[0] * db[0] + db[2] * db[2]);
         if (la < 1.0E-6D || lb < 1.0E-6D) return;
-        // вісь пучка H = up x (напрямок руху)
-        double[] ha = { da[2] / la, 0.0D, -da[0] / la };   // на кінці a провід їде проти гірлянди
-        ha[0] = -ha[0]; ha[2] = -ha[2];
+
+        // Горизонтальна вісь пучка (перпендикулярна напрямку дроту)
+        double[] ha = { -da[2] / la, 0.0D, da[0] / la };
         double[] hm = { tz, 0.0D, -tx };
         double[] hb = { db[2] / lb, 0.0D, -db[0] / lb };
+
         double h = Lep750.BUNDLE_HALF;
         for (int k = 0; k < 4; k++) {
-            double sx = SIGN[k][0] * h, sy = SIGN[k][1] * h;
+            double sx = SIGN[k][0] * h;
+            double sy = SIGN[k][1] * h;
+
             double[] pa = { a[0] + ha[0] * sx, a[1] + sy, a[2] + ha[2] * sx };
             double[] pm = { m[0] + hm[0] * sx, m[1] + sy, m[2] + hm[2] * sx };
             double[] pb = { b[0] + hb[0] * sx, b[1] + sy, b[2] + hb[2] * sx };
-            // плавна крива (сплайн Ермітa): з кінця гірлянди дріт іде назад під опору, огинає вершину й повертається
-            double[] ta = { -da[0], -da[1], -da[2] };
-            double[] tm = { tx, 0.0D, tz };
-            double[] tb = { db[0], db[1], db[2] };
-            hermite(t, pa, pm, ta, tm, dist(pa, pm) * 1.2D);
-            hermite(t, pm, pb, tm, tb, dist(pm, pb) * 1.2D);
+
+            // Реалістичне гравітаційне провисання замість штучних сплайнів Ерміта
+            double sag1 = Math.min(0.45D, dist(pa, pm) * 0.12D);
+            double sag2 = Math.min(0.45D, dist(pm, pb) * 0.12D);
+            wire(t, pa, pm, sag1, WIRE_HALF);
+            wire(t, pm, pb, sag2, WIRE_HALF);
         }
     }
 
