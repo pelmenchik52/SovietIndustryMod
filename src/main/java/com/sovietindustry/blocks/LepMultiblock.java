@@ -12,6 +12,7 @@ import net.minecraft.world.World;
 import com.sovietindustry.tileentities.TileEntityLep110Angle;
 import com.sovietindustry.tileentities.Lep110x2;
 import com.sovietindustry.tileentities.Lep330;
+import com.sovietindustry.tileentities.Lep500;
 import com.sovietindustry.tileentities.Lep750;
 import com.sovietindustry.tileentities.Substation330;
 import com.sovietindustry.tileentities.Substation750;
@@ -132,6 +133,19 @@ public final class LepMultiblock {
         if (master == ModBlocks.substation330kV) {
             return Substation330.worldBounds(dx, dy, dz, rot);
         }
+        if (master == ModBlocks.lep500) {
+            if (dx == 0 && dz == 0) return new float[] { 0.2F, 0.0F, 0.2F, 0.8F, 0.15F, 0.8F };
+            double r = p500Reach(dy, rot);
+            for (int side = -1; side <= 1; side += 2) {
+                double[] c = p500LegCentre(rot, side, dy);
+                double x0 = Math.max(0.0D, c[0] - r - (dx - 0.5D)), x1 = Math.min(1.0D, c[0] + r - (dx - 0.5D));
+                double z0 = Math.max(0.0D, c[1] - r - (dz - 0.5D)), z1 = Math.min(1.0D, c[1] + r - (dz - 0.5D));
+                if (x1 - x0 > 0.02D && z1 - z0 > 0.02D) {
+                    return new float[] { (float) x0, 0.0F, (float) z0, (float) x1, 1.0F, (float) z1 };
+                }
+            }
+            return new float[] { 0.49F, 0.0F, 0.49F, 0.51F, 1.0F, 0.51F };
+        }
         if (master == ModBlocks.lep750) {
             if (dx == 0 && dz == 0) return new float[] { 0.2F, 0.0F, 0.2F, 0.8F, 0.15F, 0.8F };
             double r = p750Reach(dy, rot);
@@ -151,6 +165,18 @@ public final class LepMultiblock {
             double z0 = Math.max(0.0D, -r - (dz - 0.5D)), z1 = Math.min(1.0D, r - (dz - 0.5D));
             if (x1 - x0 > 0.02D && z1 - z0 > 0.02D) {
                 return new float[] { (float) x0, 0.0F, (float) z0, (float) x1, 1.0F, (float) z1 };
+            }
+            return new float[] { 0.49F, 0.0F, 0.49F, 0.51F, 1.0F, 0.51F };
+        }
+        if (master == ModBlocks.lep500Angle) {
+            double r = a500Reach(dy, rot);
+            for (int idx = -1; idx <= 1; idx++) {
+                double[] c = a500TowerCentre(rot, idx);
+                double x0 = Math.max(0.0D, c[0] - r - (dx - 0.5D)), x1 = Math.min(1.0D, c[0] + r - (dx - 0.5D));
+                double z0 = Math.max(0.0D, c[1] - r - (dz - 0.5D)), z1 = Math.min(1.0D, c[1] + r - (dz - 0.5D));
+                if (x1 - x0 > 0.02D && z1 - z0 > 0.02D) {
+                    return new float[] { (float) x0, 0.0F, (float) z0, (float) x1, 1.0F, (float) z1 };
+                }
             }
             return new float[] { 0.49F, 0.0F, 0.49F, 0.51F, 1.0F, 0.51F };
         }
@@ -565,6 +591,93 @@ public final class LepMultiblock {
         }
     }
 
+    // ------------------------------------------------------------ опора 500 кВ (власна геометрія за кресленням)
+
+    public static double p500Half(int dy) {
+        return Math.min(0.5D, Lep500.legHalf(dy) + 0.08D);
+    }
+
+    public static double[] p500LegCentre(float angle, int side, int dy) {
+        double th = Math.toRadians(-angle);
+        double lx = side * Lep500.legCentreX(dy);
+        return new double[] { lx * Math.cos(th), -lx * Math.sin(th) };
+    }
+
+    public static double p500Reach(int dy, float angle) {
+        double th = Math.toRadians(angle);
+        return p500Half(dy) * (Math.abs(Math.cos(th)) + Math.abs(Math.sin(th)));
+    }
+
+    private static List<int[]> p500Cells(float angle, int side, int dy) {
+        double[] c = p500LegCentre(angle, side, dy);
+        double r = p500Reach(dy, angle);
+        int x0 = (int) Math.floor(c[0] - r + 0.5D), x1 = (int) Math.floor(c[0] + r - 1.0E-6D + 0.5D);
+        int z0 = (int) Math.floor(c[1] - r + 0.5D), z1 = (int) Math.floor(c[1] + r - 1.0E-6D + 0.5D);
+        List<int[]> out = new ArrayList<int[]>();
+        for (int cx = x0; cx <= x1; cx++) {
+            for (int cz = z0; cz <= z1; cz++) {
+                out.add(new int[] { cx, cz });
+            }
+        }
+        return out;
+    }
+
+    public static boolean canPlaceP500Any(World w, int x, int y, int z) {
+        return pickP500Angle(w, x, y, z, 0.0F) >= 0.0F;
+    }
+
+    public static float pickP500Angle(World w, int x, int y, int z, float preferred) {
+        int halfSteps = Math.max(1, Math.round(180.0F / ROTATION_STEP));
+        for (int k = 0; k <= halfSteps; k++) {
+            for (int sg = -1; sg <= 1; sg += 2) {
+                float a = preferred + sg * ROTATION_STEP * k;
+                while (a < 0.0F) a += 360.0F;
+                while (a >= 360.0F) a -= 360.0F;
+                if (canPlaceP500(w, x, y, z, a)) return a;
+                if (k == 0) break;
+            }
+        }
+        return -1.0F;
+    }
+
+    public static boolean canPlaceP500(World w, int x, int y, int z, float angle) {
+        if (!solidBelow(w, x, y - 1, z)) return false;
+        for (int side = -1; side <= 1; side += 2) {
+            double[] c = p500LegCentre(angle, side, 0);
+            int gx = (int) Math.round(c[0]);
+            int gz = (int) Math.round(c[1]);
+            if (!solidBelow(w, x + gx, y - 1, z + gz)) return false;
+            for (int dy = 0; dy < Lep500.HEIGHT; dy++) {
+                if (y + dy >= 256) return false;
+                for (int[] cell : p500Cells(angle, side, dy)) {
+                    if (!freeCell(w, x + cell[0], y + dy, z + cell[1])) return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public static void buildP500(World w, int x, int y, int z, float angle) {
+        for (int side = -1; side <= 1; side += 2) {
+            for (int dy = 0; dy < Lep500.HEIGHT; dy++) {
+                for (int[] cell : p500Cells(angle, side, dy)) {
+                    setDummy(w, x + cell[0], y + dy, z + cell[1], x, y, z);
+                }
+            }
+        }
+        ejectEntities(w, x, y, z);
+    }
+
+    public static void removeP500(World w, int x, int y, int z, float angle) {
+        for (int side = -1; side <= 1; side += 2) {
+            for (int dy = 0; dy < Lep500.HEIGHT; dy++) {
+                for (int[] cell : p500Cells(angle, side, dy)) {
+                    removeOwnDummy(w, x + cell[0], y + dy, z + cell[1], x, y, z);
+                }
+            }
+        }
+    }
+
     // ------------------------------------------------------------ опори 750 кВ
 
     /** Півширина колізії стійки проміжної опори 750 кВ. */
@@ -648,6 +761,104 @@ public final class LepMultiblock {
         for (int side = -1; side <= 1; side += 2) {
             for (int dy = 0; dy < Lep750.HEIGHT; dy++) {
                 for (int[] cell : p750Cells(angle, side, dy)) {
+                    removeOwnDummy(w, x + cell[0], y + dy, z + cell[1], x, y, z);
+                }
+            }
+        }
+    }
+
+    // --- Анкерно-кутова 500 кВ (3 однакові вежі як одна структура)
+
+    public static double a500Half(int dy) {
+        return Lep500.angleHalf(dy);
+    }
+
+    public static double[] a500TowerCentre(float angle, int towerIdx) {
+        double th = Math.toRadians(-angle);
+        double tx = towerIdx * Lep500.A_TOWER_X;
+        return new double[] { tx * Math.cos(th), -tx * Math.sin(th) };
+    }
+
+    public static double a500Reach(int dy, float angle) {
+        double th = Math.toRadians(angle);
+        return a500Half(dy) * (Math.abs(Math.cos(th)) + Math.abs(Math.sin(th)));
+    }
+
+    private static int a500TowerHeight(int idx) {
+        // середня вежа без антенки, бічні з антенкою
+        return (idx == 0) ? (int) Math.ceil(Lep500.A_MID_TOP) : Lep500.A_HEIGHT;
+    }
+
+    private static List<int[]> a500Cells(float angle, int towerIdx, int dy) {
+        double[] c = a500TowerCentre(angle, towerIdx);
+        double r = a500Reach(dy, angle);
+        int x0 = (int) Math.floor(c[0] - r + 0.5D), x1 = (int) Math.floor(c[0] + r - 1.0E-6D + 0.5D);
+        int z0 = (int) Math.floor(c[1] - r + 0.5D), z1 = (int) Math.floor(c[1] + r - 1.0E-6D + 0.5D);
+        List<int[]> out = new ArrayList<int[]>();
+        for (int cx = x0; cx <= x1; cx++) {
+            for (int cz = z0; cz <= z1; cz++) {
+                out.add(new int[] { cx, cz });
+            }
+        }
+        return out;
+    }
+
+    public static boolean canPlaceA500Any(World w, int x, int y, int z) {
+        return pickA500Angle(w, x, y, z, 0.0F) >= 0.0F;
+    }
+
+    public static float pickA500Angle(World w, int x, int y, int z, float preferred) {
+        int halfSteps = Math.max(1, Math.round(180.0F / ROTATION_STEP));
+        for (int k = 0; k <= halfSteps; k++) {
+            for (int sg = -1; sg <= 1; sg += 2) {
+                float a = preferred + sg * ROTATION_STEP * k;
+                while (a < 0.0F) a += 360.0F;
+                while (a >= 360.0F) a -= 360.0F;
+                if (canPlaceA500(w, x, y, z, a)) return a;
+                if (k == 0) break;
+            }
+        }
+        return -1.0F;
+    }
+
+    public static boolean canPlaceA500(World w, int x, int y, int z, float angle) {
+        if (!solidBelow(w, x, y - 1, z)) return false;
+        for (int idx = -1; idx <= 1; idx++) {
+            double[] c = a500TowerCentre(angle, idx);
+            int gx = (int) Math.round(c[0]);
+            int gz = (int) Math.round(c[1]);
+            if (!solidBelow(w, x + gx, y - 1, z + gz)) return false;
+            int maxH = a500TowerHeight(idx);
+            for (int dy = 0; dy < maxH; dy++) {
+                if (y + dy >= 256) return false;
+                for (int[] cell : a500Cells(angle, idx, dy)) {
+                    if (idx == 0 && dy == 0 && cell[0] == 0 && cell[1] == 0) continue;
+                    if (!freeCell(w, x + cell[0], y + dy, z + cell[1])) return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    public static void buildA500(World w, int x, int y, int z, float angle) {
+        for (int idx = -1; idx <= 1; idx++) {
+            int maxH = a500TowerHeight(idx);
+            for (int dy = 0; dy < maxH; dy++) {
+                for (int[] cell : a500Cells(angle, idx, dy)) {
+                    if (idx == 0 && dy == 0 && cell[0] == 0 && cell[1] == 0) continue;
+                    setDummy(w, x + cell[0], y + dy, z + cell[1], x, y, z);
+                }
+            }
+        }
+        ejectEntities(w, x, y, z);
+    }
+
+    public static void removeA500(World w, int x, int y, int z, float angle) {
+        for (int idx = -1; idx <= 1; idx++) {
+            int maxH = a500TowerHeight(idx);
+            for (int dy = 0; dy < maxH; dy++) {
+                for (int[] cell : a500Cells(angle, idx, dy)) {
+                    if (idx == 0 && dy == 0 && cell[0] == 0 && cell[1] == 0) continue;
                     removeOwnDummy(w, x + cell[0], y + dy, z + cell[1], x, y, z);
                 }
             }

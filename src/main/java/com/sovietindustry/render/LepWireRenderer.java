@@ -12,6 +12,7 @@ import com.hbm.tileentity.network.TileEntityPylonBase;
 import com.sovietindustry.SovietIndustryMod;
 import com.sovietindustry.api.IBundledPylon;
 import com.sovietindustry.api.IGroundWired;
+import com.sovietindustry.api.IFreeLoopPylon;
 import com.sovietindustry.api.IJumperPylon;
 import com.sovietindustry.api.IMultiGroundWired;
 import com.sovietindustry.api.ISideSupportPylon;
@@ -19,6 +20,7 @@ import com.sovietindustry.api.IStandoffPylon;
 import com.sovietindustry.api.IWiredPylon;
 import com.sovietindustry.tileentities.Lep750;
 import com.sovietindustry.tileentities.TileEntityLepPylon;
+import com.sovietindustry.tileentities.TileEntityLep500Base;
 import com.sovietindustry.tileentities.TileEntityLep750Angle;
 import com.sovietindustry.tileentities.TileEntityLep750Single;
 
@@ -287,6 +289,8 @@ public final class LepWireRenderer {
         Vec3[] ground = groundMounts(te);
         if (list.isEmpty() && ground == null) return;
         IBundledPylon bun = te instanceof IBundledPylon ? (IBundledPylon) te : null;
+        // кількість тарілок у гірлянді розщепленої фази: 500 кВ має 18, 750 кВ має 20
+        final int bundleDiscs = (te instanceof TileEntityLep500Base) ? 18 : 20;
 
         // верхні гірлянди й шлейф з'являються лише тоді, коли до цієї фази підключено дріт
         IJumperPylon jump = te instanceof IJumperPylon ? (IJumperPylon) te : null;
@@ -356,7 +360,7 @@ public final class LepWireRenderer {
                     if (l.mine[i] == null) continue;
                     double[] base = l.root[i];
                     if (bun != null && l.pm != null) {
-                        int discCount = (bun.getWiresPerString() == 4) ? 20 : 8;
+                        int discCount = (bun.getWiresPerString() == 4) ? bundleDiscs : 8;
                         for (int si = 0; si < bun.getStringsPerMount(); si++) {
                             double o = stringOffset(bun, si);
                             bundledString(t, shift(base, l.pm, o * FORK_ROOT), shift(l.mine[i], l.pm, o), discCount);
@@ -366,7 +370,7 @@ public final class LepWireRenderer {
                     }
                 }
             }
-            int discCount = (bun != null && bun.getWiresPerString() == 4) ? 20 : 10;
+            int discCount = (bun != null && bun.getWiresPerString() == 4) ? bundleDiscs : 10;
 
             for (Vec3[] sp : supDraw) {
                 double[] a = new double[] { sp[0].xCoord, sp[0].yCoord, sp[0].zCoord };
@@ -565,11 +569,19 @@ public final class LepWireRenderer {
                 if (bun != null && axes.get(0) != null && axes.get(1) != null) {
                     Vec3[] spArc = (te instanceof ISideSupportPylon && bun.getWiresPerString() == 4)
                         ? ((ISideSupportPylon) te).getSideSupport(e.getKey().intValue()) : null;
+                    Vec3 freeApex = (spArc == null && te instanceof IFreeLoopPylon && bun.getWiresPerString() == 4)
+                        ? ((IFreeLoopPylon) te).getFreeLoopApex(e.getKey().intValue()) : null;
                     if (spArc != null) {
                         // плавна дуга D-подібної форми: від кінця однієї гірлянди через вершину (кріплення перемички) до іншої
                         List<double[]> dirs = perDir.get(e.getKey());
                         arcLoop(t, ends.get(0), dirs.get(0),
                                 new double[] { spArc[1].xCoord, spArc[1].yCoord, spArc[1].zCoord },
+                                ends.get(1), dirs.get(1));
+                    } else if (freeApex != null) {
+                        // край ряду веж: дуга провисає вільно збоку, без допоміжної гірлянди
+                        List<double[]> dirs = perDir.get(e.getKey());
+                        arcLoop(t, ends.get(0), dirs.get(0),
+                                new double[] { freeApex.xCoord, freeApex.yCoord, freeApex.zCoord },
                                 ends.get(1), dirs.get(1));
                     } else if (bun.getWiresPerString() == 4) {
                         double sign = dot(axes.get(0), axes.get(1)) < 0.0D ? -1.0D : 1.0D;
@@ -1206,8 +1218,33 @@ public final class LepWireRenderer {
             double[] pa = { a[0] + ha[0] * sx, a[1] + sy, a[2] + ha[2] * sx };
             double[] pm = { m[0] + hm[0] * sx, m[1] + sy, m[2] + hm[2] * sx };
             double[] pb = { b[0] + hb[0] * sx, b[1] + sy, b[2] + hb[2] * sx };
-            wire(t, pa, pm, Math.min(0.5D, dist(pa, pm) * 0.08D), WIRE_HALF);
-            wire(t, pm, pb, Math.min(0.5D, dist(pm, pb) * 0.08D), WIRE_HALF);
+            // плавна крива (сплайн Ермітa): з кінця гірлянди дріт іде назад під опору, огинає вершину й повертається
+            double[] ta = { -da[0], -da[1], -da[2] };
+            double[] tm = { tx, 0.0D, tz };
+            double[] tb = { db[0], db[1], db[2] };
+            hermite(t, pa, pm, ta, tm, dist(pa, pm) * 1.2D);
+            hermite(t, pm, pb, tm, tb, dist(pm, pb) * 1.2D);
+        }
+    }
+
+    /** Крива Ермітa між p0 і p1 з одиничними дотичними t0, t1 (k задає їхню довжину), малюється короткими стрічками. */
+    private static void hermite(Tessellator t, double[] p0, double[] p1, double[] t0, double[] t1, double k) {
+        double l0 = Math.sqrt(t0[0] * t0[0] + t0[1] * t0[1] + t0[2] * t0[2]);
+        double l1 = Math.sqrt(t1[0] * t1[0] + t1[1] * t1[1] + t1[2] * t1[2]);
+        if (l0 < 1.0E-6D || l1 < 1.0E-6D) {
+            wire(t, p0, p1, 0.0D, WIRE_HALF);
+            return;
+        }
+        int n = 16;
+        double px = p0[0], py = p0[1], pz = p0[2];
+        for (int i = 1; i <= n; i++) {
+            double u = (double) i / n, u2 = u * u, u3 = u2 * u;
+            double h00 = 2 * u3 - 3 * u2 + 1, h10 = u3 - 2 * u2 + u, h01 = -2 * u3 + 3 * u2, h11 = u3 - u2;
+            double cx = h00 * p0[0] + h10 * k * t0[0] / l0 + h01 * p1[0] + h11 * k * t1[0] / l1;
+            double cy = h00 * p0[1] + h10 * k * t0[1] / l0 + h01 * p1[1] + h11 * k * t1[1] / l1;
+            double cz = h00 * p0[2] + h10 * k * t0[2] / l0 + h01 * p1[2] + h11 * k * t1[2] / l1;
+            ribbon(t, px, py, pz, cx, cy, cz, WIRE_HALF);
+            px = cx; py = cy; pz = cz;
         }
     }
 

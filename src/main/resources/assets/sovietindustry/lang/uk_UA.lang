@@ -45,3 +45,5 @@ tile.lep750.name=Проміжна опора ЛЕП 750 кВ (портал на 
 tile.lep750Angle.name=Анкерно-кутова опора ЛЕП 750 кВ (три вежі 30x19, 4 проводи)
 tile.substation330kV.name=Трансформаторна підстанція 330 кВ (7x6x8, вхід від У330-3, 3 кабелі NTM)
 tile.substation750kV.name=Substation 750 kV
+tile.lep500.name=Проміжна опора 500 кВ
+

@@ -7,6 +7,7 @@ import com.sovietindustry.models.ModelLep110Angle;
 import com.sovietindustry.models.ModelLep110v1;
 import com.sovietindustry.models.ModelLep110x2;
 import com.sovietindustry.models.ModelLep330;
+import com.sovietindustry.models.ModelLep500;
 import com.sovietindustry.models.ModelLep750;
 import com.sovietindustry.models.ModelSubstation110kV;
 import com.sovietindustry.models.ModelSubstation330kV;
@@ -40,6 +41,8 @@ public class ItemRenderLepPylon implements IItemRenderer {
     public static final int KIND_750_SINGLE = 11;
     public static final int KIND_750_SINGLE_LEFT = 12;
     public static final int KIND_750_SINGLE_RIGHT = 13;
+    public static final int KIND_500 = 14;
+    public static final int KIND_500_ANGLE = 15;
 
     private final ModelSubstation330kV modelSubstation330 = new ModelSubstation330kV();
     private final ModelSubstation750kV modelSubstation750 = new ModelSubstation750kV();
@@ -47,6 +50,8 @@ public class ItemRenderLepPylon implements IItemRenderer {
     private final ModelLep330 model330 = new ModelLep330(false);
     private final ModelLep330 model330Angle = new ModelLep330(true);
 
+    private final ModelLep500 model500 = new ModelLep500();
+    private final ModelLep500 model500Angle = new ModelLep500(true);
     private final ModelLep750 model750 = new ModelLep750(false);
     private final ModelLep750 model750Angle = new ModelLep750(true);
     private final ModelLep750 model750Single = new ModelLep750(true, true, 0);
@@ -81,13 +86,75 @@ public class ItemRenderLepPylon implements IItemRenderer {
         return true;
     }
 
+    /** В інвентарі малюємо пласку іконку (як у звичайних предметів), тож 3D-хелпер там не потрібен. */
     @Override
     public boolean shouldUseRenderHelper(ItemRenderType type, ItemStack item, ItemRendererHelper helper) {
-        return true;
+        return type != ItemRenderType.INVENTORY;
+    }
+
+    /** Ім'я файлу іконки в assets/sovietindustry/textures/items/lep/ для цього екземпляра рендерера. */
+    private String iconName() {
+        switch (x2Kind) {
+            case KIND_X2: return "lep110x2";
+            case KIND_X2_ANGLE: return "lep110x2Angle";
+            case KIND_330: return "lep330";
+            case KIND_330_ANGLE: return "lep330Angle";
+            case KIND_SUBSTATION_330: return "substation330kV";
+            case KIND_750: return "lep750";
+            case KIND_750_ANGLE: return "lep750Angle";
+            case KIND_SUBSTATION_750: return "substation750kV";
+            case KIND_750_SINGLE: return "lep750Single";
+            case KIND_750_SINGLE_LEFT: return "lep750SingleLeft";
+            case KIND_750_SINGLE_RIGHT: return "lep750SingleRight";
+            case KIND_500: return "lep500";
+            case KIND_500_ANGLE: return "lep500Angle";
+            default:
+                if (isSubstation) return "substation110kV";
+                return isAngle ? "lep110Angle" : "lep110v1";
+        }
+    }
+
+    private static final java.util.Map<String, ResourceLocation> ICONS = new java.util.HashMap<String, ResourceLocation>();
+
+    private static ResourceLocation icon(String name) {
+        ResourceLocation rl = ICONS.get(name);
+        if (rl == null) {
+            rl = new ResourceLocation(SovietIndustryMod.MODID, "textures/items/lep/" + name + ".png");
+            ICONS.put(name, rl);
+        }
+        return rl;
+    }
+
+    /** Малює іконку 16x16 (у GUI-координатах слота) з лінійною фільтрацією, щоб тонкі лінії не пропадали. */
+    private void renderInventoryIcon() {
+        Minecraft.getMinecraft().renderEngine.bindTexture(icon(iconName()));
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
+        GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
+        boolean lit = GL11.glIsEnabled(GL11.GL_LIGHTING);
+        boolean blend = GL11.glIsEnabled(GL11.GL_BLEND);
+        GL11.glDisable(GL11.GL_LIGHTING);
+        GL11.glEnable(GL11.GL_BLEND);
+        GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+        net.minecraft.client.renderer.Tessellator t = net.minecraft.client.renderer.Tessellator.instance;
+        t.startDrawingQuads();
+        t.addVertexWithUV(0.0D, 16.0D, 0.0D, 0.0D, 1.0D);
+        t.addVertexWithUV(16.0D, 16.0D, 0.0D, 1.0D, 1.0D);
+        t.addVertexWithUV(16.0D, 0.0D, 0.0D, 1.0D, 0.0D);
+        t.addVertexWithUV(0.0D, 0.0D, 0.0D, 0.0D, 0.0D);
+        t.draw();
+        if (!blend) GL11.glDisable(GL11.GL_BLEND);
+        if (lit) GL11.glEnable(GL11.GL_LIGHTING);
     }
 
     @Override
     public void renderItem(ItemRenderType type, ItemStack item, Object... data) {
+        if (type == ItemRenderType.INVENTORY) {
+            GL11.glPushMatrix();
+            renderInventoryIcon();
+            GL11.glPopMatrix();
+            return;
+        }
         GL11.glPushMatrix();
 
         if (x2Kind == KIND_SUBSTATION_330) {
@@ -103,6 +170,26 @@ public class ItemRenderLepPylon implements IItemRenderer {
             applySubstation750Transform(type);
             GL11.glDisable(GL11.GL_CULL_FACE);
             modelSubstation750.renderAll();
+            GL11.glEnable(GL11.GL_CULL_FACE);
+            GL11.glPopMatrix();
+            return;
+        }
+
+        if (x2Kind == KIND_500) {
+            // у руці й на землі: габарит той самий (висота 25), тому трансформація як у 750 кВ
+            apply750Transform(type);
+            GL11.glDisable(GL11.GL_CULL_FACE);
+            model500.renderAll();
+            GL11.glEnable(GL11.GL_CULL_FACE);
+            GL11.glPopMatrix();
+            return;
+        }
+
+        if (x2Kind == KIND_500_ANGLE) {
+            apply750Transform(type);
+            GL11.glScalef(1.1F, 1.1F, 1.1F);
+            GL11.glDisable(GL11.GL_CULL_FACE);
+            model500Angle.renderAll();
             GL11.glEnable(GL11.GL_CULL_FACE);
             GL11.glPopMatrix();
             return;

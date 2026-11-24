@@ -22,6 +22,7 @@ import com.sovietindustry.tileentities.TileEntityLep110x2;
 import com.sovietindustry.tileentities.TileEntityLep110x2Base;
 import com.sovietindustry.tileentities.TileEntityLep330Angle;
 import com.sovietindustry.tileentities.TileEntityLep330Base;
+import com.sovietindustry.tileentities.TileEntityLep500Base;
 import com.sovietindustry.tileentities.TileEntityLep750Angle;
 import com.sovietindustry.tileentities.TileEntityLep750Base;
 import com.sovietindustry.tileentities.TileEntityLep750Single;
@@ -154,6 +155,11 @@ public class ItemWireCoil extends Item {
     /** Опори рівня 330 кВ: лінійні опори 330 кВ і підстанція 330 кВ. */
     private static boolean is330(TileEntityPylonBase t) {
         return t instanceof TileEntityLep330Base || t instanceof TileEntitySubstation330kV;
+    }
+
+    /** Опори рівня 500 кВ: лінійні опори 500 кВ. */
+    private static boolean is500(TileEntityPylonBase t) {
+        return t instanceof TileEntityLep500Base;
     }
 
     /** Опори рівня 750 кВ: лінійні опори 750 кВ. */
@@ -307,6 +313,11 @@ public class ItemWireCoil extends Item {
         if (first instanceof TileEntityLepPylon && second instanceof TileEntityLepPylon
             && is750(first) != is750(second)) {
             msg(player, EnumChatFormatting.RED, "Voltage mismatch: 750 kV towers connect only to 750 kV towers");
+            return true;
+        }
+        if (first instanceof TileEntityLepPylon && second instanceof TileEntityLepPylon
+            && is500(first) != is500(second)) {
+            msg(player, EnumChatFormatting.RED, "Voltage mismatch: 500 kV towers connect only to 500 kV towers");
             return true;
         }
         if (first.getConnectionType() != second.getConnectionType()) {

@@ -21,6 +21,8 @@ public class ModBlocks {
     public static Block lep110x2Angle;
     public static Block lep330;
     public static Block lep330Angle;
+    public static Block lep500;
+    public static Block lep500Angle;
     public static Block lep750;
     public static Block lep750Angle;
     public static Block lep750Single;
@@ -110,6 +112,18 @@ public class ModBlocks {
             .setBlockName("lep330Angle")
             .setCreativeTab(SovietIndustryMod.tabSoviet);
         GameRegistry.registerBlock(lep330Angle, ItemBlockLep.class, "lep330Angle");
+
+        // Проміжна опора 500 кВ (габарити як у проміжної 750 кВ, гірлянди по 18 тарілок, відтяжки вперед/назад)
+        lep500 = new BlockLep500()
+            .setBlockName("lep500")
+            .setCreativeTab(SovietIndustryMod.tabSoviet);
+        GameRegistry.registerBlock(lep500, ItemBlockLep.class, "lep500");
+
+        // Анкерно-кутова опора 500 кВ (мультиблок, 3 однакові вежі, бічні з антенкою для грозотроса)
+        lep500Angle = new BlockLep500Angle()
+            .setBlockName("lep500Angle")
+            .setCreativeTab(SovietIndustryMod.tabSoviet);
+        GameRegistry.registerBlock(lep500Angle, ItemBlockLep.class, "lep500Angle");
 
         // Проміжна опора 750 кВ (мультиблок, ширина 9, висота 29)
         lep750 = new BlockLep750()
