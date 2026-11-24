@@ -110,7 +110,7 @@ public class TileEntityLep750Single extends TileEntityLep750Base implements ISta
         if (n < 2) return false;
         double cos = dir[0][0] * dir[1][0] + dir[0][1] * dir[1][1];
         cos = Math.max(-1.0D, Math.min(1.0D, cos));
-        return Math.toDegrees(Math.acos(cos)) > Lep750.S_AUX_MIN_ANGLE_DEG;
+        return Math.toDegrees(Math.acos(cos)) >= Lep750.S_AUX_MIN_ANGLE_DEG;
     }
 
     /** Горизонтальний одиничний напрямок від нашої точки кріплення до точки кріплення сусіда, null якщо вироджений. */

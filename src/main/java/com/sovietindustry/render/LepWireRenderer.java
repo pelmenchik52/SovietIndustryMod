@@ -624,6 +624,12 @@ public final class LepWireRenderer {
                                 ends.get(1)[1] + sy,
                                 ends.get(1)[2] + axes.get(1)[2] * sx * sign
                             };
+                            // окрема щогла без допоміжної гірлянди (кут між гірляндами менший за поріг):
+                            // дріт просто провисає від передньої до задньої гірлянди, без обходу збоку
+                            if (te instanceof TileEntityLep750Single) {
+                                wire(t, a, b, Math.min(0.45D, dist(a, b) * 0.3D), WIRE_HALF);
+                                continue;
+                            }
                             double[] m = new double[] {
                                 midX + towerVec[0] * sx,
                                 midY + sy,
