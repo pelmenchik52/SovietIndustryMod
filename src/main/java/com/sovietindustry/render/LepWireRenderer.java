@@ -20,6 +20,7 @@ import com.sovietindustry.api.IWiredPylon;
 import com.sovietindustry.tileentities.Lep750;
 import com.sovietindustry.tileentities.TileEntityLepPylon;
 import com.sovietindustry.tileentities.TileEntityLep750Angle;
+import com.sovietindustry.tileentities.TileEntityLep750Single;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -587,6 +588,10 @@ public final class LepWireRenderer {
                         // середня (1) обходить ВЛІВО (-2.1D) до підтримувальної гірлянди на лівій вежі (червона лінія),
                         // права вежа (2) йде через верхні підвісні гірлянди правої вежі.
                         double sideShift = (mountIdx == 0) ? 2.1D : ((mountIdx == 2) ? 2.6D : -2.1D);
+                        // окрема щогла без допоміжної гірлянди: шлейф іде збоку під гірляндами, у бік, куди дивився б упор
+                        if (te instanceof TileEntityLep750Single) {
+                            sideShift = 2.1D * Lep750.sSupportDir(((TileEntityLep750Single) te).getVariant());
+                        }
                         double dropY = 1.2D;
 
                         Vec3 mPos = (mountIdx >= 0 && mountIdx < mine.length) ? mine[mountIdx] : null;
@@ -762,7 +767,11 @@ public final class LepWireRenderer {
                 for (int i = 0; i < og.length; i++) {
                     kb[i] = (sx + og[i].xCoord) * ux + (sz + og[i].zCoord) * uz;
                 }
-                int[][] gp = pairGrounds(ka, kb);
+                int[][] gp = null;
+                if (ka.length != kb.length) {
+                    gp = pairSingleGround(te, o, ka, kb, sx, sz, ux, uz);
+                }
+                if (gp == null) gp = pairGrounds(ka, kb);
                 int cnt = gp[0].length;
                 for (int k = 0; k < cnt; k++) {
                     Vec3 g1 = ground[gp[0][k]];
@@ -847,6 +856,41 @@ public final class LepWireRenderer {
             pb[k] = best;
         }
         return aSmall ? new int[][] { ps, pb } : new int[][] { pb, ps };
+    }
+
+    /**
+     * Трос окремої щогли (одна точка) проти опори з двома тросами. Ріг вибирається за положенням ТІЄЇ фази, до якої
+     * йде дріт цієї щогли (її точку кріплення на іншій опорі вже визначив getLinkMounts), а не за положенням самої щогли:
+     * щогла, поставлена де завгодно збоку, все одно чіпляє трос до рога над своєю фазою, і дві щогли не беруть один ріг.
+     * Повертає null, якщо це не окрема щогла або фазу визначити не вдалося (тоді працює звичайне зіставлення).
+     */
+    private static int[][] pairSingleGround(TileEntity te, TileEntity o, double[] ka, double[] kb,
+                                            double sx, double sz, double ux, double uz) {
+        boolean teSingle = te instanceof TileEntityLep750Single && ka.length == 1 && kb.length > 1;
+        boolean oSingle = o instanceof TileEntityLep750Single && kb.length == 1 && ka.length > 1;
+        if (!teSingle && !oSingle) return null;
+        if (teSingle) {
+            if (!(o instanceof IWiredPylon) || !(o instanceof TileEntityPylonBase)) return null;
+            int[] oi = ((IWiredPylon) o).getLinkMounts(te.xCoord, te.yCoord, te.zCoord);
+            Vec3[] om = ((TileEntityPylonBase) o).getMountPos();
+            if (oi == null || oi.length == 0 || om == null || oi[0] < 0 || oi[0] >= om.length) return null;
+            double lat = (sx + om[oi[0]].xCoord) * ux + (sz + om[oi[0]].zCoord) * uz;
+            int best = 0;
+            for (int j = 1; j < kb.length; j++) {
+                if (Math.abs(kb[j] - lat) < Math.abs(kb[best] - lat)) best = j;
+            }
+            return new int[][] { { 0 }, { best } };
+        }
+        if (!(te instanceof IWiredPylon) || !(te instanceof TileEntityPylonBase)) return null;
+        int[] mi = ((IWiredPylon) te).getLinkMounts(o.xCoord, o.yCoord, o.zCoord);
+        Vec3[] mm = ((TileEntityPylonBase) te).getMountPos();
+        if (mi == null || mi.length == 0 || mm == null || mi[0] < 0 || mi[0] >= mm.length) return null;
+        double lat = mm[mi[0]].xCoord * ux + mm[mi[0]].zCoord * uz;
+        int best = 0;
+        for (int i = 1; i < ka.length; i++) {
+            if (Math.abs(ka[i] - lat) < Math.abs(ka[best] - lat)) best = i;
+        }
+        return new int[][] { { best }, { 0 } };
     }
 
     /** Індекси масиву за зростанням значень (для зіставлення тросів двох опор). */

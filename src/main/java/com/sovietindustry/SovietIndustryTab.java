@@ -14,9 +14,6 @@ public class SovietIndustryTab extends CreativeTabs {
     @Override
     @SideOnly(Side.CLIENT)
     public Item getTabIconItem() {
-        if (ModBlocks.pdnSlab != null) {
-            return Item.getItemFromBlock(ModBlocks.pdnSlab);
-        }
-        return Item.getItemFromBlock(ModBlocks.silicateBrick);
+        return Item.getItemFromBlock(ModBlocks.slate);
     }
 }

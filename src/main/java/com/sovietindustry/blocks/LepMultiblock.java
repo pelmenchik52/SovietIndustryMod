@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import net.minecraft.block.Block;
-import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.entity.EntityLivingBase;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.world.World;
@@ -28,7 +28,28 @@ public final class LepMultiblock {
     /** Кільце 3x3 навколо стовпа ставиться лише там, де опора ще ширша за 0.62 блока від осі. */
     private static final double RING_MIN_HALF = 0.62D;
 
+    /**
+     * Режим «ставити не дивлячись на блоки»: вмикається ItemBlockLep на час одного ставлення. У ньому опора не вимагає
+     * твердої опори під основою й вільного місця (все, що в габариті, просто замінюється). ThreadLocal, бо
+     * клієнт і інтегрований сервер працюють у різних потоках.
+     */
+    private static final ThreadLocal<Boolean> FORCE = new ThreadLocal<Boolean>();
+
     private LepMultiblock() {
+    }
+
+    public static boolean isForce() {
+        return Boolean.TRUE.equals(FORCE.get());
+    }
+
+    public static void setForce(boolean on) {
+        if (on) FORCE.set(Boolean.TRUE);
+        else FORCE.remove();
+    }
+
+    /** Те саме, що World.doesBlockHaveSolidTopSurface, але в режимі примусового ставлення опора не потрібна. */
+    private static boolean solidBelow(World w, int x, int y, int z) {
+        return isForce() || World.doesBlockHaveSolidTopSurface(w, x, y, z);
     }
 
     /** Округлює кут погляду гравця до найближчого кратного ROTATION_STEP (0..360). */
@@ -207,7 +228,7 @@ public final class LepMultiblock {
     public static boolean canPlaceAngle(World w, int x, int y, int z) {
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
-                if (!World.doesBlockHaveSolidTopSurface(w, x + dx, y - 1, z + dz)) return false;
+                if (!solidBelow(w, x + dx, y - 1, z + dz)) return false;
             }
         }
         for (int dy = 0; dy < TOWER_HEIGHT; dy++) {
@@ -216,10 +237,7 @@ public final class LepMultiblock {
                 for (int dz = -1; dz <= 1; dz++) {
                     if (dx == 0 && dz == 0 && dy == 0) continue;
                     if (!angleHasBlock(dx, dy, dz)) continue;
-                    Block b = w.getBlock(x + dx, y + dy, z + dz);
-                    if (!w.isAirBlock(x + dx, y + dy, z + dz) && !b.isReplaceable(w, x + dx, y + dy, z + dz)) {
-                        return false;
-                    }
+                    if (!freeCell(w, x + dx, y + dy, z + dz)) return false;
                 }
             }
         }
@@ -229,14 +247,38 @@ public final class LepMultiblock {
     // ------------------------------------------------------------ побудова / знесення
 
     private static void setDummy(World w, int x, int y, int z, int mx, int my, int mz) {
-        AxisAlignedBB cellBox = AxisAlignedBB.getBoundingBox(x, y, z, x + 1.0D, y + 1.0D, z + 1.0D);
-        if (!w.getEntitiesWithinAABB(EntityPlayer.class, cellBox).isEmpty()) {
-            return;
-        }
+        // Раніше клітинка з гравцем пропускалась, і в каркасі лишалась дірка, з якої не можна вийти.
+        // Тепер dummy ставиться завжди, а ті, хто опинився в габариті, виштовхуються після побудови (ejectEntities).
         w.setBlock(x, y, z, ModBlocks.lep110Dummy, 0, 2);
         TileEntity te = w.getTileEntity(x, y, z);
         if (te instanceof TileEntityLepDummy) {
             ((TileEntityLepDummy) te).setMaster(mx, my, mz);
+        }
+    }
+
+    /**
+     * Після побудови опори виштовхує гравців і мобів, які опинились усередині колізії (стоять поруч із майстром
+     * при ставленні, особливо біля широкої анкерно-кутової опори). Шукаємо найближче вільне місце кільцями навколо.
+     */
+    public static void ejectEntities(World w, int cx, int cy, int cz) {
+        if (w.isRemote) return;
+        AxisAlignedBB zone = AxisAlignedBB.getBoundingBox(cx - 26.0D, cy - 2.0D, cz - 26.0D, cx + 27.0D, cy + 34.0D, cz + 27.0D);
+        List<?> found = w.getEntitiesWithinAABB(EntityLivingBase.class, zone);
+        for (Object o : found) {
+            EntityLivingBase e = (EntityLivingBase) o;
+            if (w.getCollidingBoundingBoxes(e, e.boundingBox).isEmpty()) continue;
+            boolean moved = false;
+            for (double r = 0.5D; r <= 32.0D && !moved; r += 0.5D) {
+                for (int k = 0; k < 16 && !moved; k++) {
+                    double ang = k * (Math.PI / 8.0D);
+                    double ox = Math.cos(ang) * r, oz = Math.sin(ang) * r;
+                    AxisAlignedBB bb = e.boundingBox.getOffsetBoundingBox(ox, 0.0D, oz);
+                    if (w.getCollidingBoundingBoxes(e, bb).isEmpty()) {
+                        e.setPositionAndUpdate(e.posX + ox, e.posY, e.posZ + oz);
+                        moved = true;
+                    }
+                }
+            }
         }
     }
 
@@ -249,6 +291,7 @@ public final class LepMultiblock {
                 }
             }
         }
+        ejectEntities(w, x, y, z);
     }
 
     public static void removeAngle(World w, int x, int y, int z) {
@@ -268,6 +311,7 @@ public final class LepMultiblock {
         for (int dy = 1; dy < TOWER_HEIGHT; dy++) {
             setDummy(w, x, y + dy, z, x, y, z);
         }
+        ejectEntities(w, x, y, z);
     }
 
     public static void removeV1(World w, int x, int y, int z) {
@@ -281,12 +325,13 @@ public final class LepMultiblock {
     // ------------------------------------------------------------ 6-контактні опори (висота 16)
 
     private static boolean freeCell(World w, int x, int y, int z) {
+        if (isForce()) return true;
         Block b = w.getBlock(x, y, z);
         return w.isAirBlock(x, y, z) || b.isReplaceable(w, x, y, z);
     }
 
     public static boolean canPlaceX2(World w, int x, int y, int z) {
-        if (!World.doesBlockHaveSolidTopSurface(w, x, y - 1, z)) return false;
+        if (!solidBelow(w, x, y - 1, z)) return false;
         for (int dy = 1; dy < Lep110x2.HEIGHT; dy++) {
             if (y + dy >= 256 || !freeCell(w, x, y + dy, z)) return false;
         }
@@ -297,6 +342,7 @@ public final class LepMultiblock {
         for (int dy = 1; dy < Lep110x2.HEIGHT; dy++) {
             setDummy(w, x, y + dy, z, x, y, z);
         }
+        ejectEntities(w, x, y, z);
     }
 
     public static void removeX2(World w, int x, int y, int z) {
@@ -308,7 +354,7 @@ public final class LepMultiblock {
     public static boolean canPlaceX2Angle(World w, int x, int y, int z) {
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
-                if (!World.doesBlockHaveSolidTopSurface(w, x + dx, y - 1, z + dz)) return false;
+                if (!solidBelow(w, x + dx, y - 1, z + dz)) return false;
             }
         }
         for (int dy = 0; dy < Lep110x2.HEIGHT; dy++) {
@@ -332,6 +378,7 @@ public final class LepMultiblock {
                 }
             }
         }
+        ejectEntities(w, x, y, z);
     }
 
     public static void removeX2Angle(World w, int x, int y, int z) {
@@ -430,12 +477,12 @@ public final class LepMultiblock {
 
     /** Центр і обидві стійки стоять на твердому, колони стійок вільні (центральна клітинка належить майстру). */
     public static boolean canPlaceP330(World w, int x, int y, int z, float angle) {
-        if (!World.doesBlockHaveSolidTopSurface(w, x, y - 1, z)) return false;
+        if (!solidBelow(w, x, y - 1, z)) return false;
         for (int side = -1; side <= 1; side += 2) {
             double[] c = p330LegCentre(angle, side);
             int gx = (int) Math.round(c[0]);
             int gz = (int) Math.round(c[1]);
-            if (!World.doesBlockHaveSolidTopSurface(w, x + gx, y - 1, z + gz)) return false;
+            if (!solidBelow(w, x + gx, y - 1, z + gz)) return false;
             for (int dy = 0; dy < Lep330.HEIGHT; dy++) {
                 if (y + dy >= 256) return false;
                 for (int[] cell : p330Cells(angle, side, dy)) {
@@ -454,6 +501,7 @@ public final class LepMultiblock {
                 }
             }
         }
+        ejectEntities(w, x, y, z);
     }
 
     public static void removeP330(World w, int x, int y, int z, float angle) {
@@ -479,7 +527,7 @@ public final class LepMultiblock {
     public static boolean canPlaceA330(World w, int x, int y, int z) {
         for (int dx = -1; dx <= 1; dx++) {
             for (int dz = -1; dz <= 1; dz++) {
-                if (!World.doesBlockHaveSolidTopSurface(w, x + dx, y - 1, z + dz)) return false;
+                if (!solidBelow(w, x + dx, y - 1, z + dz)) return false;
             }
         }
         for (int dy = 0; dy < Lep330.HEIGHT; dy++) {
@@ -503,6 +551,7 @@ public final class LepMultiblock {
                 }
             }
         }
+        ejectEntities(w, x, y, z);
     }
 
     public static void removeA330(World w, int x, int y, int z) {
@@ -568,12 +617,12 @@ public final class LepMultiblock {
     }
 
     public static boolean canPlaceP750(World w, int x, int y, int z, float angle) {
-        if (!World.doesBlockHaveSolidTopSurface(w, x, y - 1, z)) return false;
+        if (!solidBelow(w, x, y - 1, z)) return false;
         for (int side = -1; side <= 1; side += 2) {
             double[] c = p750LegCentre(angle, side, 0);
             int gx = (int) Math.round(c[0]);
             int gz = (int) Math.round(c[1]);
-            if (!World.doesBlockHaveSolidTopSurface(w, x + gx, y - 1, z + gz)) return false;
+            if (!solidBelow(w, x + gx, y - 1, z + gz)) return false;
             for (int dy = 0; dy < Lep750.HEIGHT; dy++) {
                 if (y + dy >= 256) return false;
                 for (int[] cell : p750Cells(angle, side, dy)) {
@@ -592,6 +641,7 @@ public final class LepMultiblock {
                 }
             }
         }
+        ejectEntities(w, x, y, z);
     }
 
     public static void removeP750(World w, int x, int y, int z, float angle) {
@@ -659,12 +709,12 @@ public final class LepMultiblock {
     }
 
     public static boolean canPlaceA750(World w, int x, int y, int z, float angle) {
-        if (!World.doesBlockHaveSolidTopSurface(w, x, y - 1, z)) return false;
+        if (!solidBelow(w, x, y - 1, z)) return false;
         for (int idx = -1; idx <= 1; idx++) {
             double[] c = a750TowerCentre(angle, idx);
             int gx = (int) Math.round(c[0]);
             int gz = (int) Math.round(c[1]);
-            if (!World.doesBlockHaveSolidTopSurface(w, x + gx, y - 1, z + gz)) return false;
+            if (!solidBelow(w, x + gx, y - 1, z + gz)) return false;
             int maxH = a750TowerHeight(idx);
             for (int dy = 0; dy < maxH; dy++) {
                 if (y + dy >= 256) return false;
@@ -687,6 +737,7 @@ public final class LepMultiblock {
                 }
             }
         }
+        ejectEntities(w, x, y, z);
     }
 
     public static void removeA750(World w, int x, int y, int z, float angle) {
@@ -705,7 +756,7 @@ public final class LepMultiblock {
 
     /** Місце вільне, якщо під майстром є опора й вільна шахта над ним; решта клітинок біля основи може бути в рельєфі. */
     public static boolean canPlaceS750(World w, int x, int y, int z, int towerIdx) {
-        if (!World.doesBlockHaveSolidTopSurface(w, x, y - 1, z)) return false;
+        if (!solidBelow(w, x, y - 1, z)) return false;
         int maxH = a750TowerHeight(towerIdx);
         if (y + maxH >= 256) return false;
         for (int dy = 1; dy < maxH; dy++) {
@@ -724,6 +775,7 @@ public final class LepMultiblock {
                 setDummy(w, x + cell[0], y + dy, z + cell[1], x, y, z);
             }
         }
+        ejectEntities(w, x, y, z);
     }
 
     public static void removeS750(World w, int x, int y, int z, float angle, int towerIdx) {

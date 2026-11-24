@@ -167,15 +167,29 @@ public final class Lep750 {
     /** Скільки блоків від упору до вершини дуги шлейфу (горизонтальна допоміжна гірлянда на власній щоглі). */
     public static final double S_SUP_REACH = 4.2D;
 
-    /** Упор на +X грані щогли, до якого кріпиться допоміжна гірлянда шлейфу (дзеркально до упору АКО на сусідній вежі). */
-    public static double[] sSupportAttach() {
-        return new double[] { angleHalf(A_MOUNT_Y) + A_SUP_STUB, A_MOUNT_Y, 0.0D };
+    /**
+     * Допоміжна гірлянда на окремій щоглі з'являється, лише коли кут між передньою й задньою натяжними гірляндами
+     * БІЛЬШИЙ за це значення (у градусах; 180 = пряма лінія). При гострішому куті шлейф просто йде збоку під гірляндами.
+     */
+    public static final double S_AUX_MIN_ANGLE_DEG = 50.0D;
+
+    /**
+     * Напрям упору допоміжної гірлянди вздовж локальної осі X: ліва щогла (-1) дивиться в протилежний бік
+     * (повернута на 180 градусів), середня й права (0, +1) на +X.
+     */
+    public static double sSupportDir(int variant) {
+        return variant < 0 ? -1.0D : 1.0D;
+    }
+
+    /** Упор на грані щогли (+X, а для лівої щогли -X), до якого кріпиться допоміжна гірлянда шлейфу. */
+    public static double[] sSupportAttach(int variant) {
+        return new double[] { sSupportDir(variant) * (angleHalf(A_MOUNT_Y) + A_SUP_STUB), A_MOUNT_Y, 0.0D };
     }
 
     /** Вершина дуги шлейфу: вільний кінець допоміжної гірлянди. */
-    public static double[] sSupportEnd() {
-        double[] a = sSupportAttach();
-        return new double[] { a[0] + S_SUP_REACH, A_MOUNT_Y - A_LOOP_RISE, 0.0D };
+    public static double[] sSupportEnd(int variant) {
+        double[] a = sSupportAttach(variant);
+        return new double[] { a[0] + sSupportDir(variant) * S_SUP_REACH, A_MOUNT_Y - A_LOOP_RISE, 0.0D };
     }
 
     /** Ліва і права щогли мають тросостійку із затискачем троса, середня ні (як у складі АКО). */

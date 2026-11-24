@@ -380,12 +380,14 @@ public class ModelLep750 {
             LepGeo.box(t, tx - sh - Lep750.A_SUP_STUB, my, 0.0D, 0.09D, 0.12D, 0.12D);
         }
 
-        // Окрема щогла (ліва/середня): власний упор на +X грані під допоміжну гірлянду шлейфу
+        // Окрема щогла (ліва/середня): власний упор під допоміжну гірлянду шлейфу.
+        // Середня дивиться на +X, ліва повернута на 180 градусів (на -X).
         if (single && idx != 1) {
             double sh = Lep750.angleHalf(my);
-            lb(t, tx + sh, my, 0.0D, tx + sh + Lep750.A_SUP_STUB, my, 0.0D, 0.11D);
-            lb(t, tx + sh, my - 0.7D, 0.0D, tx + sh + Lep750.A_SUP_STUB, my, 0.0D, 0.065D);
-            LepGeo.box(t, tx + sh + Lep750.A_SUP_STUB, my, 0.0D, 0.09D, 0.12D, 0.12D);
+            double sg = Lep750.sSupportDir(idx);
+            lb(t, tx + sg * sh, my, 0.0D, tx + sg * (sh + Lep750.A_SUP_STUB), my, 0.0D, 0.11D);
+            lb(t, tx + sg * sh, my - 0.7D, 0.0D, tx + sg * (sh + Lep750.A_SUP_STUB), my, 0.0D, 0.065D);
+            LepGeo.box(t, tx + sg * (sh + Lep750.A_SUP_STUB), my, 0.0D, 0.09D, 0.12D, 0.12D);
         }
 
         // 2. Верхня частина: у середньої вежі (idx == 0) плоска голівка без високої тросостійки!
