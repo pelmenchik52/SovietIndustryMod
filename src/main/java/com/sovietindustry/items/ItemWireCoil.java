@@ -31,6 +31,8 @@ import com.sovietindustry.tileentities.TileEntityLep500Angle;
 import com.sovietindustry.tileentities.TileEntityLep500Single;
 import com.sovietindustry.tileentities.TileEntitySubstation500kV;
 import com.sovietindustry.tileentities.TileEntitySubstation750kV;
+import com.sovietindustry.tileentities.TileEntityPortal750;
+import com.sovietindustry.tileentities.TileEntityLep750;
 import com.sovietindustry.tileentities.TileEntitySubstation330kV;
 import com.sovietindustry.tileentities.TileEntityLepPylon;
 import com.sovietindustry.tileentities.TileEntitySubstation110kV;
@@ -167,7 +169,7 @@ public class ItemWireCoil extends Item {
 
     /** Опори рівня 750 кВ: лінійні опори 750 кВ. */
     private static boolean is750(TileEntityPylonBase t) {
-        return t instanceof TileEntityLep750Base || t instanceof TileEntitySubstation750kV;
+        return t instanceof TileEntityLep750Base || t instanceof TileEntitySubstation750kV || t instanceof TileEntityPortal750;
     }
 
     /**
@@ -199,11 +201,27 @@ public class ItemWireCoil extends Item {
         if (!a && !b) return null;
         TileEntitySubstation750kV sub = (TileEntitySubstation750kV) (a ? first : second);
         TileEntityPylonBase other = a ? second : first;
-        if (!(other instanceof TileEntityLep750Angle)) {
-            return "The 750 kV substation accepts a wire only from a 750 kV angle tower";
+        if (!(other instanceof TileEntityLep750Angle) && !(other instanceof TileEntityPortal750)) {
+            return "The 750 kV substation accepts a wire only from a 750 kV angle tower or a 750 kV portal";
         }
         if (!sub.getLinks().isEmpty()) {
             return "The 750 kV substation input is already connected";
+        }
+        return null;
+    }
+
+    /**
+     * Правила порталу 750 кВ: приймає до TileEntityPortal750.MAX_LINKS дротів від анкерно-кутових опор 750 кВ,
+     * проміжних опор 750 кВ, підстанції 750 кВ (її вхід один) та інших порталів. Окремі щогли 750 кВ сюди не підходять.
+     */
+    private static String portal750Check(TileEntityPortal750 portal, TileEntityPylonBase other) {
+        boolean ok = other instanceof TileEntityLep750Angle || other instanceof TileEntityLep750
+            || other instanceof TileEntitySubstation750kV || other instanceof TileEntityPortal750;
+        if (!ok) {
+            return "A 750 kV portal connects to 750 kV angle or intermediate towers, the 750 kV substation and other portals";
+        }
+        if (portal.isFull()) {
+            return "This portal already holds " + TileEntityPortal750.MAX_LINKS + " wires";
         }
         return null;
     }
@@ -249,6 +267,7 @@ public class ItemWireCoil extends Item {
      * опори 750 кВ із трьома точками кріплення рахують «сторони»: до трьох окремих щогл з одного боку це одна сторона.
      */
     private static boolean full(TileEntityPylonBase t, TileEntityPylonBase other) {
+        if (t instanceof TileEntityPortal750) return false; // місткість порталу перевіряє portal750Check
         if (t instanceof TileEntityLep750Single) {
             return ((TileEntityLep750Single) t).getLinks().size() >= TileEntityLepPylon.MAX_LINE_CONNECTIONS;
         }
@@ -378,6 +397,17 @@ public class ItemWireCoil extends Item {
         if (sub750Err != null) {
             msg(player, EnumChatFormatting.RED, sub750Err);
             return true;
+        }
+        if (first instanceof TileEntityPortal750 || second instanceof TileEntityPortal750) {
+            boolean fp = first instanceof TileEntityPortal750;
+            String portalErr = portal750Check((TileEntityPortal750) (fp ? first : second), fp ? second : first);
+            if (portalErr == null && fp && second instanceof TileEntityPortal750) {
+                portalErr = portal750Check((TileEntityPortal750) second, first);
+            }
+            if (portalErr != null) {
+                msg(player, EnumChatFormatting.RED, portalErr);
+                return true;
+            }
         }
         String sub500Err = substation500Check(first, second);
         if (sub500Err != null) {

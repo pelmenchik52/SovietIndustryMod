@@ -20,6 +20,7 @@ import com.sovietindustry.api.IStandoffPylon;
 import com.sovietindustry.api.IWiredPylon;
 import com.sovietindustry.tileentities.Lep750;
 import com.sovietindustry.tileentities.TileEntityLepPylon;
+import com.sovietindustry.tileentities.TileEntityLep110Angle;
 import com.sovietindustry.tileentities.TileEntityLep500Base;
 import com.sovietindustry.tileentities.TileEntityLep750Angle;
 import com.sovietindustry.tileentities.TileEntityLep750Single;
@@ -367,7 +368,7 @@ public final class LepWireRenderer {
                             bundledString(t, shift(base, l.pm, o * FORK_ROOT), shift(l.mine[i], l.pm, o), discCount);
                         }
                     } else {
-                        string(t, base, l.mine[i]);
+                        string(t, base, l.mine[i], te instanceof TileEntityLep110Angle);
                     }
                 }
             }
@@ -951,19 +952,27 @@ public final class LepWireRenderer {
 
     /** Натяжна гірлянда: стрижень, 6 тарілок і арматура на кінцях, вздовж a -> b. */
     private static void string(Tessellator t, double[] a, double[] b) {
+        string(t, a, b, false);
+    }
+
+    /** Те саме; thin = тонка гірлянда (110 кВ АКО): тарілки 0.17 замість 0.30, тонший стрижень і арматура. */
+    private static void string(Tessellator t, double[] a, double[] b, boolean thin) {
         double len = dist(a, b);
         if (len < 1.0E-4D) return;
         double ux = (b[0] - a[0]) / len, uy = (b[1] - a[1]) / len, uz = (b[2] - a[2]) / len;
+        double rod = thin ? 0.045D : 0.07D;
+        double disc = thin ? 0.17D : 0.30D;
+        double fit = thin ? 0.09D : 0.14D;
 
-        LepGeo.beam(t, a[0], a[1], a[2], b[0], b[1], b[2], 0.07D);
+        LepGeo.beam(t, a[0], a[1], a[2], b[0], b[1], b[2], rod);
         for (int k = 0; k < 6; k++) {
             double c = 0.22D + k * 0.17D;
             double s0 = c - 0.035D, s1 = c + 0.035D;
             LepGeo.beam(t, a[0] + ux * s0, a[1] + uy * s0, a[2] + uz * s0,
-                           a[0] + ux * s1, a[1] + uy * s1, a[2] + uz * s1, 0.30D);
+                           a[0] + ux * s1, a[1] + uy * s1, a[2] + uz * s1, disc);
         }
-        LepGeo.beam(t, a[0], a[1], a[2], a[0] + ux * 0.12D, a[1] + uy * 0.12D, a[2] + uz * 0.12D, 0.14D);
-        LepGeo.beam(t, b[0] - ux * 0.10D, b[1] - uy * 0.10D, b[2] - uz * 0.10D, b[0], b[1], b[2], 0.14D);
+        LepGeo.beam(t, a[0], a[1], a[2], a[0] + ux * 0.12D, a[1] + uy * 0.12D, a[2] + uz * 0.12D, fit);
+        LepGeo.beam(t, b[0] - ux * 0.10D, b[1] - uy * 0.10D, b[2] - uz * 0.10D, b[0], b[1], b[2], fit);
     }
 
     /**

@@ -7,6 +7,8 @@ import com.sovietindustry.render.RenderSubstation110kV;
 import com.sovietindustry.render.RenderSubstation330kV;
 import com.sovietindustry.render.RenderSubstation500kV;
 import com.sovietindustry.render.RenderSubstation750kV;
+import com.sovietindustry.render.RenderPortal750;
+import com.sovietindustry.tileentities.TileEntityPortal750;
 import com.sovietindustry.tileentities.TileEntitySubstation330kV;
 import com.sovietindustry.tileentities.TileEntitySubstation500kV;
 import com.sovietindustry.tileentities.TileEntitySubstation750kV;
@@ -79,6 +81,7 @@ public class ClientProxy extends CommonProxy {
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstation110kV.class, new RenderSubstation110kV());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstation330kV.class, new RenderSubstation330kV());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstation750kV.class, new RenderSubstation750kV());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityPortal750.class, new RenderPortal750());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstation500kV.class, new RenderSubstation500kV());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstationPort110kV.class, new TileEntitySpecialRenderer() {
             @Override
@@ -165,6 +168,10 @@ public class ClientProxy extends CommonProxy {
         MinecraftForgeClient.registerItemRenderer(
             Item.getItemFromBlock(ModBlocks.substation500kV),
             new ItemRenderLepPylon(ItemRenderLepPylon.KIND_SUBSTATION_500)
+        );
+        MinecraftForgeClient.registerItemRenderer(
+            Item.getItemFromBlock(ModBlocks.portal750),
+            new ItemRenderLepPylon(ItemRenderLepPylon.KIND_PORTAL_750)
         );
     }
 }

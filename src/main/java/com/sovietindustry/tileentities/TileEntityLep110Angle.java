@@ -4,16 +4,18 @@ package com.sovietindustry.tileentities;
  * Анкерно-кутова опора 110 кВ за ескізом У35-1 (3 фази + трос), масштаб під 13 блоків.
  * Натяжні гірлянди горизонтальні й повертаються в бік кожного проводу.
  *
- * Пропорції з ескізу: висота 17950 мм = 13 блоків (0.724 бл/м),
- * нижня траверса на 10000 мм, верхня на 13000 мм, плечі 2800 / 3500 / 2800 мм.
+ * Пропорції з креслення (без нижньої секції 5000 мм): висота 30000 мм = 13 блоків (0.433 бл/м),
+ * нижня траверса на 19500 мм, верхня на 23800 мм, плечі 3500 / 5000 / 3500 мм.
  */
 public class TileEntityLep110Angle extends TileEntityLepPylon {
 
-    public static final double LOW_Y = 7.24D;
-    public static final double UP_Y = 9.41D;
-    public static final double SHORT_ARM = 2.03D;
-    public static final double LONG_ARM = 2.53D;
+    public static final double LOW_Y = 8.45D;
+    public static final double UP_Y = 10.31D;
+    public static final double SHORT_ARM = 1.52D;
+    public static final double LONG_ARM = 2.17D;
     public static final double TOP_Y = 13.0D;
+    /** Рівень, де закінчується нижня (велика) секція підставки: 9000 мм від низу. */
+    public static final double SECTION_Y = 3.90D;
     /** Скільки нижче верху траверси висить точка кріплення гірлянди. */
     public static final double MOUNT_DROP = 0.15D;
 
@@ -39,7 +41,8 @@ public class TileEntityLep110Angle extends TileEntityLepPylon {
 
     /** Півширина ніг опори (блоки, від осі) на висоті y. Спільна для моделі й колізії. */
     public static double legHalfWidth(double y) {
-        double[][] k = { { 0.0D, 1.15D }, { LOW_Y, 0.50D }, { UP_Y, 0.34D }, { TOP_Y, 0.12D } };
+        // креслення: стрункіша вежа, без нижньої секції 5000 мм; основа 1.15, далі звужується до голови
+        double[][] k = { { 0.0D, 1.15D }, { SECTION_Y, 0.78D }, { LOW_Y, 0.42D }, { UP_Y, 0.30D }, { TOP_Y, 0.14D } };
         if (y <= k[0][0]) return k[0][1];
         for (int i = 0; i < k.length - 1; i++) {
             if (y <= k[i + 1][0]) {

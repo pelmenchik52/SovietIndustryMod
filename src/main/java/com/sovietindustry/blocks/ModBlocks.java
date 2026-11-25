@@ -35,6 +35,7 @@ public class ModBlocks {
     public static Block substation330kV;
     public static Block substation500kV;
     public static Block substation750kV;
+    public static Block portal750;
     public static Block lep110Dummy;
 
     public static void init() {
@@ -192,6 +193,12 @@ public class ModBlocks {
             .setBlockName("substation750kV")
             .setCreativeTab(SovietIndustryMod.tabSoviet);
         GameRegistry.registerBlock(substation750kV, "substation750kV");
+
+        // Окремий портал 750 кВ (мультиблок 13x1x23): шина, що приймає багато дротів від опор 750 кВ
+        portal750 = new BlockPortal750()
+            .setBlockName("portal750")
+            .setCreativeTab(SovietIndustryMod.tabSoviet);
+        GameRegistry.registerBlock(portal750, "portal750");
     }
 
     public static void registerRenderers() {

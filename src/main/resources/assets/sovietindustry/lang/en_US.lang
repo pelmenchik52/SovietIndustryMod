@@ -46,3 +46,5 @@ tile.lep750Angle.name=750 kV Angle Tower (3 Towers, 30x19, 4 wires)
 tile.substation330kV.name=330 kV Transformer Substation (7x6x8, input from U330-3, 3 NTM cables)
 tile.substation750kV.name=Substation 750 kV
 tile.lep500.name=500 kV Intermediate Pylon
+tile.portal750.name=Portal 750 kV
+

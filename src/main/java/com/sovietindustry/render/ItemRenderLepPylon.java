@@ -13,6 +13,7 @@ import com.sovietindustry.models.ModelSubstation110kV;
 import com.sovietindustry.models.ModelSubstation330kV;
 import com.sovietindustry.models.ModelSubstation500kV;
 import com.sovietindustry.models.ModelSubstation750kV;
+import com.sovietindustry.models.ModelPortal750;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -47,9 +48,11 @@ public class ItemRenderLepPylon implements IItemRenderer {
     public static final int KIND_SUBSTATION_500 = 16;
     public static final int KIND_500_SINGLE = 17;
     public static final int KIND_500_SINGLE_SIDE = 18;
+    public static final int KIND_PORTAL_750 = 19;
 
     private final ModelSubstation330kV modelSubstation330 = new ModelSubstation330kV();
     private final ModelSubstation750kV modelSubstation750 = new ModelSubstation750kV();
+    private final ModelPortal750 modelPortal750 = new ModelPortal750();
     private final ModelSubstation500kV modelSubstation500 = new ModelSubstation500kV();
 
     private final ModelLep330 model330 = new ModelLep330(false);
@@ -110,6 +113,7 @@ public class ItemRenderLepPylon implements IItemRenderer {
             case KIND_750: return "lep750";
             case KIND_750_ANGLE: return "lep750Angle";
             case KIND_SUBSTATION_750: return "substation750kV";
+            case KIND_PORTAL_750: return "portal750";
             case KIND_750_SINGLE: return "lep750Single";
             case KIND_750_SINGLE_LEFT: return "lep750SingleLeft";
             case KIND_750_SINGLE_RIGHT: return "lep750SingleRight";
@@ -171,6 +175,15 @@ public class ItemRenderLepPylon implements IItemRenderer {
             applySubstation330Transform(type);
             GL11.glDisable(GL11.GL_CULL_FACE);
             modelSubstation330.renderAll();
+            GL11.glEnable(GL11.GL_CULL_FACE);
+            GL11.glPopMatrix();
+            return;
+        }
+
+        if (x2Kind == KIND_PORTAL_750) {
+            applySubstation750Transform(type);
+            GL11.glDisable(GL11.GL_CULL_FACE);
+            modelPortal750.renderAll();
             GL11.glEnable(GL11.GL_CULL_FACE);
             GL11.glPopMatrix();
             return;

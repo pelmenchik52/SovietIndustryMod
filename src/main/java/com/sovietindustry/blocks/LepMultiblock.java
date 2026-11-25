@@ -17,6 +17,7 @@ import com.sovietindustry.tileentities.Lep750;
 import com.sovietindustry.tileentities.Substation330;
 import com.sovietindustry.tileentities.Substation500;
 import com.sovietindustry.tileentities.Substation750;
+import com.sovietindustry.tileentities.Portal750;
 import com.sovietindustry.tileentities.TileEntityLepDummy;
 
 /**
@@ -130,6 +131,9 @@ public final class LepMultiblock {
         }
         if (master == ModBlocks.substation750kV) {
             return Substation750.worldBounds(dx, dy, dz, rot);
+        }
+        if (master == ModBlocks.portal750) {
+            return Portal750.worldBounds(dx, dy, dz, rot);
         }
         if (master == ModBlocks.substation500kV) {
             return Substation500.worldBounds(dx, dy, dz, rot);

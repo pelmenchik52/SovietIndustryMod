@@ -5,6 +5,7 @@ import com.sovietindustry.tileentities.TileEntitySubstationPort110kV;
 import com.sovietindustry.tileentities.TileEntitySubstation330kV;
 import com.sovietindustry.tileentities.TileEntitySubstation500kV;
 import com.sovietindustry.tileentities.TileEntitySubstation750kV;
+import com.sovietindustry.tileentities.TileEntityPortal750;
 import com.sovietindustry.tileentities.TileEntityIndustrialPipe;
 import com.sovietindustry.tileentities.TileEntityLep110Angle;
 import com.sovietindustry.tileentities.TileEntityLep110v1;
@@ -36,6 +37,7 @@ public class CommonProxy {
         GameRegistry.registerTileEntity(TileEntitySubstationPort110kV.class, "TileEntitySubstationPort110kV");
         GameRegistry.registerTileEntity(TileEntitySubstation330kV.class, "TileEntitySubstation330kV");
         GameRegistry.registerTileEntity(TileEntitySubstation750kV.class, "TileEntitySubstation750kV");
+        GameRegistry.registerTileEntity(TileEntityPortal750.class, "SovietPortal750");
         GameRegistry.registerTileEntity(TileEntitySubstation500kV.class, "TileEntitySubstation500kV");
         GameRegistry.registerTileEntity(TileEntityLep110x2.class, "SovietLep110x2");
         GameRegistry.registerTileEntity(TileEntityLep110x2Angle.class, "SovietLep110x2Angle");
