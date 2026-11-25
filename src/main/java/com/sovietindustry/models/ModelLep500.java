@@ -39,6 +39,9 @@ public class ModelLep500 {
     /** Анкерно-кутова: два варіанти (шлейфи праворуч / ліворуч), різняться лише упорами на гранях веж. */
     private final boolean angle;
     private final int[] angleLists = { -1, -1 };
+    /** Окрема щогла: -1 звичайна/кутова модель, 0 середня (без антенки), 1 бічна (з антенкою). Упор під шлейф на грані +X. */
+    private final int singleVariant;
+    private int singleList = -1;
 
     public ModelLep500() {
         this(false);
@@ -46,6 +49,13 @@ public class ModelLep500 {
 
     public ModelLep500(boolean angle) {
         this.angle = angle;
+        this.singleVariant = -1;
+    }
+
+    /** Окрема анкерно-кутова щогла 500 кВ на одну фазу: variant 0 середня, 1 бічна з антенкою. */
+    public ModelLep500(int singleVariant) {
+        this.angle = true;
+        this.singleVariant = singleVariant;
     }
 
     public void renderAll() {
@@ -54,6 +64,21 @@ public class ModelLep500 {
 
     /** dir (+1 або -1) обирає, з якого боку веж стоять упори під допоміжні гірлянди шлейфів (лише для анкерно-кутової). */
     public void renderAll(int dir) {
+        if (singleVariant >= 0) {
+            if (singleList < 0) {
+                singleList = GLAllocation.generateDisplayLists(1);
+                GL11.glNewList(singleList, GL11.GL_COMPILE);
+                Tessellator t = Tessellator.instance;
+                t.startDrawingQuads();
+                // dir = -1 ставить упор під допоміжну гірлянду на грань +X (див. Lep500.sSupportAttach)
+                tower(t, singleVariant == 0 ? 0 : 1, 0.0D, -1, true);
+                t.draw();
+                GL11.glEndList();
+            }
+            Minecraft.getMinecraft().renderEngine.bindTexture(LATTICE_STEEL);
+            GL11.glCallList(singleList);
+            return;
+        }
         if (angle) {
             int k = dir < 0 ? 0 : 1;
             if (angleLists[k] < 0) {
@@ -339,6 +364,10 @@ public class ModelLep500 {
      * dir задає бік упору під допоміжну гірлянду шлейфу сусідньої вежі: +1 ліва грань (шлейфи йдуть вправо), -1 права.
      */
     private void tower(Tessellator t, int idx, double tx, int dir) {
+        tower(t, idx, tx, dir, false);
+    }
+
+    private void tower(Tessellator t, int idx, double tx, int dir, boolean forceStub) {
         int nLow = 11;
         double[] ysLow = new double[nLow];
         double[] cxLow = new double[nLow];
@@ -378,7 +407,7 @@ public class ModelLep500 {
 
         // Упори під допоміжні гірлянди шлейфів: на грані, зверненій до вежі, чия фаза спирається на цю вежу.
         // dir = +1: фази лівої й середньої веж кріпляться до лівих граней середньої й правої; dir = -1 дзеркально.
-        boolean hasStub = (dir > 0) ? idx >= 0 : idx <= 0;
+        boolean hasStub = forceStub || ((dir > 0) ? idx >= 0 : idx <= 0);
         if (hasStub) {
             double sh = Lep500.angleHalf(my);
             double sg = -dir;
@@ -392,20 +421,23 @@ public class ModelLep500 {
         double[] cxMid = { tx, tx };
         double[] hwMid = { Lep500.A_NECK_HALF, Lep500.A_NECK_HALF * 0.92D };
         lattice(t, ysMid, cxMid, hwMid, hwMid, 0.14D, 0.075D, 0.055D, 0);
-        LepGeo.box(t, tx, Lep500.A_MID_TOP + 0.08D, 0.0D, Lep500.A_NECK_HALF + 0.12D, 0.10D, Lep500.A_NECK_HALF + 0.12D);
-        if (idx == 0) return;
+        if (idx == 0) {
+            LepGeo.box(t, tx, Lep500.A_MID_TOP + 0.08D, 0.0D, Lep500.A_NECK_HALF + 0.12D, 0.10D, Lep500.A_NECK_HALF + 0.12D);
+            return;
+        }
 
-        // Гостра антенка на бічних вежах: звужується до вістря, на вістрі гачок для грозотроса
-        int nTop = 5;
+        // Гостра ґратчаста антенка на бічних вежах (як на фото): основа лежить на голівці й повністю її перекриває
+        // (така сама півширина, як у опорної площадки), далі решітка звужується до вістря, на вістрі гачок грозотроса.
+        int nTop = 9;
         double[] ysTop = new double[nTop];
         double[] cxTop = new double[nTop];
         double[] hwTop = new double[nTop];
         for (int i = 0; i < nTop; i++) {
-            ysTop[i] = Lep500.A_MID_TOP + 0.18D + (Lep500.A_ANT_TOP - Lep500.A_MID_TOP - 0.18D) * i / (nTop - 1);
+            ysTop[i] = Lep500.A_MID_TOP + (Lep500.A_ANT_TOP - Lep500.A_MID_TOP) * i / (nTop - 1);
             cxTop[i] = tx;
             hwTop[i] = Lep500.angleHalf(ysTop[i]);
         }
-        lattice(t, ysTop, cxTop, hwTop, hwTop, 0.10D, 0.05D, 0.04D, 0);
+        lattice(t, ysTop, cxTop, hwTop, hwTop, 0.11D, 0.05D, 0.04D, 2);
         double top = Lep500.A_ANT_TOP;
         lb(t, tx, top - 0.3D, 0.0D, tx, top + 0.15D, 0.0D, 0.07D);
         lb(t, tx, top + 0.15D, 0.0D, tx, Lep500.A_GROUND_Y, 0.0D, 0.06D);

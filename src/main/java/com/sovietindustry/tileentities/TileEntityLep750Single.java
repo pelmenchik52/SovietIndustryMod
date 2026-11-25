@@ -4,6 +4,7 @@ import java.util.List;
 
 import com.hbm.tileentity.network.TileEntityPylonBase;
 import com.sovietindustry.api.ISideSupportPylon;
+import com.sovietindustry.api.ISingleAnglePylon;
 import com.sovietindustry.api.IStandoffPylon;
 import com.sovietindustry.api.IWiredPylon;
 
@@ -21,7 +22,7 @@ import net.minecraft.util.Vec3;
  * Шлейф між передньою і задньою натяжними гірляндами тримає допоміжна горизонтальна гірлянда на власному упорі щогли,
  * тож щогла нічого не потребує від сусідів і може стояти де завгодно.
  */
-public class TileEntityLep750Single extends TileEntityLep750Base implements IStandoffPylon, ISideSupportPylon {
+public class TileEntityLep750Single extends TileEntityLep750Base implements IStandoffPylon, ISideSupportPylon, ISingleAnglePylon {
     public static final int LEFT = -1;
     public static final int MID = 0;
     public static final int RIGHT = 1;
@@ -34,6 +35,11 @@ public class TileEntityLep750Single extends TileEntityLep750Base implements ISta
     /** -1 ліва, 0 середня, +1 права (так само, як індекс вежі в моделі АКО). */
     public int getVariant() {
         return MID;
+    }
+
+    @Override
+    public double getSupportDir() {
+        return Lep750.sSupportDir(getVariant());
     }
 
     @Override

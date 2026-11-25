@@ -15,6 +15,7 @@ import com.sovietindustry.tileentities.Lep330;
 import com.sovietindustry.tileentities.Lep500;
 import com.sovietindustry.tileentities.Lep750;
 import com.sovietindustry.tileentities.Substation330;
+import com.sovietindustry.tileentities.Substation500;
 import com.sovietindustry.tileentities.Substation750;
 import com.sovietindustry.tileentities.TileEntityLepDummy;
 
@@ -130,6 +131,9 @@ public final class LepMultiblock {
         if (master == ModBlocks.substation750kV) {
             return Substation750.worldBounds(dx, dy, dz, rot);
         }
+        if (master == ModBlocks.substation500kV) {
+            return Substation500.worldBounds(dx, dy, dz, rot);
+        }
         if (master == ModBlocks.substation330kV) {
             return Substation330.worldBounds(dx, dy, dz, rot);
         }
@@ -156,6 +160,15 @@ public final class LepMultiblock {
                 if (x1 - x0 > 0.02D && z1 - z0 > 0.02D) {
                     return new float[] { (float) x0, 0.0F, (float) z0, (float) x1, 1.0F, (float) z1 };
                 }
+            }
+            return new float[] { 0.49F, 0.0F, 0.49F, 0.51F, 1.0F, 0.51F };
+        }
+        if (master instanceof BlockLep500Single) {
+            double r = a500Reach(dy, rot);
+            double x0 = Math.max(0.0D, -r - (dx - 0.5D)), x1 = Math.min(1.0D, r - (dx - 0.5D));
+            double z0 = Math.max(0.0D, -r - (dz - 0.5D)), z1 = Math.min(1.0D, r - (dz - 0.5D));
+            if (x1 - x0 > 0.02D && z1 - z0 > 0.02D) {
+                return new float[] { (float) x0, 0.0F, (float) z0, (float) x1, 1.0F, (float) z1 };
             }
             return new float[] { 0.49F, 0.0F, 0.49F, 0.51F, 1.0F, 0.51F };
         }
@@ -861,6 +874,40 @@ public final class LepMultiblock {
                     if (idx == 0 && dy == 0 && cell[0] == 0 && cell[1] == 0) continue;
                     removeOwnDummy(w, x + cell[0], y + dy, z + cell[1], x, y, z);
                 }
+            }
+        }
+    }
+
+    // --- Окрема щогла 500 кВ (одна фаза): середня (towerIdx 0) або бічна з антенкою (1), без вимоги рівного майданчика
+
+    public static boolean canPlaceS500(World w, int x, int y, int z, int towerIdx) {
+        if (!solidBelow(w, x, y - 1, z)) return false;
+        int maxH = a500TowerHeight(towerIdx);
+        if (y + maxH >= 256) return false;
+        for (int dy = 1; dy < maxH; dy++) {
+            if (!freeCell(w, x, y + dy, z)) return false;
+        }
+        return true;
+    }
+
+    public static void buildS500(World w, int x, int y, int z, float angle, int towerIdx) {
+        int maxH = a500TowerHeight(towerIdx);
+        for (int dy = 0; dy < maxH; dy++) {
+            for (int[] cell : a500Cells(angle, 0, dy)) {
+                if (dy == 0 && cell[0] == 0 && cell[1] == 0) continue;
+                if (!freeCell(w, x + cell[0], y + dy, z + cell[1])) continue;
+                setDummy(w, x + cell[0], y + dy, z + cell[1], x, y, z);
+            }
+        }
+        ejectEntities(w, x, y, z);
+    }
+
+    public static void removeS500(World w, int x, int y, int z, float angle, int towerIdx) {
+        int maxH = a500TowerHeight(towerIdx);
+        for (int dy = 0; dy < maxH; dy++) {
+            for (int[] cell : a500Cells(angle, 0, dy)) {
+                if (dy == 0 && cell[0] == 0 && cell[1] == 0) continue;
+                removeOwnDummy(w, x + cell[0], y + dy, z + cell[1], x, y, z);
             }
         }
     }

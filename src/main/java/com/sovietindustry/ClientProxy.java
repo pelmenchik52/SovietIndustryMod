@@ -5,8 +5,10 @@ import com.sovietindustry.tileentities.TileEntityLepPylon;
 import net.minecraft.tileentity.TileEntity;
 import com.sovietindustry.render.RenderSubstation110kV;
 import com.sovietindustry.render.RenderSubstation330kV;
+import com.sovietindustry.render.RenderSubstation500kV;
 import com.sovietindustry.render.RenderSubstation750kV;
 import com.sovietindustry.tileentities.TileEntitySubstation330kV;
+import com.sovietindustry.tileentities.TileEntitySubstation500kV;
 import com.sovietindustry.tileentities.TileEntitySubstation750kV;
 import com.sovietindustry.tileentities.TileEntitySubstation110kV;
 import com.sovietindustry.tileentities.TileEntitySubstationPort110kV;
@@ -34,6 +36,8 @@ import com.sovietindustry.tileentities.TileEntityLep330;
 import com.sovietindustry.tileentities.TileEntityLep330Angle;
 import com.sovietindustry.tileentities.TileEntityLep500;
 import com.sovietindustry.tileentities.TileEntityLep500Angle;
+import com.sovietindustry.tileentities.TileEntityLep500Single;
+import com.sovietindustry.tileentities.TileEntityLep500SingleSide;
 import com.sovietindustry.tileentities.TileEntityLep750;
 import com.sovietindustry.tileentities.TileEntityLep750Angle;
 import com.sovietindustry.tileentities.TileEntityLep750Single;
@@ -64,6 +68,8 @@ public class ClientProxy extends CommonProxy {
         RenderLep500 l500Renderer = new RenderLep500();
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep500.class, l500Renderer);
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep500Angle.class, l500Renderer);
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep500Single.class, l500Renderer);
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep500SingleSide.class, l500Renderer);
         RenderLep750 l750Renderer = new RenderLep750();
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep750.class, l750Renderer);
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityLep750Angle.class, l750Renderer);
@@ -73,6 +79,7 @@ public class ClientProxy extends CommonProxy {
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstation110kV.class, new RenderSubstation110kV());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstation330kV.class, new RenderSubstation330kV());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstation750kV.class, new RenderSubstation750kV());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstation500kV.class, new RenderSubstation500kV());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstationPort110kV.class, new TileEntitySpecialRenderer() {
             @Override
             public void renderTileEntityAt(TileEntity te, double x, double y, double z, float partialTicks) {
@@ -116,6 +123,14 @@ public class ClientProxy extends CommonProxy {
             new ItemRenderLepPylon(ItemRenderLepPylon.KIND_500_ANGLE)
         );
         MinecraftForgeClient.registerItemRenderer(
+            Item.getItemFromBlock(ModBlocks.lep500Single),
+            new ItemRenderLepPylon(ItemRenderLepPylon.KIND_500_SINGLE)
+        );
+        MinecraftForgeClient.registerItemRenderer(
+            Item.getItemFromBlock(ModBlocks.lep500SingleSide),
+            new ItemRenderLepPylon(ItemRenderLepPylon.KIND_500_SINGLE_SIDE)
+        );
+        MinecraftForgeClient.registerItemRenderer(
             Item.getItemFromBlock(ModBlocks.lep750),
             new ItemRenderLepPylon(ItemRenderLepPylon.KIND_750)
         );
@@ -146,6 +161,10 @@ public class ClientProxy extends CommonProxy {
         MinecraftForgeClient.registerItemRenderer(
             Item.getItemFromBlock(ModBlocks.substation750kV),
             new ItemRenderLepPylon(ItemRenderLepPylon.KIND_SUBSTATION_750)
+        );
+        MinecraftForgeClient.registerItemRenderer(
+            Item.getItemFromBlock(ModBlocks.substation500kV),
+            new ItemRenderLepPylon(ItemRenderLepPylon.KIND_SUBSTATION_500)
         );
     }
 }

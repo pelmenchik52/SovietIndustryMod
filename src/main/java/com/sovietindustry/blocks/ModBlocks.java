@@ -23,6 +23,8 @@ public class ModBlocks {
     public static Block lep330Angle;
     public static Block lep500;
     public static Block lep500Angle;
+    public static Block lep500Single;
+    public static Block lep500SingleSide;
     public static Block lep750;
     public static Block lep750Angle;
     public static Block lep750Single;
@@ -31,6 +33,7 @@ public class ModBlocks {
     public static Block substation110kV;
     public static Block substationPort110kV;
     public static Block substation330kV;
+    public static Block substation500kV;
     public static Block substation750kV;
     public static Block lep110Dummy;
 
@@ -125,6 +128,16 @@ public class ModBlocks {
             .setCreativeTab(SovietIndustryMod.tabSoviet);
         GameRegistry.registerBlock(lep500Angle, ItemBlockLep.class, "lep500Angle");
 
+        // Окремі анкерно-кутові щогли 500 кВ (одна фаза): середня й бічна з антенкою (ліва й права однакові)
+        lep500Single = new BlockLep500Single()
+            .setBlockName("lep500Single")
+            .setCreativeTab(SovietIndustryMod.tabSoviet);
+        GameRegistry.registerBlock(lep500Single, ItemBlockLep.class, "lep500Single");
+        lep500SingleSide = new BlockLep500SingleSide()
+            .setBlockName("lep500SingleSide")
+            .setCreativeTab(SovietIndustryMod.tabSoviet);
+        GameRegistry.registerBlock(lep500SingleSide, ItemBlockLep.class, "lep500SingleSide");
+
         // Проміжна опора 750 кВ (мультиблок, ширина 9, висота 29)
         lep750 = new BlockLep750()
             .setBlockName("lep750")
@@ -167,6 +180,12 @@ public class ModBlocks {
             .setBlockName("substation330kV")
             .setCreativeTab(SovietIndustryMod.tabSoviet);
         GameRegistry.registerBlock(substation330kV, "substation330kV");
+
+        // Трансформаторна підстанція 500 кВ (мультиблок 13x13x23, така сама, як 750 кВ): вхід лише від анкерно-кутової 500 кВ, 4 кабельні виводи NTM
+        substation500kV = new BlockSubstation500kV()
+            .setBlockName("substation500kV")
+            .setCreativeTab(SovietIndustryMod.tabSoviet);
+        GameRegistry.registerBlock(substation500kV, "substation500kV");
 
         // Трансформаторна підстанція 750 кВ (мультиблок 9x9x15): вхід лише від анкерно-кутової 750 кВ, 4 кабельні виводи NTM
         substation750kV = new BlockSubstation750kV()

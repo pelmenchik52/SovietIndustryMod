@@ -27,6 +27,9 @@ import com.sovietindustry.tileentities.TileEntityLep750Angle;
 import com.sovietindustry.tileentities.TileEntityLep750Base;
 import com.sovietindustry.tileentities.TileEntityLep750Single;
 import com.sovietindustry.tileentities.TileEntityLep750Base;
+import com.sovietindustry.tileentities.TileEntityLep500Angle;
+import com.sovietindustry.tileentities.TileEntityLep500Single;
+import com.sovietindustry.tileentities.TileEntitySubstation500kV;
 import com.sovietindustry.tileentities.TileEntitySubstation750kV;
 import com.sovietindustry.tileentities.TileEntitySubstation330kV;
 import com.sovietindustry.tileentities.TileEntityLepPylon;
@@ -159,7 +162,7 @@ public class ItemWireCoil extends Item {
 
     /** Опори рівня 500 кВ: лінійні опори 500 кВ. */
     private static boolean is500(TileEntityPylonBase t) {
-        return t instanceof TileEntityLep500Base;
+        return t instanceof TileEntityLep500Base || t instanceof TileEntitySubstation500kV;
     }
 
     /** Опори рівня 750 кВ: лінійні опори 750 кВ. */
@@ -205,6 +208,22 @@ public class ItemWireCoil extends Item {
         return null;
     }
 
+    /** Правила підстанції 500 кВ: вхід приймає дріт ТІЛЬКИ від анкерно-кутової опори 500 кВ і лише один проліт. */
+    private static String substation500Check(TileEntityPylonBase first, TileEntityPylonBase second) {
+        boolean a = first instanceof TileEntitySubstation500kV;
+        boolean b = second instanceof TileEntitySubstation500kV;
+        if (!a && !b) return null;
+        TileEntitySubstation500kV sub = (TileEntitySubstation500kV) (a ? first : second);
+        TileEntityPylonBase other = a ? second : first;
+        if (!(other instanceof TileEntityLep500Angle)) {
+            return "The 500 kV substation accepts a wire only from a 500 kV angle tower";
+        }
+        if (!sub.getLinks().isEmpty()) {
+            return "The 500 kV substation input is already connected";
+        }
+        return null;
+    }
+
     /**
      * Обмеження довжини прольоту за типом опори: 110 кВ 3-контактна 75, 110 кВ 6-контактна 125, 330 кВ 200 блоків.
      * Для пари береться менший ліміт (6-контактна анкерна з 3-контактною анкерною, значить 75).
@@ -232,6 +251,19 @@ public class ItemWireCoil extends Item {
     private static boolean full(TileEntityPylonBase t, TileEntityPylonBase other) {
         if (t instanceof TileEntityLep750Single) {
             return ((TileEntityLep750Single) t).getLinks().size() >= TileEntityLepPylon.MAX_LINE_CONNECTIONS;
+        }
+        if (t instanceof TileEntityLep500Single) {
+            return ((TileEntityLep500Single) t).getLinks().size() >= TileEntityLepPylon.MAX_LINE_CONNECTIONS;
+        }
+        if (t instanceof TileEntityLep500Base) {
+            TileEntityLep500Base b = (TileEntityLep500Base) t;
+            if (other instanceof TileEntityLep500Single) {
+                int side = b.sideOf(other.xCoord, other.zCoord);
+                if (b.singlesOnSide(side) >= 3) return true;
+                int units = b.normalLinkCount() + b.sidesUsedBySingles() + (b.singlesOnSide(side) == 0 ? 1 : 0);
+                return units > TileEntityLepPylon.MAX_LINE_CONNECTIONS;
+            }
+            return b.normalLinkCount() + b.sidesUsedBySingles() >= TileEntityLepPylon.MAX_LINE_CONNECTIONS;
         }
         if (t instanceof TileEntityLep750Base) {
             TileEntityLep750Base b = (TileEntityLep750Base) t;
@@ -345,6 +377,11 @@ public class ItemWireCoil extends Item {
         String sub750Err = substation750Check(first, second);
         if (sub750Err != null) {
             msg(player, EnumChatFormatting.RED, sub750Err);
+            return true;
+        }
+        String sub500Err = substation500Check(first, second);
+        if (sub500Err != null) {
+            msg(player, EnumChatFormatting.RED, sub500Err);
             return true;
         }
         String sixErr = sixWireCheck(first, second);

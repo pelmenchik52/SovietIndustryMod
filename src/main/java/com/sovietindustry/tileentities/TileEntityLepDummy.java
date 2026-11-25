@@ -23,6 +23,11 @@ public class TileEntityLepDummy extends TileEntity implements IEnergyConnectorMK
     public boolean canConnect(ForgeDirection dir) {
         if (!valid || worldObj == null) return false;
         TileEntity master = worldObj.getTileEntity(mx, my, mz);
+        if (master instanceof TileEntitySubstation500kV) {
+            // чотири кабельні порти на торці, протилежному порталу: кабель лише ззовні порту
+            TileEntitySubstation500kV sub500 = (TileEntitySubstation500kV) master;
+            return sub500.isCablePort(xCoord - mx, yCoord - my, zCoord - mz) && dir == sub500.getCableOut();
+        }
         if (master instanceof TileEntitySubstation750kV) {
             // чотири кабельні порти на торці, протилежному порталу: кабель лише ззовні порту
             TileEntitySubstation750kV sub750 = (TileEntitySubstation750kV) master;

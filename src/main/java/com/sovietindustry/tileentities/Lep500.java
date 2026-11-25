@@ -107,12 +107,12 @@ public final class Lep500 {
     // ---------------------------------------------------------------- анкерно-кутова 500 кВ (три однакові вежі)
     // Усі три вежі мають тіло як середня вежа АКО 750 кВ (плоска голівка). На лівій і правій зверху ще гостра
     // антенка з гачком для грозотроса. Окрім неї, на лівій і правій жодних консолей.
-    public static final int A_HEIGHT = 21;
+    public static final int A_HEIGHT = 24;
     public static final double A_NECK_Y = 14.0D;
     /** Верх плоскої голівки (середня вежа закінчується тут). */
     public static final double A_MID_TOP = 15.0D;
     /** Вістря антенки на лівій і правій вежах. */
-    public static final double A_ANT_TOP = 20.0D;
+    public static final double A_ANT_TOP = 23.0D;
     public static final double A_BASE_HALF = 2.9D;
     public static final double A_NECK_HALF = 0.62D;
     public static final double A_ANT_HALF = 0.07D;
@@ -135,8 +135,9 @@ public final class Lep500 {
             return A_BASE_HALF + (A_NECK_HALF - A_BASE_HALF) * f;
         }
         if (y <= A_MID_TOP) return A_NECK_HALF * 0.92D;
+        // антенка: основа ледь ширша за верх голівки (повністю її перекриває, без площадки-«зубця»), далі швидко звужується до вістря
         double f = Math.min(1.0D, (y - A_MID_TOP) / (A_ANT_TOP - A_MID_TOP));
-        return 0.34D + (A_ANT_HALF - 0.34D) * f;
+        return A_NECK_HALF + (A_ANT_HALF - A_NECK_HALF) * Math.pow(f, 0.8D);
     }
 
     /** X вежі з номером 0, 1, 2 (ліва, середня, права) у локальних координатах. */
@@ -173,6 +174,32 @@ public final class Lep500 {
             { attachX, A_MOUNT_Y, 0.0D },
             { endX, A_MOUNT_Y - A_LOOP_RISE, 0.0D }
         };
+    }
+
+    // ---------------------------------------------------------------- окремі щогли 500 кВ: середня й бічна
+    /** Скільки блоків від упору до вершини дуги шлейфу (горизонтальна допоміжна гірлянда на власній щоглі). */
+    public static final double S_SUP_REACH = 4.2D;
+    /** Допоміжна гірлянда є лише коли кут між гірляндами не менший за це значення (180 = пряма лінія). */
+    public static final double S_AUX_MIN_ANGLE_DEG = 120.0D;
+
+    /** Одна точка кріплення на осі щогли. */
+    public static double[][] sMounts() {
+        return new double[][] { { 0.0D, A_MOUNT_Y, 0.0D } };
+    }
+
+    /** Упор на грані +X, до якого кріпиться допоміжна гірлянда шлейфу (для іншого боку щоглу просто повертають). */
+    public static double[] sSupportAttach() {
+        return new double[] { angleHalf(A_MOUNT_Y) + A_SUP_STUB, A_MOUNT_Y, 0.0D };
+    }
+
+    public static double[] sSupportEnd() {
+        double[] a = sSupportAttach();
+        return new double[] { a[0] + S_SUP_REACH, A_MOUNT_Y - A_LOOP_RISE, 0.0D };
+    }
+
+    /** Бічна щогла має антенку з гачком грозотроса, середня ні. */
+    public static double[][] sGround() {
+        return new double[][] { { 0.0D, A_GROUND_Y, 0.0D } };
     }
 
     /** Вершина вільної дуги шлейфу крайньої вежі (там, де сусіда в бік dir нема). */

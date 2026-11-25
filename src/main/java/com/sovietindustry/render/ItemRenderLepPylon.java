@@ -11,6 +11,7 @@ import com.sovietindustry.models.ModelLep500;
 import com.sovietindustry.models.ModelLep750;
 import com.sovietindustry.models.ModelSubstation110kV;
 import com.sovietindustry.models.ModelSubstation330kV;
+import com.sovietindustry.models.ModelSubstation500kV;
 import com.sovietindustry.models.ModelSubstation750kV;
 
 import cpw.mods.fml.relauncher.Side;
@@ -43,15 +44,21 @@ public class ItemRenderLepPylon implements IItemRenderer {
     public static final int KIND_750_SINGLE_RIGHT = 13;
     public static final int KIND_500 = 14;
     public static final int KIND_500_ANGLE = 15;
+    public static final int KIND_SUBSTATION_500 = 16;
+    public static final int KIND_500_SINGLE = 17;
+    public static final int KIND_500_SINGLE_SIDE = 18;
 
     private final ModelSubstation330kV modelSubstation330 = new ModelSubstation330kV();
     private final ModelSubstation750kV modelSubstation750 = new ModelSubstation750kV();
+    private final ModelSubstation500kV modelSubstation500 = new ModelSubstation500kV();
 
     private final ModelLep330 model330 = new ModelLep330(false);
     private final ModelLep330 model330Angle = new ModelLep330(true);
 
     private final ModelLep500 model500 = new ModelLep500();
     private final ModelLep500 model500Angle = new ModelLep500(true);
+    private final ModelLep500 model500Single = new ModelLep500(0);
+    private final ModelLep500 model500SingleSide = new ModelLep500(1);
     private final ModelLep750 model750 = new ModelLep750(false);
     private final ModelLep750 model750Angle = new ModelLep750(true);
     private final ModelLep750 model750Single = new ModelLep750(true, true, 0);
@@ -108,6 +115,9 @@ public class ItemRenderLepPylon implements IItemRenderer {
             case KIND_750_SINGLE_RIGHT: return "lep750SingleRight";
             case KIND_500: return "lep500";
             case KIND_500_ANGLE: return "lep500Angle";
+            case KIND_SUBSTATION_500: return "substation500kV";
+            case KIND_500_SINGLE: return "lep500Single";
+            case KIND_500_SINGLE_SIDE: return "lep500SingleSide";
             default:
                 if (isSubstation) return "substation110kV";
                 return isAngle ? "lep110Angle" : "lep110v1";
@@ -175,11 +185,30 @@ public class ItemRenderLepPylon implements IItemRenderer {
             return;
         }
 
+        if (x2Kind == KIND_SUBSTATION_500) {
+            applySubstation750Transform(type);
+            GL11.glDisable(GL11.GL_CULL_FACE);
+            modelSubstation500.renderAll();
+            GL11.glEnable(GL11.GL_CULL_FACE);
+            GL11.glPopMatrix();
+            return;
+        }
+
         if (x2Kind == KIND_500) {
             // у руці й на землі: габарит той самий (висота 25), тому трансформація як у 750 кВ
             apply750Transform(type);
             GL11.glDisable(GL11.GL_CULL_FACE);
             model500.renderAll();
+            GL11.glEnable(GL11.GL_CULL_FACE);
+            GL11.glPopMatrix();
+            return;
+        }
+
+        if (x2Kind == KIND_500_SINGLE || x2Kind == KIND_500_SINGLE_SIDE) {
+            apply750Transform(type);
+            GL11.glScalef(2.2F, 2.2F, 2.2F);
+            GL11.glDisable(GL11.GL_CULL_FACE);
+            (x2Kind == KIND_500_SINGLE_SIDE ? model500SingleSide : model500Single).renderAll();
             GL11.glEnable(GL11.GL_CULL_FACE);
             GL11.glPopMatrix();
             return;

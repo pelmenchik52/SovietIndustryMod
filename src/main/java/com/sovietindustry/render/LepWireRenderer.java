@@ -23,6 +23,7 @@ import com.sovietindustry.tileentities.TileEntityLepPylon;
 import com.sovietindustry.tileentities.TileEntityLep500Base;
 import com.sovietindustry.tileentities.TileEntityLep750Angle;
 import com.sovietindustry.tileentities.TileEntityLep750Single;
+import com.sovietindustry.api.ISingleAnglePylon;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
@@ -601,8 +602,8 @@ public final class LepWireRenderer {
                         // права вежа (2) йде через верхні підвісні гірлянди правої вежі.
                         double sideShift = (mountIdx == 0) ? 2.1D : ((mountIdx == 2) ? 2.6D : -2.1D);
                         // окрема щогла без допоміжної гірлянди: шлейф іде збоку під гірляндами, у бік, куди дивився б упор
-                        if (te instanceof TileEntityLep750Single) {
-                            sideShift = 2.1D * Lep750.sSupportDir(((TileEntityLep750Single) te).getVariant());
+                        if (te instanceof ISingleAnglePylon) {
+                            sideShift = 2.1D * ((ISingleAnglePylon) te).getSupportDir();
                         }
                         double dropY = 1.2D;
 
@@ -638,7 +639,7 @@ public final class LepWireRenderer {
                             };
                             // окрема щогла без допоміжної гірлянди (кут між гірляндами менший за поріг):
                             // дріт просто провисає від передньої до задньої гірлянди, без обходу збоку
-                            if (te instanceof TileEntityLep750Single) {
+                            if (te instanceof ISingleAnglePylon) {
                                 wire(t, a, b, Math.min(0.45D, dist(a, b) * 0.3D), WIRE_HALF);
                                 continue;
                             }
@@ -884,8 +885,8 @@ public final class LepWireRenderer {
      */
     private static int[][] pairSingleGround(TileEntity te, TileEntity o, double[] ka, double[] kb,
                                             double sx, double sz, double ux, double uz) {
-        boolean teSingle = te instanceof TileEntityLep750Single && ka.length == 1 && kb.length > 1;
-        boolean oSingle = o instanceof TileEntityLep750Single && kb.length == 1 && ka.length > 1;
+        boolean teSingle = te instanceof ISingleAnglePylon && ka.length == 1 && kb.length > 1;
+        boolean oSingle = o instanceof ISingleAnglePylon && kb.length == 1 && ka.length > 1;
         if (!teSingle && !oSingle) return null;
         if (teSingle) {
             if (!(o instanceof IWiredPylon) || !(o instanceof TileEntityPylonBase)) return null;
