@@ -6,6 +6,7 @@ import com.sovietindustry.tileentities.TileEntitySubstation330kV;
 import com.sovietindustry.tileentities.TileEntitySubstation500kV;
 import com.sovietindustry.tileentities.TileEntitySubstation750kV;
 import com.sovietindustry.tileentities.TileEntityPortal750;
+import com.sovietindustry.tileentities.TileEntityCraneController;
 import com.sovietindustry.tileentities.TileEntityIndustrialPipe;
 import com.sovietindustry.tileentities.TileEntityLep110Angle;
 import com.sovietindustry.tileentities.TileEntityLep110v1;
@@ -52,6 +53,7 @@ public class CommonProxy {
         GameRegistry.registerTileEntity(TileEntityLep750Single.class, "SovietLep750Single");
         GameRegistry.registerTileEntity(TileEntityLep750SingleLeft.class, "SovietLep750SingleLeft");
         GameRegistry.registerTileEntity(TileEntityLep750SingleRight.class, "SovietLep750SingleRight");
+        GameRegistry.registerTileEntity(TileEntityCraneController.class, "SovietCraneController");
     }
 
     public void registerRenderers() {}

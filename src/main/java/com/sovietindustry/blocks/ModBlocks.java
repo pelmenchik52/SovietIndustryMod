@@ -36,6 +36,8 @@ public class ModBlocks {
     public static Block substation500kV;
     public static Block substation750kV;
     public static Block portal750;
+    public static Block craneRail;
+    public static Block craneController;
     public static Block lep110Dummy;
 
     public static void init() {
@@ -199,6 +201,15 @@ public class ModBlocks {
             .setBlockName("portal750")
             .setCreativeTab(SovietIndustryMod.tabSoviet);
         GameRegistry.registerBlock(portal750, "portal750");
+
+        // Портальний кран
+        craneRail = new BlockCraneRail()
+            .setBlockName("craneRail");
+        GameRegistry.registerBlock(craneRail, "craneRail");
+
+        craneController = new BlockCraneController()
+            .setBlockName("craneController");
+        GameRegistry.registerBlock(craneController, "craneController");
     }
 
     public static void registerRenderers() {

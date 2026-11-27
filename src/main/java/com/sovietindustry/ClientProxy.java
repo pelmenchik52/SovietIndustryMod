@@ -8,6 +8,8 @@ import com.sovietindustry.render.RenderSubstation330kV;
 import com.sovietindustry.render.RenderSubstation500kV;
 import com.sovietindustry.render.RenderSubstation750kV;
 import com.sovietindustry.render.RenderPortal750;
+import com.sovietindustry.render.RenderCraneController;
+import com.sovietindustry.tileentities.TileEntityCraneController;
 import com.sovietindustry.tileentities.TileEntityPortal750;
 import com.sovietindustry.tileentities.TileEntitySubstation330kV;
 import com.sovietindustry.tileentities.TileEntitySubstation500kV;
@@ -82,6 +84,7 @@ public class ClientProxy extends CommonProxy {
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstation330kV.class, new RenderSubstation330kV());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstation750kV.class, new RenderSubstation750kV());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityPortal750.class, new RenderPortal750());
+        ClientRegistry.bindTileEntitySpecialRenderer(TileEntityCraneController.class, new RenderCraneController());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstation500kV.class, new RenderSubstation500kV());
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntitySubstationPort110kV.class, new TileEntitySpecialRenderer() {
             @Override
