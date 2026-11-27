@@ -43,12 +43,20 @@ public class TileEntityCraneController extends TileEntity {
     public static final int DEFAULT_HEIGHT = 16;
 
     /** Півдовжина «ніг» жорсткої опори вздовж колії. */
-    public static final double HALF_FOOT = 2.2D;
+    public static final double HALF_FOOT = 2.7D;
     public static final double HOOK_MIN = 1.0D;
 
     public static final double SPEED_S = 0.10D;
     public static final double SPEED_T = 0.10D;
     public static final double SPEED_H = 0.12D;
+
+    /** Колір за замовчуванням: жовтий. Решту кольорів дають фарби (див. paint). */
+    public static final int DEFAULT_COLOR = 0xFAC814;
+
+    /** Кольори за пошкодженням (meta) предмета-фарби: 0 чорний ... 15 білий. Жовта (11) повертає колір за замовчуванням. */
+    private static final int[] DYE_COLORS = {
+        0x2B2B2B, 0xB3312C, 0x3B7A1A, 0x6B4226, 0x2C3FB5, 0x7B2FBE, 0x2E8FA8, 0xABABAB,
+        0x5A5A5A, 0xD88198, 0x41CD34, DEFAULT_COLOR, 0x6689D3, 0xC354CD, 0xEB8844, 0xF0F0F0 };
 
     private static final int[] DX = { 1, 0, -1, 0 };
     private static final int[] DZ = { 0, 1, 0, -1 };
@@ -64,6 +72,9 @@ public class TileEntityCraneController extends TileEntity {
     public int gauge = MIN_GAUGE;
     /** Висота верху моста над низом рейкового блока. */
     public int height = DEFAULT_HEIGHT;
+
+    /** Колір фарби крана, RGB. */
+    public int color = DEFAULT_COLOR;
 
     public double s = 2.0D, t = 0.0D, h = 1.0D;
     public double targetS = 2.0D, targetT = 0.0D, targetH = 1.0D;
@@ -197,6 +208,12 @@ public class TileEntityCraneController extends TileEntity {
         debugForward = !debugForward;
     }
 
+    /** Перефарбовує кран за пошкодженням предмета-фарби (meta 0-15). */
+    public void paint(int dyeDamage) {
+        color = DYE_COLORS[dyeDamage & 15];
+        sync();
+    }
+
     /** Тимчасова зміна висоти (поки немає GUI): +1 за клік, після максимуму знову мінімум. */
     public void cycleHeight(EntityPlayer player) {
         height = height >= MAX_HEIGHT ? MIN_HEIGHT : height + 1;
@@ -213,7 +230,7 @@ public class TileEntityCraneController extends TileEntity {
         } else {
             msg(player, EnumChatFormatting.GREEN, "Crane track found: " + (2 * gauge - 1) + " free blocks between the rails, "
                 + length + " blocks long, bridge height " + height + ". Right click with a Crane Rail to change the height, "
-                + "sneak + right click with an empty hand to test movement");
+                + "with a dye to repaint, sneak + right click with an empty hand to test movement");
         }
     }
 
@@ -352,10 +369,12 @@ public class TileEntityCraneController extends TileEntity {
         int reach = gauge + cantilever(gauge);
 
         for (int side = -1; side <= 1; side += 2) {
-            int rx = bx + lx * gauge * side;
-            int rz = bz + lz * gauge * side;
-            for (int y = yCoord + 1; y <= topCell; y++) {
-                if (blocksAt(rx, y, rz)) return new int[] { rx, y, rz };
+            for (int off = -1; off <= 1; off++) {
+                int rx = bx + lx * (gauge * side + off);
+                int rz = bz + lz * (gauge * side + off);
+                for (int y = yCoord + 1; y <= topCell; y++) {
+                    if (blocksAt(rx, y, rz)) return new int[] { rx, y, rz };
+                }
             }
         }
         for (int off = -reach; off <= reach; off++) {
@@ -389,6 +408,7 @@ public class TileEntityCraneController extends TileEntity {
         tag.setInteger("length", length);
         tag.setInteger("gauge", gauge);
         tag.setInteger("height", height);
+        tag.setInteger("color", color);
         tag.setDouble("s", s);
         tag.setDouble("t", t);
         tag.setDouble("h", h);
@@ -406,6 +426,7 @@ public class TileEntityCraneController extends TileEntity {
         length = tag.getInteger("length");
         gauge = (int) clamp(tag.hasKey("gauge") ? tag.getInteger("gauge") : MIN_GAUGE, MIN_GAUGE, MAX_GAUGE);
         height = (int) clamp(tag.hasKey("height") ? tag.getInteger("height") : DEFAULT_HEIGHT, MIN_HEIGHT, MAX_HEIGHT);
+        color = tag.hasKey("color") ? tag.getInteger("color") : DEFAULT_COLOR;
         s = tag.getDouble("s");
         t = tag.getDouble("t");
         h = tag.getDouble("h");

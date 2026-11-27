@@ -49,7 +49,10 @@ public class RenderCraneController extends TileEntitySpecialRenderer {
         GL11.glRotatef(ANGLE[dir], 0.0F, 1.0F, 0.0F);
         GL11.glTranslated(s, 0.0D, 0.0D);
         GL11.glDisable(GL11.GL_CULL_FACE);
-        model.render(c.height, c.gauge, t, h);
+        float r = ((c.color >> 16) & 255) / 255.0F;
+        float g = ((c.color >> 8) & 255) / 255.0F;
+        float b = (c.color & 255) / 255.0F;
+        model.render(c.height, c.gauge, t, h, r, g, b);
         GL11.glEnable(GL11.GL_CULL_FACE);
         GL11.glPopMatrix();
     }

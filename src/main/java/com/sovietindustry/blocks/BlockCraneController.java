@@ -9,6 +9,7 @@ import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.texture.IIconRegister;
 import net.minecraft.entity.player.EntityPlayer;
+import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
@@ -20,6 +21,7 @@ import net.minecraft.world.World;
  * на тому ж рівні, що й рейки. Тут зберігається стан крана, а сам кран малює TESR.
  *
  * ПКМ порожньою рукою: пересканувати колію. ПКМ блоком Crane Rail: змінити висоту моста (по колу).
+ * ПКМ фарбою: перефарбувати кран.
  * Shift + ПКМ порожньою рукою: тестовий рух крана (поки немає пульта).
  */
 public class BlockCraneController extends BlockContainer {
@@ -51,7 +53,12 @@ public class BlockCraneController extends BlockContainer {
         if (!(te instanceof TileEntityCraneController)) return false;
         TileEntityCraneController crane = (TileEntityCraneController) te;
         ItemStack held = player.getHeldItem();
-        if (held != null && held.getItem() == Item.getItemFromBlock(ModBlocks.craneRail)) {
+        if (held != null && held.getItem() == Items.dye) {
+            crane.paint(held.getItemDamage());
+            if (!player.capabilities.isCreativeMode) {
+                player.inventory.decrStackSize(player.inventory.currentItem, 1);
+            }
+        } else if (held != null && held.getItem() == Item.getItemFromBlock(ModBlocks.craneRail)) {
             crane.cycleHeight(player);
         } else if (player.isSneaking()) {
             crane.debugSweep(player);
