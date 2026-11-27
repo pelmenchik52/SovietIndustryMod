@@ -18,23 +18,23 @@ import net.minecraft.util.EnumChatFormatting;
 /**
  * Контролер портального крана (етап 1: колія, сканування, рух без вантажу).
  *
- * Геометрія. Контролер стоїть на початку колії, посередині між двома лініями рейок, на рівні рейок.
- * Рейки йдуть від контролера в одному з чотирьох напрямів. Ширину колії задає гравець: рейки ставляться
- * по обидва боки від контролера на однаковій відстані gauge від осі. Вільних блоків між рейками тоді
- * 2 * gauge - 1 (від 7 до 39), а саму рейку в цей підрахунок не входить.
+ * Геометрія. Контролер стоїть на початку колії десь між двома лініями рейок, на рівні рейок, і не обов'язково
+ * посередині. Рейки йдуть від контролера в одному з чотирьох напрямів. Контролер шукає найближчу рейку
+ * праворуч (railPlus блоків від нього) і ліворуч (railMinus), а кран сам стає по центру між ними. Вільних блоків
+ * між рейками тоді railPlus + railMinus - 1 (від 7 до 39), самі рейки в цей підрахунок не входять.
  * За опорами міст має консолі (cantilever), тож гак може працювати і за межами колії.
  *
  * Координати стану: s це положення опор уздовж колії в клітинках від контролера (0 = клітинка контролера),
- * t це положення візка поперек колії від осі, h це довжина троса від низу моста до верху гака.
+ * t це положення візка поперек колії від осі крана (центр між рейками), h це довжина троса від низу моста до верху гака.
  *
  * Синхронізація: сервер веде рух, клієнт повторює той самий рух до тих самих цілей (stepMotion), а
  * сервер надсилає повний стан, коли щось змінюється (старт, зупинка, нова ціль, сканування).
  */
 public class TileEntityCraneController extends TileEntity {
 
-    /** Відстань від осі до рейок: мінімум і максимум, у блоках. */
-    public static final int MIN_GAUGE = 4;
-    public static final int MAX_GAUGE = 20;
+    /** Відстань між осями рейок (railPlus + railMinus): мінімум і максимум, у блоках. */
+    public static final int MIN_SPAN = 8;
+    public static final int MAX_SPAN = 40;
     public static final int MIN_LEN = 8;
     public static final int MAX_LEN = 64;
 
@@ -68,8 +68,9 @@ public class TileEntityCraneController extends TileEntity {
     public int dir = 0;
     /** Довжина колії в клітинках (від контролера). */
     public int length = 0;
-    /** Відстань від осі до кожної рейки. */
-    public int gauge = MIN_GAUGE;
+    /** Відстань від контролера до найближчої рейки праворуч і ліворуч (поперек колії). */
+    public int railPlus = MIN_SPAN / 2;
+    public int railMinus = MIN_SPAN / 2;
     /** Висота верху моста над низом рейкового блока. */
     public int height = DEFAULT_HEIGHT;
 
@@ -88,14 +89,24 @@ public class TileEntityCraneController extends TileEntity {
 
     // ------------------------------------------------------------ форма моста (спільна для логіки й моделі)
 
-    /** Скільки блоків міст виступає за опору з кожного боку. */
-    public static int cantilever(int g) {
-        return Math.max(2, Math.round(g * 0.35F));
+    /** Скільки блоків міст виступає за опору з кожного боку. span це відстань між осями рейок. */
+    public static int cantilever(int span) {
+        return Math.max(2, Math.round(span * 0.175F));
     }
 
     /** Висота ферми моста. Ширший кран має товстішу ферму. */
-    public static double bridgeDepth(int g) {
-        return Math.min(3.0D, Math.max(1.5D, 0.9D + g * 0.1D));
+    public static double bridgeDepth(int span) {
+        return Math.min(3.0D, Math.max(1.5D, 0.9D + span * 0.05D));
+    }
+
+    /** Відстань між осями рейок. */
+    public int span() {
+        return railPlus + railMinus;
+    }
+
+    /** Зсув осі крана (центру між рейками) від контролера поперек колії, у блоках; плюс це бік railPlus. */
+    public double centerOffset() {
+        return (railPlus - railMinus) * 0.5D;
     }
 
     // ------------------------------------------------------------ межі руху
@@ -109,12 +120,12 @@ public class TileEntityCraneController extends TileEntity {
     }
 
     public double trolleyRange() {
-        return gauge + cantilever(gauge) - 1.0D;
+        return span() * 0.5D + cantilever(span()) - 1.0D;
     }
 
     public double maxH() {
         // верх гака не нижче, ніж на висоту гака (1 блок) над рейкою
-        return Math.max(HOOK_MIN, height - bridgeDepth(gauge) - 1.3D);
+        return Math.max(HOOK_MIN, height - bridgeDepth(span()) - 1.3D);
     }
 
     private static double clamp(double v, double lo, double hi) {
@@ -228,7 +239,7 @@ public class TileEntityCraneController extends TileEntity {
         if (err != null) {
             msg(player, EnumChatFormatting.RED, err);
         } else {
-            msg(player, EnumChatFormatting.GREEN, "Crane track found: " + (2 * gauge - 1) + " free blocks between the rails, "
+            msg(player, EnumChatFormatting.GREEN, "Crane track found: " + (span() - 1) + " free blocks between the rails, "
                 + length + " blocks long, bridge height " + height + ". Right click with a Crane Rail to change the height, "
                 + "with a dye to repaint, sneak + right click with an empty hand to test movement");
         }
@@ -242,31 +253,35 @@ public class TileEntityCraneController extends TileEntity {
     private String doScan(boolean full) {
         int bestDir = -1;
         int bestLen = 0;
-        int bestGauge = 0;
+        int bestPlus = 0;
+        int bestMinus = 0;
         for (int d = 0; d < 4; d++) {
-            int g = findGauge(d);
-            if (g < 0) continue;
-            int len = trackLength(d, g);
+            int[] pm = findRails(d);
+            if (pm == null) continue;
+            int len = trackLength(d, pm[0], pm[1]);
             if (len > bestLen) {
                 bestLen = len;
                 bestDir = d;
-                bestGauge = g;
+                bestPlus = pm[0];
+                bestMinus = pm[1];
             }
         }
         if (bestLen < MIN_LEN) {
             disassemble();
-            return "No crane track. Put crane rails on both sides of this block at the same distance, from "
-                + (2 * MIN_GAUGE - 1) + " to " + (2 * MAX_GAUGE - 1) + " free blocks between the rails (the rails themselves "
-                + "are not counted), at least " + MIN_LEN + " blocks long, at the same level as this block";
+            return "No crane track. Put this block anywhere between two lines of crane rails (it does not have to be in the "
+                + "middle), at the same level as the rails, with " + (MIN_SPAN - 1) + " to " + (MAX_SPAN - 1)
+                + " free blocks between the rails (the rails themselves are not counted), at least " + MIN_LEN + " blocks long";
         }
 
         int oldDir = dir;
         int oldLen = length;
-        int oldGauge = gauge;
+        int oldPlus = railPlus;
+        int oldMinus = railMinus;
         boolean wasAssembled = assembled;
         dir = bestDir;
         length = bestLen;
-        gauge = bestGauge;
+        railPlus = bestPlus;
+        railMinus = bestMinus;
         height = (int) clamp(height, MIN_HEIGHT, MAX_HEIGHT);
 
         if (full) {
@@ -282,7 +297,7 @@ public class TileEntityCraneController extends TileEntity {
         }
 
         assembled = true;
-        boolean changed = !wasAssembled || oldDir != dir || oldLen != length || oldGauge != gauge;
+        boolean changed = !wasAssembled || oldDir != dir || oldLen != length || oldPlus != railPlus || oldMinus != railMinus;
         double r = trolleyRange();
         s = clamp(s, minS(), maxS());
         t = clamp(t, -r, r);
@@ -301,31 +316,36 @@ public class TileEntityCraneController extends TileEntity {
         sync();
     }
 
-    /** Відстань до рейок у напрямі d: перші рейки з обох боків мають бути на однаковій відстані. */
-    private int findGauge(int d) {
+    /**
+     * Найближчі рейки праворуч і ліворуч від контролера в клітинці його ряду для напряму d.
+     * Повертає {railPlus, railMinus} або null, якщо рейок немає або відстань між ними поза межами.
+     */
+    private int[] findRails(int d) {
         int lx = -DZ[d];
         int lz = DX[d];
         int plus = -1;
         int minus = -1;
-        for (int g = 1; g <= MAX_GAUGE; g++) {
+        for (int g = 1; g < MAX_SPAN; g++) {
             if (plus < 0 && isRail(xCoord + lx * g, yCoord, zCoord + lz * g)) plus = g;
             if (minus < 0 && isRail(xCoord - lx * g, yCoord, zCoord - lz * g)) minus = g;
             if (plus >= 0 && minus >= 0) break;
         }
-        if (plus != minus || plus < MIN_GAUGE) return -1;
-        return plus;
+        if (plus < 0 || minus < 0) return null;
+        int sp = plus + minus;
+        if (sp < MIN_SPAN || sp > MAX_SPAN) return null;
+        return new int[] { plus, minus };
     }
 
     /** Скільки клітинок колії підряд має рейки з обох боків у напрямі d. */
-    private int trackLength(int d, int g) {
+    private int trackLength(int d, int plus, int minus) {
         int lx = -DZ[d];
         int lz = DX[d];
         int len = 0;
         for (int k = 0; k < MAX_LEN; k++) {
             int bx = xCoord + DX[d] * k;
             int bz = zCoord + DZ[d] * k;
-            if (!isRail(bx + lx * g, yCoord, bz + lz * g)) break;
-            if (!isRail(bx - lx * g, yCoord, bz - lz * g)) break;
+            if (!isRail(bx + lx * plus, yCoord, bz + lz * plus)) break;
+            if (!isRail(bx - lx * minus, yCoord, bz - lz * minus)) break;
             len++;
         }
         return len;
@@ -344,8 +364,9 @@ public class TileEntityCraneController extends TileEntity {
             int bx = xCoord + DX[dir] * k;
             int bz = zCoord + DZ[dir] * k;
             for (int side = -1; side <= 1; side += 2) {
-                int rx = bx + lx * gauge * side;
-                int rz = bz + lz * gauge * side;
+                int lat = side > 0 ? railPlus : -railMinus;
+                int rx = bx + lx * lat;
+                int rz = bz + lz * lat;
                 if (worldObj.getBlockMetadata(rx, yCoord, rz) != axis) {
                     worldObj.setBlockMetadataWithNotify(rx, yCoord, rz, axis, 2);
                 }
@@ -364,20 +385,21 @@ public class TileEntityCraneController extends TileEntity {
         int bx = xCoord + DX[dir] * k;
         int bz = zCoord + DZ[dir] * k;
         int topCell = yCoord + height - 1;
-        int depthCells = (int) Math.ceil(bridgeDepth(gauge));
+        int depthCells = (int) Math.ceil(bridgeDepth(span()));
         int bottomCell = Math.max(yCoord + 1, yCoord + height - depthCells);
-        int reach = gauge + cantilever(gauge);
+        int cant = cantilever(span());
 
         for (int side = -1; side <= 1; side += 2) {
+            int lat = side > 0 ? railPlus : -railMinus;
             for (int off = -1; off <= 1; off++) {
-                int rx = bx + lx * (gauge * side + off);
-                int rz = bz + lz * (gauge * side + off);
+                int rx = bx + lx * (lat + off);
+                int rz = bz + lz * (lat + off);
                 for (int y = yCoord + 1; y <= topCell; y++) {
                     if (blocksAt(rx, y, rz)) return new int[] { rx, y, rz };
                 }
             }
         }
-        for (int off = -reach; off <= reach; off++) {
+        for (int off = -(railMinus + cant); off <= railPlus + cant; off++) {
             int rx = bx + lx * off;
             int rz = bz + lz * off;
             for (int y = bottomCell; y <= topCell; y++) {
@@ -406,7 +428,8 @@ public class TileEntityCraneController extends TileEntity {
         tag.setBoolean("assembled", assembled);
         tag.setInteger("dir", dir);
         tag.setInteger("length", length);
-        tag.setInteger("gauge", gauge);
+        tag.setInteger("railPlus", railPlus);
+        tag.setInteger("railMinus", railMinus);
         tag.setInteger("height", height);
         tag.setInteger("color", color);
         tag.setDouble("s", s);
@@ -424,7 +447,8 @@ public class TileEntityCraneController extends TileEntity {
         assembled = tag.getBoolean("assembled");
         dir = tag.getInteger("dir") & 3;
         length = tag.getInteger("length");
-        gauge = (int) clamp(tag.hasKey("gauge") ? tag.getInteger("gauge") : MIN_GAUGE, MIN_GAUGE, MAX_GAUGE);
+        railPlus = (int) clamp(tag.hasKey("railPlus") ? tag.getInteger("railPlus") : MIN_SPAN / 2, 1, MAX_SPAN - 1);
+        railMinus = (int) clamp(tag.hasKey("railMinus") ? tag.getInteger("railMinus") : MIN_SPAN / 2, 1, MAX_SPAN - 1);
         height = (int) clamp(tag.hasKey("height") ? tag.getInteger("height") : DEFAULT_HEIGHT, MIN_HEIGHT, MAX_HEIGHT);
         color = tag.hasKey("color") ? tag.getInteger("color") : DEFAULT_COLOR;
         s = tag.getDouble("s");
@@ -462,7 +486,7 @@ public class TileEntityCraneController extends TileEntity {
         }
         int ex = xCoord + DX[dir] * (length - 1);
         int ez = zCoord + DZ[dir] * (length - 1);
-        int pad = gauge + cantilever(gauge) + 4;
+        int pad = span() + cantilever(span()) + 4;
         return AxisAlignedBB.getBoundingBox(
             Math.min(xCoord, ex) - pad, yCoord, Math.min(zCoord, ez) - pad,
             Math.max(xCoord, ex) + pad + 1, yCoord + height + 4, Math.max(zCoord, ez) + pad + 1);
