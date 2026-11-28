@@ -97,9 +97,9 @@ public class TileEntityCraneController extends TileEntity {
         return (int) Math.ceil(2.5D * bridgeDepth(span) - 0.6D);
     }
 
-    /** Висота ферми моста. Ширший кран має товстішу ферму. */
+    /** Висота моста разом з балкою (від низу балки до верху ферми). Ширший кран має вищу ферму: від 2.5 до 4 блоків. */
     public static double bridgeDepth(int span) {
-        return Math.min(3.0D, Math.max(1.5D, 0.9D + span * 0.05D));
+        return Math.min(4.0D, Math.max(2.5D, 1.9D + span * 0.05D));
     }
 
     /** Відстань між осями рейок. */

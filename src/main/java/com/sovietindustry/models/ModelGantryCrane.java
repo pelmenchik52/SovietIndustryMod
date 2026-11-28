@@ -22,7 +22,7 @@ import net.minecraft.util.ResourceLocation;
  *
  * Опори: ґратчасті піраміди. Збоку (вздовж колії) це чистий трикутник: основа широка, верх вузький, діагоналей на
  * цих гранях немає, лише рідкі горизонтальні в'язі. Спереду (впоперек колії) навпаки: опора вузька біля коліс і
- * розходиться вгору під міст, тут ґратка з діагоналями. Жорстка опора має драбину й кабіну, гнучка тонша.
+ * розходиться вгору під міст, тут ґратка з діагоналями. Жорстка опора має драбину, гнучка тонша.
  *
  * Міст: ферма трикутного перерізу (вершиною вгору), як на референсі. Знизу суцільна широка балка, на ній два
  * ряди розкосів Warren сходяться до одинарного верхнього поясу, через вузол трикутні рами. Поручнів і настилу
@@ -34,17 +34,16 @@ import net.minecraft.util.ResourceLocation;
  * де gauge це половина відстані між осями рейок.
  *
  * Колір: текстура металу майже біла, колір фарби накладається через glColor, тож кран можна фарбувати.
- * Темні деталі (візки, трос, гак), кабіна й шафа не фарбуються.
+ * Темні деталі (візки, трос, гак) і шафа не фарбуються.
  *
- * Нерухома частина компілюється в display list для кожної пари (висота, відстань між рейками), чотири списки:
- * фарбований метал, темні деталі, кабіна, шафа. Візок, трос і гак малюються щокадру, бо рухаються.
+ * Нерухома частина компілюється в display list для кожної пари (висота, відстань між рейками), три списки:
+ * фарбований метал, темні деталі, шафа. Візок, трос і гак малюються щокадру, бо рухаються.
  */
 @SideOnly(Side.CLIENT)
 public class ModelGantryCrane {
 
     private static final ResourceLocation PAINT = new ResourceLocation(SovietIndustryMod.MODID, "textures/models/crane_paint.png");
     private static final ResourceLocation DARK = new ResourceLocation(SovietIndustryMod.MODID, "textures/models/crane_dark.png");
-    private static final ResourceLocation CABIN = new ResourceLocation(SovietIndustryMod.MODID, "textures/models/crane_cabin.png");
     private static final ResourceLocation BOX = new ResourceLocation(SovietIndustryMod.MODID, "textures/models/crane_box.png");
 
     private static final double RAIL_TOP = BlockCraneRail.HEIGHT;
@@ -56,18 +55,11 @@ public class ModelGantryCrane {
     private static final double FLEX_TOP_X = 0.5D;
 
     /** Півширина нижньої балки моста, її висота, і півширина основи трикутної ферми (по краях верху балки). */
-    private static final double GIRDER_HALF = 0.9D;
+    private static final double GIRDER_HALF = 1.4D;
     private static final double GIRDER_H = 0.5D;
-    private static final double BASE_X = 0.75D;
-    /** Підлога кабіни нижче низу моста. Кабіна велика, тому підлога низько, щоб вона не впиралась у балку. */
-    private static final double CAB_FLOOR_BELOW = 3.0D;
-    /** Півдовжина, висота й півширина кабіни, і зсув її центру вздовж колії від осі опори. */
-    private static final double CAB_HX = 1.15D;
-    private static final double CAB_HY = 1.1D;
-    private static final double CAB_HZ = 1.2D;
-    private static final double CAB_X = 1.8D;
+    private static final double BASE_X = 1.25D;
 
-    /** key (height, span) -> перший id із чотирьох display list. */
+    /** key (height, span) -> перший id із трьох display list. */
     private final Map<Integer, Integer> lists = new HashMap<Integer, Integer>();
 
     private static int key(int height, int span) {
@@ -85,7 +77,7 @@ public class ModelGantryCrane {
         Minecraft mc = Minecraft.getMinecraft();
         Integer id = lists.get(key(height, span));
         if (id == null) {
-            int base = GLAllocation.generateDisplayLists(4);
+            int base = GLAllocation.generateDisplayLists(3);
             GL11.glNewList(base, GL11.GL_COMPILE);
             buildPainted(height, span);
             GL11.glEndList();
@@ -93,9 +85,6 @@ public class ModelGantryCrane {
             buildDark(height, span);
             GL11.glEndList();
             GL11.glNewList(base + 2, GL11.GL_COMPILE);
-            buildCabin(height, span);
-            GL11.glEndList();
-            GL11.glNewList(base + 3, GL11.GL_COMPILE);
             buildCabinet(height, span);
             GL11.glEndList();
             id = Integer.valueOf(base);
@@ -114,11 +103,8 @@ public class ModelGantryCrane {
         GL11.glCallList(id.intValue() + 1);
         drawHook(height, span, trolleyZ, hookH);
 
-        mc.renderEngine.bindTexture(CABIN);
-        GL11.glCallList(id.intValue() + 2);
-
         mc.renderEngine.bindTexture(BOX);
-        GL11.glCallList(id.intValue() + 3);
+        GL11.glCallList(id.intValue() + 2);
     }
 
     // ------------------------------------------------------------ розміри опор від висоти
@@ -157,17 +143,8 @@ public class ModelGantryCrane {
         // жорстка опора на +gauge
         tower(t, gauge, rfx, RIGID_FOOT_Z, RIGID_TOP_X, rtz, base, yBot,
             Math.max(3, (int) Math.round((yBot - base) / 2.4D)), 0.24D);
-        // драбина до підлоги кабіни, майданчик на рівні підлоги й кронштейн від опори до кабіни
-        double yc = yBot - CAB_FLOOR_BELOW;
-        double fc = (yc - base) / (yBot - base);
-        double hxHere = lerp(rfx, RIGID_TOP_X, fc);
-        double hzHere = lerp(RIGID_FOOT_Z, rtz, fc);
-        double cabZ = gauge - (hzHere + CAB_HZ + 0.1D);
-        ladder(t, gauge, rfx, RIGID_TOP_X, base, yBot, yc);
-        LepGeo.box(t, 0.0D, yc, gauge, hxHere + 0.6D, 0.05D, hzHere + 0.2D);
-        LepGeo.box(t, CAB_X, yc, cabZ, CAB_HX + 0.2D, 0.06D, CAB_HZ + 0.1D);
-        LepGeo.beam(t, 0.0D, yc, gauge - hzHere, CAB_X, yc, gauge - hzHere, 0.14D);
-        LepGeo.beam(t, CAB_X, yc, gauge - hzHere, CAB_X, yc, cabZ, 0.14D);
+        // драбина вздовж опори майже до самого мосту
+        ladder(t, gauge, rfx, RIGID_TOP_X, base, yBot, yBot - 0.5D);
 
         // гнучка опора на -gauge
         tower(t, -gauge, flexFootX(height), FLEX_FOOT_Z, FLEX_TOP_X, flexTopZ(height), base, yBot,
@@ -224,7 +201,7 @@ public class ModelGantryCrane {
     }
 
     /**
-     * Похила драбина вздовж зовнішньої (+X) грані жорсткої опори від основи до висоти top (підлога кабіни).
+     * Похила драбина вздовж зовнішньої (+X) грані жорсткої опори від основи до висоти top.
      * legTop це верх опори, за ним визначається нахил колон.
      */
     private static void ladder(Tessellator t, double zc, double footX, double topX, double base, double legTop, double top) {
@@ -322,7 +299,7 @@ public class ModelGantryCrane {
     private static void cage(Tessellator t, int e, double yBot, double zEnd) {
         double zIn = zEnd - 1.6D;
         double zOut = zEnd + 0.5D;
-        double hx = 1.35D;
+        double hx = GIRDER_HALF + 0.45D;
         double floor = yBot - 0.3D;
         double top = floor + 1.1D;
         double mid = floor + 0.55D;
@@ -378,27 +355,13 @@ public class ModelGantryCrane {
 
     // ------------------------------------------------------------ кабіна й шафа
 
-    private static void buildCabin(int height, int span) {
-        Tessellator t = Tessellator.instance;
-        t.startDrawingQuads();
-        double gauge = span * 0.5D;
-        double yBot = height - TileEntityCraneController.bridgeDepth(span);
-        double base = RAIL_TOP + 0.4D;
-        double yc = yBot - CAB_FLOOR_BELOW;
-        double fc = (yc - base) / (yBot - base);
-        double hzHere = lerp(RIGID_FOOT_Z, rigidTopZ(height), fc);
-        double cabZ = gauge - (hzHere + CAB_HZ + 0.1D);
-        LepGeo.box(t, CAB_X, yc + 0.06D + CAB_HY, cabZ, CAB_HX, CAB_HY, CAB_HZ);
-        t.draw();
-    }
-
     /** Сіра шафа керування всередині ферми, на балці над гнучкою опорою. */
     private static void buildCabinet(int height, int span) {
         Tessellator t = Tessellator.instance;
         t.startDrawingQuads();
         double gauge = span * 0.5D;
         double yBot = height - TileEntityCraneController.bridgeDepth(span);
-        LepGeo.box(t, 0.0D, yBot + GIRDER_H + 0.45D, -gauge + 1.2D, 0.33D, 0.45D, 0.9D);
+        LepGeo.box(t, 0.0D, yBot + GIRDER_H + 0.45D, -gauge + 1.2D, 0.5D, 0.45D, 0.9D);
         t.draw();
     }
 
