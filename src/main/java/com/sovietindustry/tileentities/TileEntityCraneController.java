@@ -44,7 +44,8 @@ public class TileEntityCraneController extends TileEntity {
 
     /** Відступ від основи жорсткої опори до її драбини й візків, у блоках. */
     private static final double FOOT_MARGIN = 0.4D;
-    public static final double HOOK_MIN = 1.0D;
+    /** Мінімальна довжина троса від низу моста до верху гака: під рейкою візка висить ще лебідка. */
+    public static final double HOOK_MIN = 1.6D;
 
     public static final double SPEED_S = 0.10D;
     public static final double SPEED_T = 0.10D;
@@ -142,9 +143,17 @@ public class TileEntityCraneController extends TileEntity {
         return Math.max(minS(), Math.floor(length - 0.5D - halfFoot()));
     }
 
+    /** Наскільки візок може відійти від осі крана вздовж моста (положення t). */
     public double trolleyRange() {
-        // візок їздить по поясах повної висоти: від опори ще півтори секції
-        return span() * 0.5D + 1.5D * bridgeDepth(span()) - 0.8D;
+        return trolleyRangeFor(span());
+    }
+
+    /**
+     * Той самий хід візка за відстанню між рейками. Візок їздить по поясах повної висоти: від опори ще півтори
+     * секції. Модель малює рейку візка саме на цю довжину плюс запас, тому тут змінювати разом із моделлю.
+     */
+    public static double trolleyRangeFor(int span) {
+        return span * 0.5D + 1.5D * bridgeDepth(span) - 0.8D;
     }
 
     public double maxH() {

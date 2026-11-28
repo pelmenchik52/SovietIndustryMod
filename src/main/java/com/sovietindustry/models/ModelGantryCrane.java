@@ -24,9 +24,9 @@ import net.minecraft.util.ResourceLocation;
  * цих гранях немає, лише рідкі горизонтальні в'язі. Спереду (впоперек колії) навпаки: опора вузька біля коліс і
  * розходиться вгору під міст, тут ґратка з діагоналями. Жорстка опора має драбину, гнучка тонша.
  *
- * Міст: ферма трикутного перерізу (вершиною вгору), як на референсі. Знизу суцільна широка балка, на ній два
- * ряди розкосів Warren сходяться до одинарного верхнього поясу, через вузол трикутні рами. Поручнів і настилу
- * немає. За опорою міст виходить консоллю: півтори секції повної висоти, далі верхній пояс під 45° спускається
+ * Міст: ферма трикутного перерізу (вершиною вгору), як на референсі. Знизу решітчаста коробчаста балка (чотири
+ * пояси, рами й розкоси), на ній два ряди розкосів Warren сходяться до одинарного верхнього поясу, через вузол
+ * трикутні рами. Під балкою двотаврова рейка, по якій їздить візок з лебідкою. Поручнів і настилу немає. За опорою міст виходить консоллю: півтори секції повної висоти, далі верхній пояс під 45° спускається
  * до балки, а навколо кінця балки висить клітка-майданчик із поручнями.
  *
  * Локальні осі: X це напрям колії (кран їде вздовж X), Z це поперечна вісь моста, Y угору. Початок координат
@@ -57,7 +57,10 @@ public class ModelGantryCrane {
     /** Півширина нижньої балки моста, її висота, і півширина основи трикутної ферми (по краях верху балки). */
     private static final double GIRDER_HALF = 1.4D;
     private static final double GIRDER_H = 0.5D;
-    private static final double BASE_X = 1.25D;
+    private static final double BASE_X = GIRDER_HALF - 0.1D;
+    /** Рейка візка під балкою (двотавр): півширина полиць і наскільки вона звисає під низ балки. */
+    private static final double TRACK_FLANGE_HALF = 0.32D;
+    private static final double TRACK_DROP = 0.45D;
 
     /** key (height, span) -> перший id із трьох display list. */
     private final Map<Integer, Integer> lists = new HashMap<Integer, Integer>();
@@ -150,7 +153,9 @@ public class ModelGantryCrane {
         tower(t, -gauge, flexFootX(height), FLEX_FOOT_Z, FLEX_TOP_X, flexTopZ(height), base, yBot,
             Math.max(3, (int) Math.round((yBot - base) / 3.0D)), 0.2D);
 
-        bridge(t, yBot, yTop, depth, gauge, cant);
+        // рейка візка йде на весь хід візка (положення t) плюс півдовжини візка й упори
+        double railHalf = TileEntityCraneController.trolleyRangeFor(span) + 0.9D;
+        bridge(t, yBot, yTop, depth, gauge, cant, railHalf);
 
         t.draw();
     }
@@ -232,7 +237,7 @@ public class ModelGantryCrane {
      * другому вузлі трикутна рама. Повна висота тримається до zFlat, далі верхній пояс спускається під 45° до кінця
      * консолі zEnd, де від ферми лишається невеликий трикутник. Настилу й поручнів немає.
      */
-    private static void bridge(Tessellator t, double yBot, double yTop, double depth, double hs, int cant) {
+    private static void bridge(Tessellator t, double yBot, double yTop, double depth, double hs, int cant, double railHalf) {
         double yg = yBot + GIRDER_H; // верх балки
         double yt = yTop - 0.1D;     // верхній пояс
         double zEnd = hs + cant;
@@ -240,8 +245,9 @@ public class ModelGantryCrane {
         double zFlat = zEnd - taper;
         double yEnd = yt - taper;
 
-        // нижня балка на всю довжину, включно з консолями
-        LepGeo.box(t, 0.0D, yBot + GIRDER_H * 0.5D, 0.0D, GIRDER_HALF, GIRDER_H * 0.5D, zEnd);
+        // нижня решітчаста балка на всю довжину, включно з консолями, і рейка візка під нею
+        girder(t, yBot, yg, zEnd);
+        track(t, yBot, railHalf);
 
         // верхній пояс: прямо до zFlat, далі спускається під 45° до кінця
         LepGeo.beam(t, 0.0D, yt, -zFlat, 0.0D, yt, zFlat, 0.22D);
@@ -282,6 +288,59 @@ public class ModelGantryCrane {
         // клітки-майданчики навколо кінців балки
         for (int e = -1; e <= 1; e += 2) {
             cage(t, e, yBot, zEnd);
+        }
+    }
+
+    /**
+     * Нижня балка у вигляді решітки: чотири поздовжні пояси по кутах прямокутного перерізу, у вузлах прямокутні рами,
+     * на бокових гранях і в нижній площині розкоси зигзагом. Зверху на неї спираються рами трикутної ферми,
+     * знизу висить рейка візка.
+     */
+    private static void girder(Tessellator t, double yBot, double yg, double zEnd) {
+        double cx = GIRDER_HALF - 0.1D;
+        double yLow = yBot + 0.08D;
+        double yUp = yg - 0.08D;
+        for (int p = -1; p <= 1; p += 2) {
+            LepGeo.beam(t, p * cx, yLow, -zEnd, p * cx, yLow, zEnd, 0.16D);
+            LepGeo.beam(t, p * cx, yUp, -zEnd, p * cx, yUp, zEnd, 0.16D);
+        }
+        int ng = Math.max(6, (int) Math.round(2.0D * zEnd / 1.2D));
+        if ((ng & 1) == 1) ng++;
+        double sg = 2.0D * zEnd / ng;
+        for (int i = 0; i <= ng; i++) {
+            double z = -zEnd + i * sg;
+            LepGeo.beam(t, -cx, yLow, z, cx, yLow, z, 0.1D);
+            LepGeo.beam(t, -cx, yUp, z, cx, yUp, z, 0.1D);
+            for (int p = -1; p <= 1; p += 2) {
+                LepGeo.beam(t, p * cx, yLow, z, p * cx, yUp, z, 0.1D);
+            }
+            if (i < ng) {
+                double z2 = z + sg;
+                boolean flip = (i & 1) == 0;
+                for (int p = -1; p <= 1; p += 2) {
+                    LepGeo.beam(t, p * cx, flip ? yLow : yUp, z, p * cx, flip ? yUp : yLow, z2, 0.07D);
+                }
+                // нижня площина: горизонтальні розкоси зигзагом, їх видно знизу
+                LepGeo.beam(t, flip ? -cx : cx, yLow, z, flip ? cx : -cx, yLow, z2, 0.07D);
+            }
+        }
+    }
+
+    /**
+     * Двотаврова рейка під балкою, по якій їздить візок з лебідкою: верхня полиця притиснута до низу балки, стінка,
+     * нижня полиця, по якій котяться колеса візка. Рейка йде вздовж усього ходу візка, на кінцях упори.
+     */
+    private static void track(Tessellator t, double yBot, double half) {
+        double yTopFlange = yBot - 0.03D;
+        double yBottomFlange = yBot - TRACK_DROP + 0.04D;
+        double webTop = yBot - 0.07D;
+        double webBottom = yBot - TRACK_DROP + 0.08D;
+        LepGeo.box(t, 0.0D, yTopFlange, 0.0D, TRACK_FLANGE_HALF, 0.04D, half);
+        LepGeo.box(t, 0.0D, (webTop + webBottom) * 0.5D, 0.0D, 0.05D, (webTop - webBottom) * 0.5D, half);
+        LepGeo.box(t, 0.0D, yBottomFlange, 0.0D, TRACK_FLANGE_HALF, 0.04D, half);
+        // упори на кінцях рейки
+        for (int e = -1; e <= 1; e += 2) {
+            LepGeo.box(t, 0.0D, yBot - TRACK_DROP * 0.5D, e * (half + 0.1D), 0.4D, 0.22D, 0.1D);
         }
     }
 
@@ -367,16 +426,22 @@ public class ModelGantryCrane {
 
     // ------------------------------------------------------------ рухомі частини
 
-    /** Візок на нижній балці: рама під балкою, щоки по боках балки, лебідка на балці всередині ферми. */
+    /**
+     * Візок на рейці під балкою: бічні щоки охоплюють нижню полицю рейки, під нею поперечна планка й лебідка.
+     * Колеса (темні) катаються по нижній полиці й малюються в drawHook. tz це положення візка вздовж рейки.
+     */
     private static void drawTrolley(int height, int span, double tz) {
         Tessellator t = Tessellator.instance;
         t.startDrawingQuads();
         double yBot = height - TileEntityCraneController.bridgeDepth(span);
-        LepGeo.box(t, 0.0D, yBot - 0.15D, tz, GIRDER_HALF + 0.1D, 0.12D, 0.65D);
+        double yFl = yBot - TRACK_DROP;
+        double cheekX = TRACK_FLANGE_HALF + 0.12D;
         for (int p = -1; p <= 1; p += 2) {
-            LepGeo.box(t, p * (GIRDER_HALF + 0.05D), yBot + GIRDER_H * 0.5D - 0.05D, tz, 0.06D, GIRDER_H * 0.5D + 0.1D, 0.6D);
+            LepGeo.box(t, p * cheekX, yFl - 0.035D, tz, 0.05D, 0.215D, 0.6D);
         }
-        LepGeo.box(t, 0.0D, yBot + GIRDER_H + 0.3D, tz, 0.35D, 0.3D, 0.5D);
+        LepGeo.box(t, 0.0D, yFl - 0.28D, tz, cheekX + 0.05D, 0.05D, 0.6D);
+        // лебідка під візком
+        LepGeo.box(t, 0.0D, yFl - 0.55D, tz, 0.6D, 0.22D, 0.55D);
         t.draw();
     }
 
@@ -385,7 +450,14 @@ public class ModelGantryCrane {
         t.startDrawingQuads();
         double yBot = height - TileEntityCraneController.bridgeDepth(span);
         double hookTop = yBot - hookH;
-        double cableTop = yBot - 0.27D;
+        double yFl = yBot - TRACK_DROP;
+        double cableTop = yFl - 0.77D; // низ лебідки
+        // колеса візка на нижній полиці рейки
+        for (int p = -1; p <= 1; p += 2) {
+            for (int q = -1; q <= 1; q += 2) {
+                LepGeo.box(t, p * 0.28D, yFl + 0.17D, tz + q * 0.38D, 0.1D, 0.1D, 0.1D);
+            }
+        }
         // трос
         LepGeo.beam(t, 0.0D, cableTop, tz, 0.0D, hookTop, tz, 0.06D);
         // обойма гака
