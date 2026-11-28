@@ -49,3 +49,18 @@ tile.lep500.name=Проміжна опора 500 кВ
 tile.portal750.name=Portal 750 kV
 
 
+tile.craneRail.name=Кранова рейка
+tile.craneController.name=Контролер портального крана
+item.craneRemote.name=Пульт крана
+gui.crane.unbound=Пульт не прив'язано. Клацніть ним ПКМ по контролеру крана
+gui.crane.otherDim=Цей пульт прив'язано до крана в іншому вимірі
+gui.crane.noCrane=На прив'язаній позиції немає крана
+gui.crane.notAssembled=Кран не зібрано: проскануйте колію на контролері
+gui.crane.load=Вантаж
+gui.crane.empty=порожньо
+gui.crane.track=Колія:
+gui.crane.right=праворуч:
+gui.crane.crane=Кран
+gui.crane.trolley=Візок
+gui.crane.hook=Гак
+gui.crane.grab=Захопити / відпустити вантаж (G)

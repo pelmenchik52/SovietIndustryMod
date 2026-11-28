@@ -5,6 +5,7 @@ import com.sovietindustry.blocks.BlockCraneRail;
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
 import net.minecraft.block.Block;
+import net.minecraft.init.Blocks;
 import net.minecraft.entity.player.EntityPlayer;
 import net.minecraft.nbt.NBTTagCompound;
 import net.minecraft.network.NetworkManager;
@@ -14,6 +15,7 @@ import net.minecraft.tileentity.TileEntity;
 import net.minecraft.util.AxisAlignedBB;
 import net.minecraft.util.ChatComponentText;
 import net.minecraft.util.EnumChatFormatting;
+import net.minecraft.world.World;
 
 /**
  * Контролер портального крана (етап 1: колія, сканування, рух без вантажу).
@@ -46,6 +48,13 @@ public class TileEntityCraneController extends TileEntity {
     private static final double FOOT_MARGIN = 0.4D;
     /** Мінімальна довжина троса від низу моста до верху гака: під рейкою візка висить ще лебідка. */
     public static final double HOOK_MIN = 1.6D;
+
+    /** Скільки від верху гака (низ троса) до його нижньої точки: саме тут вантаж чіпляється під гак. */
+    public static final double HOOK_TIP_DROP = 1.05D;
+    /** Скільки тактів без команд від пульта, після яких кран сам зупиняється (пульт шле команду кожні 10 тактів). */
+    private static final int REMOTE_TIMEOUT = 30;
+    /** Допуск при перевірці зіткнень, щоб вантаж, що стоїть рівно на землі, не вважався зануреним у неї. */
+    private static final double EPS = 0.001D;
 
     public static final double SPEED_S = 0.10D;
     public static final double SPEED_T = 0.10D;
@@ -85,8 +94,18 @@ public class TileEntityCraneController extends TileEntity {
     /** Попередні значення для плавного рендера між тактами (лише клієнт). */
     public double prevS = 2.0D, prevT = 0.0D, prevH = 1.0D;
 
+    /** Вантаж на гаку: один блок. Зберігається разом зі станом крана. */
+    public boolean carrying = false;
+    public String carryName = "";
+    public int carryMeta = 0;
+
     private int tickCounter = 0;
     private boolean debugForward = true;
+
+    /** Стан керування з пульта (лише сервер, не зберігається). */
+    private boolean remoteActive = false;
+    private int lastAx = 0, lastAt = 0, lastLift = 0;
+    private long lastCmdTick = 0L;
 
     // ------------------------------------------------------------ форма моста (спільна для логіки й моделі)
 
@@ -181,11 +200,15 @@ public class TileEntityCraneController extends TileEntity {
 
         if (!assembled) return;
 
+        if (remoteActive && worldObj.getTotalWorldTime() - lastCmdTick > REMOTE_TIMEOUT) {
+            applyAxes(0, 0, 0); // пульт мовчить (гравець відійшов, закрив екран, відключився): зупиняємо все
+        }
+
         if (moving) {
             if (!travelClear()) {
                 targetS = s; // уперлися в перешкоду, їзду колією зупиняємо
             }
-            if (!stepMotion()) {
+            if (!serverStep()) {
                 moving = false;
                 sync();
             }
@@ -213,6 +236,87 @@ public class TileEntityCraneController extends TileEntity {
         return cur + (d > 0 ? step : -step);
     }
 
+    /**
+     * Один крок руху на сервері: так само, як stepMotion, але кожна вісь перевіряється на зіткнення гака (або вантажу
+     * на ньому) з блоками. Якщо крок упирається в блок, пробуємо коротші кроки, щоб підійти майже впритул, і
+     * зупиняємо цю вісь (ціль = поточне значення). Повертає true, якщо щось зрушило.
+     */
+    private boolean serverStep() {
+        boolean any = false;
+        boolean stopped = false;
+        for (int axis = 0; axis < 3; axis++) {
+            double cur = axis == 0 ? s : (axis == 1 ? t : h);
+            double target = axis == 0 ? targetS : (axis == 1 ? targetT : targetH);
+            double speed = axis == 0 ? SPEED_S : (axis == 1 ? SPEED_T : SPEED_H);
+            double next = approach(cur, target, speed);
+            if (next == cur) continue;
+            if (hookBlockedAxis(axis, next) && !hookBlockedAxis(axis, cur)) {
+                double ok = cur;
+                double step = next - cur;
+                for (int i = 0; i < 6; i++) {
+                    step *= 0.5D;
+                    if (!hookBlockedAxis(axis, cur + step)) {
+                        ok = cur + step;
+                        break;
+                    }
+                }
+                next = ok;
+                if (axis == 0) targetS = ok; else if (axis == 1) targetT = ok; else targetH = ok;
+                stopped = true;
+            }
+            if (axis == 0) s = next; else if (axis == 1) t = next; else h = next;
+            if (next != cur) any = true;
+        }
+        if (stopped) sync(); // клієнт повторює рух без перевірки блоків, тож виправляємо його точним станом
+        return any;
+    }
+
+    private boolean hookBlockedAxis(int axis, double value) {
+        return hookBlocked(axis == 0 ? value : s, axis == 1 ? value : t, axis == 2 ? value : h);
+    }
+
+    // ------------------------------------------------------------ положення гака у світі
+
+    /** Світова X-координата осі гака (центр клітинки колії має цілу координату + 0.5). */
+    private double hookWorldX(double ts, double tt) {
+        return xCoord + 0.5D + DX[dir] * ts + (-DZ[dir]) * (centerOffset() + tt);
+    }
+
+    private double hookWorldZ(double ts, double tt) {
+        return zCoord + 0.5D + DZ[dir] * ts + DX[dir] * (centerOffset() + tt);
+    }
+
+    /** Висота нижньої точки гака над рівнем рейок (локально, від yCoord) при довжині троса th. Спільна з рендером. */
+    public double hookTipLocal(double th) {
+        return height - bridgeDepth(span()) - th - HOOK_TIP_DROP;
+    }
+
+    /**
+     * Чи входить гак (або блок на ньому: куб 1x1x1 під гаком) у тверді блоки при заданому положенні.
+     * Без вантажу перевіряється лише клітинка під самою точкою гака. Незавантажений чанк вважається перешкодою.
+     */
+    private boolean hookBlocked(double ts, double tt, double th) {
+        double wx = hookWorldX(ts, tt);
+        double wz = hookWorldZ(ts, tt);
+        double tip = yCoord + hookTipLocal(th);
+        double half = carrying ? 0.5D : 0.1D;
+        double bottom = carrying ? tip - 1.0D : tip;
+        int x0 = (int) Math.floor(wx - half + EPS);
+        int x1 = (int) Math.floor(wx + half - EPS);
+        int z0 = (int) Math.floor(wz - half + EPS);
+        int z1 = (int) Math.floor(wz + half - EPS);
+        int y0 = (int) Math.floor(bottom + EPS);
+        int y1 = carrying ? (int) Math.floor(bottom + 1.0D - EPS) : y0;
+        for (int x = x0; x <= x1; x++) {
+            for (int z = z0; z <= z1; z++) {
+                for (int y = y0; y <= y1; y++) {
+                    if (blocksAt(x, y, z)) return true;
+                }
+            }
+        }
+        return false;
+    }
+
     /** Перевіряє клітинку, у яку заходить передній край крана на цьому кроці. */
     private boolean travelClear() {
         double ds = targetS - s;
@@ -235,6 +339,164 @@ public class TileEntityCraneController extends TileEntity {
         targetH = clamp(nh, HOOK_MIN, maxH());
         moving = true;
         sync();
+    }
+
+    // ------------------------------------------------------------ пульт керування
+
+    /**
+     * Команда з пульта (викликається на сервері). ax: кран уздовж колії (+1 від контролера, -1 до нього),
+     * at: візок поперек колії (+1 у бік railPlus, тобто праворуч, якщо дивитися вздовж колії від контролера),
+     * lift: гак (+1 вгору, -1 вниз). Значення 0 по осі зупиняє її. action: 1 = захопити/відпустити вантаж.
+     */
+    public void remoteCommand(EntityPlayer player, int ax, int at, int lift, int action) {
+        if (worldObj == null || worldObj.isRemote) return;
+        if (!assembled) {
+            msg(player, EnumChatFormatting.RED, "Crane track is not assembled. Right click the controller to scan it first");
+            return;
+        }
+        lastCmdTick = worldObj.getTotalWorldTime();
+        if (action == 1) {
+            if (carrying) release(player); else grab(player);
+        }
+        if (ax != lastAx || at != lastAt || lift != lastLift || action == 1) {
+            lastAx = ax;
+            lastAt = at;
+            lastLift = lift;
+            applyAxes(ax, at, lift);
+        }
+    }
+
+    private void applyAxes(int ax, int at, int lift) {
+        remoteActive = ax != 0 || at != 0 || lift != 0;
+        lastAx = ax;
+        lastAt = at;
+        lastLift = lift;
+        double r = trolleyRange();
+        double ns = ax > 0 ? maxS() : (ax < 0 ? minS() : s);
+        double nt = at > 0 ? r : (at < 0 ? -r : t);
+        double nh = lift > 0 ? HOOK_MIN : (lift < 0 ? maxH() : h); // більша довжина троса = гак нижче
+        targetS = ns;
+        targetT = nt;
+        targetH = nh;
+        moving = ns != s || nt != t || nh != h;
+        sync();
+    }
+
+    // ------------------------------------------------------------ вантаж
+
+    public Block getCarriedBlock() {
+        if (!carrying) return null;
+        Block b = Block.getBlockFromName(carryName);
+        return (b == null || b == Blocks.air) ? null : b;
+    }
+
+    /** Клітинка, у якій зараз висить вантаж, або клітинка під гаком: {x, z}. */
+    private int[] hookCell() {
+        return new int[] { (int) Math.floor(hookWorldX(s, t)), (int) Math.floor(hookWorldZ(s, t)) };
+    }
+
+    /** Чи можна цей блок піднімати краном. Повертає null, якщо можна, інакше причину. */
+    private String liftProblem(World w, EntityPlayer player, int x, int y, int z) {
+        Block b = w.getBlock(x, y, z);
+        int meta = w.getBlockMetadata(x, y, z);
+        if (b.isAir(w, x, y, z) || b.getMaterial().isLiquid()) return "There is nothing to lift under the hook";
+        if (b instanceof BlockCraneRail) return "Crane rails cannot be lifted";
+        if (b.getBlockHardness(w, x, y, z) < 0.0F) return "This block is unbreakable";
+        if (b.hasTileEntity(meta) || w.getTileEntity(x, y, z) != null) return "Blocks with an inventory or other tile data cannot be lifted";
+        if (Block.getIdFromBlock(b) == 0 || Block.blockRegistry.getNameForObject(b) == null) return "This block cannot be lifted";
+        if (!w.canMineBlock(player, x, y, z)) return "You cannot lift blocks here (protected area)";
+        return null;
+    }
+
+    /** Захоплення блока, що лежить просто під гаком. Блок знімається зі світу й чіпляється на гак. */
+    private void grab(EntityPlayer player) {
+        double tip = yCoord + hookTipLocal(h);
+        int[] cell = hookCell();
+        int top = (int) Math.floor(tip - EPS);
+        int found = Integer.MIN_VALUE;
+        for (int y = top; y >= top - 1; y--) {
+            Block b = worldObj.getBlock(cell[0], y, cell[1]);
+            if (!b.isAir(worldObj, cell[0], y, cell[1])) {
+                found = y;
+                break;
+            }
+        }
+        if (found == Integer.MIN_VALUE) {
+            msg(player, EnumChatFormatting.YELLOW, "Nothing to lift: lower the hook onto a block");
+            return;
+        }
+        if (tip - (found + 1) > 0.6D) {
+            msg(player, EnumChatFormatting.YELLOW, "The hook is too high above the block: lower it until it touches the block");
+            return;
+        }
+        String problem = liftProblem(worldObj, player, cell[0], found, cell[1]);
+        if (problem != null) {
+            msg(player, EnumChatFormatting.RED, problem);
+            return;
+        }
+        // Гак стає точно над центром клітинки, інакше вантаж зачіпав би сусідні блоки.
+        double dxs = cell[0] - xCoord;
+        double dzs = cell[1] - zCoord;
+        double ns = dxs * DX[dir] + dzs * DZ[dir];
+        double nt = dxs * (-DZ[dir]) + dzs * DX[dir] - centerOffset();
+        if (ns < minS() - EPS || ns > maxS() + EPS || Math.abs(nt) > trolleyRange() + EPS) {
+            msg(player, EnumChatFormatting.RED, "The block is at the very edge of the crane's reach");
+            return;
+        }
+        Block b = worldObj.getBlock(cell[0], found, cell[1]);
+        carryMeta = worldObj.getBlockMetadata(cell[0], found, cell[1]);
+        carryName = Block.blockRegistry.getNameForObject(b);
+        worldObj.setBlock(cell[0], found, cell[1], Blocks.air, 0, 3);
+        carrying = true;
+        s = targetS = ns;
+        t = targetT = nt;
+        targetH = h;
+        moving = false;
+        sync();
+    }
+
+    /**
+     * Відпускає вантаж у клітинку, де він висить (найближча до нього). Якщо під нею повітря, блок опускається до
+     * першої опори. Якщо клітинка зайнята, вантаж лишається на гаку.
+     */
+    private void release(EntityPlayer player) {
+        Block b = getCarriedBlock();
+        if (b == null) {
+            carrying = false;
+            sync();
+            return;
+        }
+        double tip = yCoord + hookTipLocal(h);
+        int[] cell = hookCell();
+        int y = (int) Math.round(tip - 1.0D);
+        if (!isFreeForBlock(cell[0], y, cell[1])) {
+            msg(player, EnumChatFormatting.YELLOW, "There is no free space to put the load here");
+            return;
+        }
+        if (!worldObj.canMineBlock(player, cell[0], y, cell[1])) {
+            msg(player, EnumChatFormatting.RED, "You cannot place blocks here (protected area)");
+            return;
+        }
+        while (y > 0 && isFreeForBlock(cell[0], y - 1, cell[1])) y--;
+        worldObj.setBlock(cell[0], y, cell[1], b, carryMeta, 3);
+        carrying = false;
+        carryName = "";
+        carryMeta = 0;
+        sync();
+    }
+
+    private boolean isFreeForBlock(int x, int y, int z) {
+        if (y < 0 || y >= 256 || !worldObj.blockExists(x, y, z)) return false;
+        Block c = worldObj.getBlock(x, y, z);
+        return c.isAir(worldObj, x, y, z) || c.getMaterial().isReplaceable();
+    }
+
+    /** Викидає вантаж предметом, коли контролер ламають. */
+    public void dropCarried() {
+        if (worldObj == null || worldObj.isRemote || !carrying) return;
+        Block b = getCarriedBlock();
+        if (b != null) b.dropBlockAsItem(worldObj, xCoord, yCoord, zCoord, carryMeta, 0);
+        carrying = false;
     }
 
     /** Тестовий рух: туди-назад із візком і гаком, щоб побачити модель у русі. */
@@ -478,6 +740,9 @@ public class TileEntityCraneController extends TileEntity {
         tag.setDouble("targetT", targetT);
         tag.setDouble("targetH", targetH);
         tag.setBoolean("moving", moving);
+        tag.setBoolean("carrying", carrying);
+        tag.setString("carryName", carryName);
+        tag.setInteger("carryMeta", carryMeta);
     }
 
     @Override
@@ -497,6 +762,9 @@ public class TileEntityCraneController extends TileEntity {
         targetT = tag.getDouble("targetT");
         targetH = tag.getDouble("targetH");
         moving = tag.getBoolean("moving");
+        carrying = tag.getBoolean("carrying");
+        carryName = tag.getString("carryName");
+        carryMeta = tag.getInteger("carryMeta");
         prevS = s;
         prevT = t;
         prevH = h;

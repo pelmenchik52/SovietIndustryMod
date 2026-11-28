@@ -2,8 +2,11 @@ package com.sovietindustry;
 
 import com.sovietindustry.blocks.ModBlocks;
 import com.sovietindustry.items.ModItems;
+import com.sovietindustry.network.CraneCommandQueue;
+import com.sovietindustry.network.PacketCraneControl;
 import com.sovietindustry.network.PacketRequestPylonSync;
 
+import cpw.mods.fml.common.FMLCommonHandler;
 import cpw.mods.fml.common.Mod;
 import cpw.mods.fml.common.Mod.EventHandler;
 import cpw.mods.fml.common.SidedProxy;
@@ -28,6 +31,8 @@ public class SovietIndustryMod {
     public void preInit(FMLPreInitializationEvent event) {
         network = NetworkRegistry.INSTANCE.newSimpleChannel(MODID);
         network.registerMessage(PacketRequestPylonSync.Handler.class, PacketRequestPylonSync.class, 0, Side.SERVER);
+        network.registerMessage(PacketCraneControl.Handler.class, PacketCraneControl.class, 1, Side.SERVER);
+        FMLCommonHandler.instance().bus().register(new CraneCommandQueue());
 
         ModBlocks.init();
         ModItems.init();

@@ -57,4 +57,7 @@ public class CommonProxy {
     }
 
     public void registerRenderers() {}
+
+    /** Відкриває екран пульта крана (лише на клієнті). */
+    public void openCraneRemote(net.minecraft.item.ItemStack remote) {}
 }

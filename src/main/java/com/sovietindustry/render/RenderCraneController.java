@@ -7,7 +7,10 @@ import com.sovietindustry.tileentities.TileEntityCraneController;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import net.minecraft.block.Block;
 import net.minecraft.client.renderer.OpenGlHelper;
+import net.minecraft.client.renderer.RenderBlocks;
+import net.minecraft.client.renderer.texture.TextureMap;
 import net.minecraft.client.renderer.tileentity.TileEntitySpecialRenderer;
 import net.minecraft.tileentity.TileEntity;
 import net.minecraft.world.World;
@@ -22,6 +25,7 @@ public class RenderCraneController extends TileEntitySpecialRenderer {
     private static final int[] DZ = { 0, 1, 0, -1 };
 
     private final ModelGantryCrane model = new ModelGantryCrane();
+    private final RenderBlocks blockRenderer = new RenderBlocks();
 
     @Override
     public void renderTileEntityAt(TileEntity te, double x, double y, double z, float partialTicks) {
@@ -54,6 +58,20 @@ public class RenderCraneController extends TileEntitySpecialRenderer {
         float b = (c.color & 255) / 255.0F;
         model.render(c.height, c.span(), t, h, r, g, b);
         GL11.glEnable(GL11.GL_CULL_FACE);
+        renderLoad(c, t, h);
+        GL11.glPopMatrix();
+    }
+
+    /** Блок на гаку: куб 1x1x1, верх якого впритул під нижньою точкою гака (у системі координат моделі). */
+    private void renderLoad(TileEntityCraneController c, double t, double h) {
+        Block block = c.getCarriedBlock();
+        if (block == null) return;
+        double tip = c.height - TileEntityCraneController.bridgeDepth(c.span()) - h - TileEntityCraneController.HOOK_TIP_DROP;
+        GL11.glPushMatrix();
+        GL11.glTranslated(0.0D, tip - 0.5D, t);
+        bindTexture(TextureMap.locationBlocksTexture);
+        GL11.glColor4f(1.0F, 1.0F, 1.0F, 1.0F);
+        blockRenderer.renderBlockAsItem(block, c.carryMeta, 1.0F);
         GL11.glPopMatrix();
     }
 }

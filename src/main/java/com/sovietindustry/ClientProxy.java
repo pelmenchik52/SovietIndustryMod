@@ -57,6 +57,23 @@ import cpw.mods.fml.relauncher.SideOnly;
 @SideOnly(Side.CLIENT)
 public class ClientProxy extends CommonProxy {
     @Override
+    public void openCraneRemote(net.minecraft.item.ItemStack remote) {
+        net.minecraft.client.Minecraft mc = net.minecraft.client.Minecraft.getMinecraft();
+        if (!com.sovietindustry.items.ItemCraneRemote.isBound(remote)) {
+            mc.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText(
+                net.minecraft.util.EnumChatFormatting.YELLOW + net.minecraft.util.StatCollector.translateToLocal("gui.crane.unbound")));
+            return;
+        }
+        net.minecraft.nbt.NBTTagCompound tag = remote.getTagCompound();
+        if (tag.getInteger("cdim") != mc.theWorld.provider.dimensionId) {
+            mc.thePlayer.addChatMessage(new net.minecraft.util.ChatComponentText(
+                net.minecraft.util.EnumChatFormatting.RED + net.minecraft.util.StatCollector.translateToLocal("gui.crane.otherDim")));
+            return;
+        }
+        mc.displayGuiScreen(new com.sovietindustry.gui.GuiCraneRemote(tag.getInteger("cx"), tag.getInteger("cy"), tag.getInteger("cz")));
+    }
+
+    @Override
     public void registerRenderers() {
         super.registerRenderers();
         ClientRegistry.bindTileEntitySpecialRenderer(TileEntityPO2Fence.class, new RenderPO2Fence());

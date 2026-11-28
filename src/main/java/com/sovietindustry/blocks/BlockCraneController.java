@@ -1,10 +1,12 @@
 package com.sovietindustry.blocks;
 
 import com.sovietindustry.SovietIndustryMod;
+import com.sovietindustry.items.ItemCraneRemote;
 import com.sovietindustry.tileentities.TileEntityCraneController;
 
 import cpw.mods.fml.relauncher.Side;
 import cpw.mods.fml.relauncher.SideOnly;
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockContainer;
 import net.minecraft.block.material.Material;
 import net.minecraft.client.renderer.texture.IIconRegister;
@@ -13,6 +15,8 @@ import net.minecraft.init.Items;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.tileentity.TileEntity;
+import net.minecraft.util.ChatComponentText;
+import net.minecraft.util.EnumChatFormatting;
 import net.minecraft.util.IIcon;
 import net.minecraft.world.World;
 
@@ -53,7 +57,11 @@ public class BlockCraneController extends BlockContainer {
         if (!(te instanceof TileEntityCraneController)) return false;
         TileEntityCraneController crane = (TileEntityCraneController) te;
         ItemStack held = player.getHeldItem();
-        if (held != null && held.getItem() == Items.dye) {
+        if (held != null && held.getItem() instanceof ItemCraneRemote) {
+            ItemCraneRemote.bind(held, x, y, z, world.provider.dimensionId);
+            player.addChatMessage(new ChatComponentText(EnumChatFormatting.GREEN + "Remote bound to this crane controller ("
+                + x + ", " + y + ", " + z + "). Right click in the air to open the control screen"));
+        } else if (held != null && held.getItem() == Items.dye) {
             crane.paint(held.getItemDamage());
             if (!player.capabilities.isCreativeMode) {
                 player.inventory.decrStackSize(player.inventory.currentItem, 1);
@@ -66,6 +74,15 @@ public class BlockCraneController extends BlockContainer {
             crane.rescan(player);
         }
         return true;
+    }
+
+    @Override
+    public void breakBlock(World world, int x, int y, int z, Block block, int meta) {
+        TileEntity te = world.getTileEntity(x, y, z);
+        if (te instanceof TileEntityCraneController) {
+            ((TileEntityCraneController) te).dropCarried(); // щоб вантаж на гаку не зник разом із контролером
+        }
+        super.breakBlock(world, x, y, z, block, meta);
     }
 
     @Override
