@@ -18,27 +18,26 @@ import net.minecraft.client.renderer.Tessellator;
 import net.minecraft.util.ResourceLocation;
 
 /**
- * Козловий кран із ґратчастим мостом за кресленням і фото-референсом (синій кран на колії).
+ * Козловий кран за референсом.
  *
- * Опори це плоскі А-подібні ґратчасті рами. Вид уздовж моста (торець): два товсті похилі стояки, широкі
- * внизу (там колісні візки на рейці) і зведені вгору під міст, знизу міцна опорна балка, а на жорсткій
- * опорі ще похила драбина із захисною кліткою. Вид уздовж колії (фронт): жорстка опора це вузька колона,
- * що трохи розширюється вгору й має густу ґратку з кабіною під мостом, а гнучка опора це трикутник вістрям
- * донизу (шарнір на рейці), що розходиться під міст великими діагоналями.
+ * Опори: ґратчасті піраміди. Збоку (вздовж колії) це чистий трикутник: основа широка, верх вузький, діагоналей на
+ * цих гранях немає, лише рідкі горизонтальні в'язі. Спереду (впоперек колії) навпаки: опора вузька біля коліс і
+ * розходиться вгору під міст, тут ґратка з діагоналями. Жорстка опора має драбину й кабіну, гнучка тонша.
  *
- * Міст це повноцінна просторова ферма: два вертикальні пояси (верхній і нижній) із трикутною ґраткою
- * та стійками, поперечні в'язі, з боків пішохідні настили з поручнями, на кінцях консолей підвісні
- * майданчики-клітки. Візок їздить по верхніх поясах над настилом, а лебідка висить усередині ферми, і трос
- * з гаком іде вниз крізь відкритий низ ферми, тож візок вільно проїжджає над опорами.
+ * Міст: ферма трикутного перерізу (вершиною вгору), як на референсі. Знизу суцільна широка балка, на ній два
+ * ряди розкосів Warren сходяться до одинарного верхнього поясу, через вузол трикутні рами. Поручнів і настилу
+ * немає. За опорою міст виходить консоллю: півтори секції повної висоти, далі верхній пояс під 45° спускається
+ * до балки, а навколо кінця балки висить клітка-майданчик із поручнями.
  *
  * Локальні осі: X це напрям колії (кран їде вздовж X), Z це поперечна вісь моста, Y угору. Початок координат
- * у центрі клітинки контролера на рівні низу рейкового блока. Жорстка опора стоїть на +gauge, гнучка на -gauge.
+ * у центрі крана (між рейками) на рівні низу рейкового блока. Жорстка опора стоїть на +gauge, гнучка на -gauge,
+ * де gauge це половина відстані між осями рейок.
  *
- * Колір: текстура металу майже біла, а колір фарби накладається через glColor, тому кран можна фарбувати
- * в будь-який колір. Темні деталі (візки, колеса, трос, гак) і кабіна не фарбуються.
+ * Колір: текстура металу майже біла, колір фарби накладається через glColor, тож кран можна фарбувати.
+ * Темні деталі (візки, трос, гак), кабіна й шафа не фарбуються.
  *
- * Нерухома частина компілюється в display list для кожної пари (висота, відстань між рейками), три списки:
- * фарбований метал, темні деталі й кабіна. Візок, трос і гак малюються щокадру, бо рухаються.
+ * Нерухома частина компілюється в display list для кожної пари (висота, відстань між рейками), чотири списки:
+ * фарбований метал, темні деталі, кабіна, шафа. Візок, трос і гак малюються щокадру, бо рухаються.
  */
 @SideOnly(Side.CLIENT)
 public class ModelGantryCrane {
@@ -46,31 +45,29 @@ public class ModelGantryCrane {
     private static final ResourceLocation PAINT = new ResourceLocation(SovietIndustryMod.MODID, "textures/models/crane_paint.png");
     private static final ResourceLocation DARK = new ResourceLocation(SovietIndustryMod.MODID, "textures/models/crane_dark.png");
     private static final ResourceLocation CABIN = new ResourceLocation(SovietIndustryMod.MODID, "textures/models/crane_cabin.png");
+    private static final ResourceLocation BOX = new ResourceLocation(SovietIndustryMod.MODID, "textures/models/crane_box.png");
 
     private static final double RAIL_TOP = BlockCraneRail.HEIGHT;
 
-    /** Низ ґратчастої частини опори: над візками й опорною балкою. */
-    private static final double LEG_BASE = RAIL_TOP + 0.65D;
+    /** Півширина опор біля коліс (впоперек колії) і півдовжина верху вздовж колії. */
+    private static final double RIGID_FOOT_Z = 0.5D;
+    private static final double RIGID_TOP_X = 0.55D;
+    private static final double FLEX_FOOT_Z = 0.4D;
+    private static final double FLEX_TOP_X = 0.5D;
 
-    // жорстка опора (з кабіною й драбиною): основа вздовж колії, основа впоперек, верх вздовж, верх впоперек
-    private static final double RIGID_FOOT_X = 2.3D;
-    private static final double RIGID_FOOT_Z = 0.7D;
-    private static final double RIGID_TOP_X = 0.7D;
-    private static final double RIGID_TOP_Z = 1.3D;
+    /** Півширина нижньої балки моста, її висота, і півширина основи трикутної ферми (по краях верху балки). */
+    private static final double GIRDER_HALF = 0.9D;
+    private static final double GIRDER_H = 0.5D;
+    private static final double BASE_X = 0.75D;
+    /** Підлога кабіни нижче низу моста. Кабіна велика, тому підлога низько, щоб вона не впиралась у балку. */
+    private static final double CAB_FLOOR_BELOW = 3.0D;
+    /** Півдовжина, висота й півширина кабіни, і зсув її центру вздовж колії від осі опори. */
+    private static final double CAB_HX = 1.15D;
+    private static final double CAB_HY = 1.1D;
+    private static final double CAB_HZ = 1.2D;
+    private static final double CAB_X = 1.8D;
 
-    // гнучка опора: вістря донизу (шарнір), широка вгорі під мостом
-    private static final double FLEX_FOOT_X = 2.0D;
-    private static final double FLEX_FOOT_Z = 0.2D;
-    private static final double FLEX_TOP_X = 0.7D;
-    private static final double FLEX_TOP_Z = 1.9D;
-
-    /** Відстань від осі моста до кожної вертикальної ферми (поясу). */
-    private static final double CHORD_X = 0.7D;
-    /** Півширина пішохідного настилу від осі поясу назовні та положення поручнів. */
-    private static final double WALK_IN = 0.8D;
-    private static final double WALK_OUT = 1.35D;
-
-    /** key (height, span) -> перший id із трьох display list. */
+    /** key (height, span) -> перший id із чотирьох display list. */
     private final Map<Integer, Integer> lists = new HashMap<Integer, Integer>();
 
     private static int key(int height, int span) {
@@ -80,7 +77,7 @@ public class ModelGantryCrane {
     /**
      * @param height висота верху моста над низом рейок
      * @param span відстань між осями рейок
-     * @param trolleyZ положення візка поперек колії
+     * @param trolleyZ положення візка поперек колії від центру крана
      * @param hookH довжина троса від низу моста до верху гака
      * @param r червона, зелена, синя складові кольору фарби (0..1)
      */
@@ -88,15 +85,18 @@ public class ModelGantryCrane {
         Minecraft mc = Minecraft.getMinecraft();
         Integer id = lists.get(key(height, span));
         if (id == null) {
-            int base = GLAllocation.generateDisplayLists(3);
+            int base = GLAllocation.generateDisplayLists(4);
             GL11.glNewList(base, GL11.GL_COMPILE);
             buildPainted(height, span);
             GL11.glEndList();
             GL11.glNewList(base + 1, GL11.GL_COMPILE);
-            buildDark(span);
+            buildDark(height, span);
             GL11.glEndList();
             GL11.glNewList(base + 2, GL11.GL_COMPILE);
             buildCabin(height, span);
+            GL11.glEndList();
+            GL11.glNewList(base + 3, GL11.GL_COMPILE);
+            buildCabinet(height, span);
             GL11.glEndList();
             id = Integer.valueOf(base);
             lists.put(key(height, span), id);
@@ -116,6 +116,27 @@ public class ModelGantryCrane {
 
         mc.renderEngine.bindTexture(CABIN);
         GL11.glCallList(id.intValue() + 2);
+
+        mc.renderEngine.bindTexture(BOX);
+        GL11.glCallList(id.intValue() + 3);
+    }
+
+    // ------------------------------------------------------------ розміри опор від висоти
+
+    private static double rigidFootX(int height) {
+        return TileEntityCraneController.rigidFootX(height);
+    }
+
+    private static double flexFootX(int height) {
+        return Math.max(2.4D, rigidFootX(height) * 0.75D);
+    }
+
+    private static double rigidTopZ(int height) {
+        return TileEntityCraneController.rigidTopZ(height);
+    }
+
+    private static double flexTopZ(int height) {
+        return Math.max(0.9D, rigidTopZ(height) * 0.8D);
     }
 
     // ------------------------------------------------------------ фарбований метал: опори, драбина, міст
@@ -123,209 +144,212 @@ public class ModelGantryCrane {
     private static void buildPainted(int height, int span) {
         Tessellator t = Tessellator.instance;
         t.startDrawingQuads();
-        double gauge = span * 0.5D; // половина відстані між рейками: опори стоять на +-gauge від осі
+        double gauge = span * 0.5D; // опори стоять на +-gauge від осі крана
 
         double depth = TileEntityCraneController.bridgeDepth(span);
         double yBot = height - depth;
         double yTop = height;
-        double half = gauge + TileEntityCraneController.cantilever(span);
+        int cant = TileEntityCraneController.cantilever(span);
+        double base = RAIL_TOP + 0.4D;
+        double rfx = rigidFootX(height);
+        double rtz = rigidTopZ(height);
 
-        // жорстка опора на +gauge: вузька колона, густа ґратка, драбина й кабіна
-        leg(t, gauge, RIGID_FOOT_X, RIGID_FOOT_Z, RIGID_TOP_X, RIGID_TOP_Z, LEG_BASE, yBot, 1.2D, 3.6D, 0.3D);
-        ladder(t, gauge, RIGID_FOOT_X, RIGID_TOP_X, LEG_BASE, yBot - 1.0D, yBot);
-        // майданчик на верху опори, звідки драбина виходить до настилу моста
-        LepGeo.box(t, 0.0D, yBot - 1.0D, gauge, RIGID_TOP_X + 0.5D, 0.05D, RIGID_TOP_Z + 0.2D);
-        // кронштейн кабіни від опори до майданчика кабіни
-        double cabZ = gauge - (RIGID_TOP_Z + 1.1D);
-        LepGeo.box(t, 0.0D, yBot - 2.0D, cabZ + 0.2D, 0.9D, 0.06D, 1.0D);
-        LepGeo.beam(t, 0.0D, yBot - 2.0D, gauge - RIGID_TOP_Z, 0.0D, yBot - 0.4D, gauge - RIGID_TOP_Z + 0.2D, 0.12D);
+        // жорстка опора на +gauge
+        tower(t, gauge, rfx, RIGID_FOOT_Z, RIGID_TOP_X, rtz, base, yBot,
+            Math.max(3, (int) Math.round((yBot - base) / 2.4D)), 0.24D);
+        // драбина до підлоги кабіни, майданчик на рівні підлоги й кронштейн від опори до кабіни
+        double yc = yBot - CAB_FLOOR_BELOW;
+        double fc = (yc - base) / (yBot - base);
+        double hxHere = lerp(rfx, RIGID_TOP_X, fc);
+        double hzHere = lerp(RIGID_FOOT_Z, rtz, fc);
+        double cabZ = gauge - (hzHere + CAB_HZ + 0.1D);
+        ladder(t, gauge, rfx, RIGID_TOP_X, base, yBot, yc);
+        LepGeo.box(t, 0.0D, yc, gauge, hxHere + 0.6D, 0.05D, hzHere + 0.2D);
+        LepGeo.box(t, CAB_X, yc, cabZ, CAB_HX + 0.2D, 0.06D, CAB_HZ + 0.1D);
+        LepGeo.beam(t, 0.0D, yc, gauge - hzHere, CAB_X, yc, gauge - hzHere, 0.14D);
+        LepGeo.beam(t, CAB_X, yc, gauge - hzHere, CAB_X, yc, cabZ, 0.14D);
 
-        // гнучка опора на -gauge: трикутник вістрям донизу, великі діагоналі
-        leg(t, -gauge, FLEX_FOOT_X, FLEX_FOOT_Z, FLEX_TOP_X, FLEX_TOP_Z, LEG_BASE, yBot, 2.6D, 4.2D, 0.26D);
+        // гнучка опора на -gauge
+        tower(t, -gauge, flexFootX(height), FLEX_FOOT_Z, FLEX_TOP_X, flexTopZ(height), base, yBot,
+            Math.max(3, (int) Math.round((yBot - base) / 3.0D)), 0.2D);
 
-        bridge(t, gauge, yBot, yTop, half);
+        bridge(t, yBot, yTop, depth, gauge, cant);
 
         t.draw();
     }
 
     /**
-     * Плоска А-подібна ґратчаста опора (усічена піраміда). Чотири товсті похилі стояки йдуть від кутів основи
-     * (foot) до кутів верху (top). Грані, перпендикулярні до X, це ґратка зигзагом уздовж моста (її видно
-     * з фронту). Грані, перпендикулярні до Z, це А-рама з хрестовими в'язями (її видно з торця). Знизу
-     * опорна балка уздовж колії над візками, зверху голова під мостом. zc це положення осі опори поперек
-     * колії, а по X опора симетрична відносно нуля.
-     *
-     * @param panelZ висота панелі ґратки на гранях X (видно з фронту)
-     * @param panelX висота панелі А-рами на гранях Z (видно з торця)
+     * Ґратчаста вежа у формі усіченої піраміди: чотири колони від кутів основи (foot) до кутів верху (top).
+     * Грані в площині X-Y (вид збоку, між колонами А-рами) діагоналей не мають, лише горизонтальні в'язі через
+     * рівень. Грані впоперек колії (вид спереду) мають в'язі на кожному рівні й розкоси зигзагом.
+     * zc це положення осі вежі впоперек колії, а по x вежа симетрична відносно нуля.
      */
-    private static void leg(Tessellator t, double zc, double footX, double footZ, double topX, double topZ,
-                            double base, double yTop, double panelZ, double panelX, double colTh) {
+    private static void tower(Tessellator t, double zc, double footX, double footZ, double topX, double topZ,
+                              double base, double yTop, int levels, double colTh) {
         int[][] sg = { { -1, -1 }, { 1, -1 }, { 1, 1 }, { -1, 1 } };
-        double h = yTop - base;
 
-        // товсті стояки
         for (int i = 0; i < 4; i++) {
             LepGeo.beam(t, sg[i][0] * footX, base, zc + sg[i][1] * footZ, sg[i][0] * topX, yTop, zc + sg[i][1] * topZ, colTh);
         }
-
-        // грані X (бічні, ґратка зигзагом): видно з фронту
-        int nz = Math.max(3, (int) Math.round(h / panelZ));
-        for (int sx = -1; sx <= 1; sx += 2) {
-            for (int lv = 0; lv <= nz; lv++) {
-                double f = (double) lv / nz;
-                double y = base + h * f;
-                double hx = lerp(footX, topX, f);
-                double hz = lerp(footZ, topZ, f);
-                LepGeo.beam(t, sx * hx, y, zc - hz, sx * hx, y, zc + hz, 0.12D);
-                if (lv < nz) {
-                    double f2 = (double) (lv + 1) / nz;
-                    double y2 = base + h * f2;
-                    double hx2 = lerp(footX, topX, f2);
-                    double hz2 = lerp(footZ, topZ, f2);
-                    boolean flip = (lv & 1) == 0;
-                    double za = flip ? -hz : hz;
-                    double zb = flip ? hz2 : -hz2;
-                    LepGeo.beam(t, sx * hx, y, zc + za, sx * hx2, y2, zc + zb, 0.1D);
+        for (int lv = 0; lv <= levels; lv++) {
+            double f = (double) lv / levels;
+            double y = base + (yTop - base) * f;
+            double hx = lerp(footX, topX, f);
+            double hz = lerp(footZ, topZ, f);
+            for (int i = 0; i < 4; i++) {
+                boolean front = (i & 1) == 1; // грані x = const, їх видно спереду
+                if (!front && (lv & 1) == 1) continue; // збоку в'язі тільки через рівень
+                int[] a = sg[i];
+                int[] b = sg[(i + 1) & 3];
+                LepGeo.beam(t, a[0] * hx, y, zc + a[1] * hz, b[0] * hx, y, zc + b[1] * hz, colTh * 0.45D);
+            }
+            if (lv < levels) {
+                double f2 = (double) (lv + 1) / levels;
+                double y2 = base + (yTop - base) * f2;
+                double hx2 = lerp(footX, topX, f2);
+                double hz2 = lerp(footZ, topZ, f2);
+                for (int i = 1; i < 4; i += 2) {
+                    int[] a = sg[i];
+                    int[] b = sg[(i + 1) & 3];
+                    boolean flip = ((lv + (i >> 1)) & 1) == 0;
+                    int[] pa = flip ? a : b;
+                    int[] pb = flip ? b : a;
+                    LepGeo.beam(t, pa[0] * hx, y, zc + pa[1] * hz, pb[0] * hx2, y2, zc + pb[1] * hz2, colTh * 0.35D);
                 }
             }
         }
-
-        // грані Z (торцеві, А-рама з хрестовими в'язями): видно з торця
-        int nx = Math.max(2, (int) Math.round(h / panelX));
-        for (int sz = -1; sz <= 1; sz += 2) {
-            for (int lv = 0; lv <= nx; lv++) {
-                double f = (double) lv / nx;
-                double y = base + h * f;
-                double hx = lerp(footX, topX, f);
-                double hz = lerp(footZ, topZ, f);
-                LepGeo.beam(t, -hx, y, zc + sz * hz, hx, y, zc + sz * hz, 0.12D);
-                if (lv < nx) {
-                    double f2 = (double) (lv + 1) / nx;
-                    double y2 = base + h * f2;
-                    double hx2 = lerp(footX, topX, f2);
-                    double hz2 = lerp(footZ, topZ, f2);
-                    LepGeo.beam(t, -hx, y, zc + sz * hz, hx2, y2, zc + sz * hz2, 0.1D);
-                    LepGeo.beam(t, hx, y, zc + sz * hz, -hx2, y2, zc + sz * hz2, 0.1D);
-                }
-            }
-        }
-
-        // опорна балка над візками (вздовж колії) й голова під мостом
-        for (int sz = -1; sz <= 1; sz += 2) {
-            LepGeo.box(t, 0.0D, base - 0.1D, zc + sz * footZ, footX + 0.15D, 0.1D, 0.13D);
-        }
+        // голова під мостом і балка-основа над візками
         LepGeo.box(t, 0.0D, yTop - 0.12D, zc, topX + 0.35D, 0.12D, topZ + 0.3D);
+        LepGeo.box(t, 0.0D, base - 0.05D, zc, footX + 0.2D, 0.1D, footZ + 0.2D);
     }
 
     /**
-     * Похила драбина вздовж зовнішньої (+X) грані жорсткої опори від основи до майданчика, далі
-     * вертикальний марш до настилу моста. Лінія драбини повторює нахил стояка.
+     * Похила драбина вздовж зовнішньої (+X) грані жорсткої опори від основи до висоти top (підлога кабіни).
+     * legTop це верх опори, за ним визначається нахил колон.
      */
-    private static void ladder(Tessellator t, double zc, double footX, double topX, double base, double top, double yBot) {
-        double out = 0.3D;
-        double h = yBot - base;
+    private static void ladder(Tessellator t, double zc, double footX, double topX, double base, double legTop, double top) {
+        double out = 0.28D;
         double x0 = footX + out;
-        double x1 = lerp(footX, topX, (top - base) / h) + out;
+        double x1 = lerp(footX, topX, (top - base) / (legTop - base)) + out;
         LepGeo.beam(t, x0, base, zc - 0.3D, x1, top, zc - 0.3D, 0.07D);
         LepGeo.beam(t, x0, base, zc + 0.3D, x1, top, zc + 0.3D, 0.07D);
         double len = top - base;
         for (double y = base + 0.4D; y < top; y += 0.5D) {
-            double x = lerp(x0, x1, (y - base) / len);
+            double f = (y - base) / len;
+            double x = lerp(x0, x1, f);
             LepGeo.beam(t, x, y, zc - 0.3D, x, y, zc + 0.3D, 0.05D);
         }
         // кільця захисної клітки на верхній третині
         for (double y = base + len * 0.65D; y < top; y += 1.0D) {
-            double x = lerp(x0, x1, (y - base) / len);
+            double f = (y - base) / len;
+            double x = lerp(x0, x1, f);
             LepGeo.beam(t, x, y, zc - 0.45D, x + 0.3D, y, zc - 0.45D, 0.04D);
             LepGeo.beam(t, x + 0.3D, y, zc - 0.45D, x + 0.3D, y, zc + 0.45D, 0.04D);
             LepGeo.beam(t, x + 0.3D, y, zc + 0.45D, x, y, zc + 0.45D, 0.04D);
         }
-        // перила майданчика
-        double px = RIGID_TOP_X + 1.0D;
-        LepGeo.beam(t, px, top + 0.9D, zc - RIGID_TOP_Z - 0.2D, px, top + 0.9D, zc + RIGID_TOP_Z + 0.2D, 0.05D);
     }
 
     /**
-     * Міст: просторова ферма. Дві вертикальні ферми (на +-CHORD_X) із верхнім і нижнім поясом, трикутною
-     * ґраткою й стійками, поперечні в'язі зверху на кожному другому вузлі та знизу лише над опорами й на кінцях
-     * (низ відкритий для троса), бічні настили з поручнями, підвісні майданчики-клітки на кінцях консолей.
+     * Міст трикутного перерізу. Нижня балка (прямокутна, суцільна) іде від кінця до кінця. На ній два ряди розкосів
+     * Warren з основою по краях верху балки (x = +-BASE_X) сходяться до одинарного верхнього поясу (x = 0), у кожному
+     * другому вузлі трикутна рама. Повна висота тримається до zFlat, далі верхній пояс спускається під 45° до кінця
+     * консолі zEnd, де від ферми лишається невеликий трикутник. Настилу й поручнів немає.
      */
-    private static void bridge(Tessellator t, double gauge, double yBot, double yTop, double half) {
-        double yt = yTop - 0.1D;
-        double yb = yBot + 0.1D;
-        double depth = yt - yb;
+    private static void bridge(Tessellator t, double yBot, double yTop, double depth, double hs, int cant) {
+        double yg = yBot + GIRDER_H; // верх балки
+        double yt = yTop - 0.1D;     // верхній пояс
+        double zEnd = hs + cant;
+        double taper = Math.max(0.5D, (yt - yg) - 0.3D);
+        double zFlat = zEnd - taper;
+        double yEnd = yt - taper;
 
-        int segs = Math.max(8, (int) Math.round(2.0D * half / Math.max(1.0D, depth)));
-        if ((segs & 1) == 1) segs++;
-        double step = 2.0D * half / segs;
+        // нижня балка на всю довжину, включно з консолями
+        LepGeo.box(t, 0.0D, yBot + GIRDER_H * 0.5D, 0.0D, GIRDER_HALF, GIRDER_H * 0.5D, zEnd);
+
+        // верхній пояс: прямо до zFlat, далі спускається під 45° до кінця
+        LepGeo.beam(t, 0.0D, yt, -zFlat, 0.0D, yt, zFlat, 0.22D);
+        for (int e = -1; e <= 1; e += 2) {
+            LepGeo.beam(t, 0.0D, yt, e * zFlat, 0.0D, yEnd, e * zEnd, 0.2D);
+        }
+
+        int n = Math.max(4, (int) Math.round(2.0D * zFlat / depth));
+        if ((n & 1) == 1) n++;
+        double step = 2.0D * zFlat / n;
 
         for (int p = -1; p <= 1; p += 2) {
-            double px = p * CHORD_X;
-            LepGeo.beam(t, px, yt, -half, px, yt, half, 0.24D);
-            LepGeo.beam(t, px, yb, -half, px, yb, half, 0.22D);
-            for (int i = 0; i < segs; i++) {
+            double bx = p * BASE_X;
+            // розкоси зигзагом між краєм балки й верхнім поясом
+            for (int i = 0; i < n; i++) {
                 boolean up = (i & 1) == 0;
-                double za = -half + i * step;
+                double za = -zFlat + i * step;
                 double zb = za + step;
-                LepGeo.beam(t, px, up ? yb : yt, za, px, up ? yt : yb, zb, 0.1D);
-            }
-            for (int i = 0; i <= segs; i++) {
-                double z = -half + i * step;
-                LepGeo.beam(t, px, yb, z, px, yt, z, 0.09D);
-            }
-        }
-        // верхні поперечні в'язі
-        for (int i = 0; i <= segs; i += 2) {
-            double z = -half + i * step;
-            LepGeo.beam(t, -CHORD_X, yt, z, CHORD_X, yt, z, 0.1D);
-        }
-        // нижні в'язі лише на кінцях і над опорами
-        double[] zs = { -half, -gauge, gauge, half };
-        for (int k = 0; k < zs.length; k++) {
-            LepGeo.beam(t, -CHORD_X, yb, zs[k], CHORD_X, yb, zs[k], 0.1D);
-        }
-
-        // бічні настили й поручні
-        double deck = yTop + 0.04D;
-        double wMid = (WALK_IN + WALK_OUT) * 0.5D;
-        double wHalf = (WALK_OUT - WALK_IN) * 0.5D;
-        for (int p = -1; p <= 1; p += 2) {
-            LepGeo.box(t, p * wMid, deck, 0.0D, wHalf, 0.025D, half);
-            // кронштейни під настилом до верхнього поясу
-            for (int i = 0; i <= segs; i += 2) {
-                double z = -half + i * step;
-                LepGeo.beam(t, p * CHORD_X, yt, z, p * WALK_OUT, deck - 0.03D, z, 0.06D);
-            }
-            double rx = p * WALK_OUT;
-            LepGeo.beam(t, rx, deck + 1.0D, -half, rx, deck + 1.0D, half, 0.05D);
-            LepGeo.beam(t, rx, deck + 0.5D, -half, rx, deck + 0.5D, half, 0.04D);
-            for (int i = 0; i <= segs; i += 2) {
-                double z = -half + i * step;
-                LepGeo.beam(t, rx, deck, z, rx, deck + 1.0D, z, 0.05D);
-            }
-        }
-        // торцеві поручні
-        for (int e = -1; e <= 1; e += 2) {
-            LepGeo.beam(t, -WALK_OUT, deck + 1.0D, e * half, WALK_OUT, deck + 1.0D, e * half, 0.05D);
-        }
-
-        // підвісні майданчики-клітки на кінцях консолей
-        for (int e = -1; e <= 1; e += 2) {
-            double ez = e * (half - 0.9D);
-            double fy = yBot - 1.0D;
-            double fx = 1.1D;
-            double fz = 0.9D;
-            LepGeo.box(t, 0.0D, fy, ez, fx, 0.04D, fz);
-            for (int sx = -1; sx <= 1; sx += 2) {
-                for (int sz = -1; sz <= 1; sz += 2) {
-                    // підвіска до нижнього поясу й стійка поручня
-                    LepGeo.beam(t, sx * CHORD_X, fy, ez + sz * (fz - 0.05D), sx * CHORD_X, yb, ez + sz * (fz - 0.05D), 0.07D);
-                    LepGeo.beam(t, sx * (fx - 0.05D), fy, ez + sz * (fz - 0.05D), sx * (fx - 0.05D), fy + 1.0D, ez + sz * (fz - 0.05D), 0.05D);
+                if (up) {
+                    LepGeo.beam(t, bx, yg, za, 0.0D, yt, zb, 0.1D);
+                } else {
+                    LepGeo.beam(t, 0.0D, yt, za, bx, yg, zb, 0.1D);
                 }
-                LepGeo.beam(t, sx * (fx - 0.05D), fy + 1.0D, ez - fz, sx * (fx - 0.05D), fy + 1.0D, ez + fz, 0.05D);
             }
-            LepGeo.beam(t, -fx, fy + 1.0D, ez + e * (fz - 0.05D), fx, fy + 1.0D, ez + e * (fz - 0.05D), 0.05D);
-            LepGeo.beam(t, -fx, fy + 1.0D, ez - e * (fz - 0.05D), fx, fy + 1.0D, ez - e * (fz - 0.05D), 0.05D);
+            // у звуженій частині по одному розкосу до кінця
+            for (int e = -1; e <= 1; e += 2) {
+                LepGeo.beam(t, bx, yg, e * zFlat, 0.0D, yEnd, e * zEnd, 0.1D);
+            }
+        }
+        // трикутні рами в кожному другому вузлі, плюс на початку звуження й на кінці
+        for (int i = 0; i <= n; i += 2) {
+            frame(t, -zFlat + i * step, yg, yt);
+        }
+        for (int e = -1; e <= 1; e += 2) {
+            frame(t, e * zEnd, yg, yEnd);
+        }
+
+        // клітки-майданчики навколо кінців балки
+        for (int e = -1; e <= 1; e += 2) {
+            cage(t, e, yBot, zEnd);
+        }
+    }
+
+    /** Трикутна рама поперек моста: основа між краями верху балки й дві похилі до верхнього поясу. */
+    private static void frame(Tessellator t, double z, double yg, double apexY) {
+        LepGeo.beam(t, -BASE_X, yg, z, BASE_X, yg, z, 0.08D);
+        LepGeo.beam(t, -BASE_X, yg, z, 0.0D, apexY, z, 0.09D);
+        LepGeo.beam(t, BASE_X, yg, z, 0.0D, apexY, z, 0.09D);
+    }
+
+    /**
+     * Клітка-майданчик навколо кінця консолі, як на референсі: підлога трохи нижче балки, чотири стійки
+     * по кутах прив'язані до балки, по периметру дві планки поручнів.
+     */
+    private static void cage(Tessellator t, int e, double yBot, double zEnd) {
+        double zIn = zEnd - 1.6D;
+        double zOut = zEnd + 0.5D;
+        double hx = 1.35D;
+        double floor = yBot - 0.3D;
+        double top = floor + 1.1D;
+        double mid = floor + 0.55D;
+        double cz = e * (zIn + zOut) * 0.5D;
+        double hz = (zOut - zIn) * 0.5D;
+
+        LepGeo.box(t, 0.0D, floor, cz, hx, 0.05D, hz);
+        for (int p = -1; p <= 1; p += 2) {
+            for (int z = 0; z < 2; z++) {
+                double zz = e * (z == 0 ? zIn : zOut);
+                LepGeo.beam(t, p * hx, floor, zz, p * hx, top, zz, 0.08D);
+                // кутова стійка тримається за балку
+                LepGeo.beam(t, p * hx, yBot + 0.25D, zz, p * GIRDER_HALF, yBot + 0.25D, zz, 0.08D);
+            }
+        }
+        for (int p = -1; p <= 1; p += 2) {
+            double rx = p * hx;
+            LepGeo.beam(t, rx, top, e * zIn, rx, top, e * zOut, 0.05D);
+            LepGeo.beam(t, rx, mid, e * zIn, rx, mid, e * zOut, 0.04D);
+            for (double z = zIn + 0.8D; z < zOut - 0.3D; z += 0.8D) {
+                LepGeo.beam(t, rx, floor, e * z, rx, top, e * z, 0.04D);
+            }
+        }
+        for (int z = 0; z < 2; z++) {
+            double zz = e * (z == 0 ? zIn : zOut);
+            LepGeo.beam(t, -hx, top, zz, hx, top, zz, 0.05D);
+            LepGeo.beam(t, -hx, mid, zz, hx, mid, zz, 0.04D);
         }
     }
 
@@ -333,70 +357,63 @@ public class ModelGantryCrane {
         return a + (b - a) * f;
     }
 
-    // ------------------------------------------------------------ темні деталі: візки з колесами на рейках
+    // ------------------------------------------------------------ темні деталі: візки на рейках
 
-    private static void buildDark(int span) {
+    private static void buildDark(int height, int span) {
         Tessellator t = Tessellator.instance;
         t.startDrawingQuads();
         double gauge = span * 0.5D;
+        double rfx = rigidFootX(height);
+        double ffx = flexFootX(height);
+        // жорстка опора: два візки по краях основи
         for (int sx = -1; sx <= 1; sx += 2) {
-            bogie(t, sx * (RIGID_FOOT_X - 0.55D), gauge);
-            bogie(t, sx * (FLEX_FOOT_X - 0.55D), -gauge);
+            LepGeo.box(t, sx * (rfx - 0.55D), RAIL_TOP + 0.18D, gauge, 0.6D, 0.18D, 0.5D);
+        }
+        // гнучка опора: два візки ближче одне до одного
+        for (int sx = -1; sx <= 1; sx += 2) {
+            LepGeo.box(t, sx * (ffx - 0.5D), RAIL_TOP + 0.18D, -gauge, 0.55D, 0.18D, 0.45D);
         }
         t.draw();
     }
 
-    /** Візок на рейці: рама з двома колесами (кожне колесо це два хрестоподібні паралелепіпеди, схожі на восьмикутник). */
-    private static void bogie(Tessellator t, double cx, double zc) {
-        LepGeo.box(t, cx, RAIL_TOP + 0.5D, zc, 0.8D, 0.1D, 0.3D);
-        for (int w = -1; w <= 1; w += 2) {
-            double x = cx + w * 0.45D;
-            double y = RAIL_TOP + 0.2D;
-            LepGeo.box(t, x, y, zc, 0.2D, 0.14D, 0.12D);
-            LepGeo.box(t, x, y, zc, 0.14D, 0.2D, 0.12D);
-            // кронштейн букси
-            LepGeo.box(t, x, RAIL_TOP + 0.38D, zc, 0.08D, 0.1D, 0.2D);
-        }
-    }
-
-    // ------------------------------------------------------------ кабіна
+    // ------------------------------------------------------------ кабіна й шафа
 
     private static void buildCabin(int height, int span) {
         Tessellator t = Tessellator.instance;
         t.startDrawingQuads();
         double gauge = span * 0.5D;
         double yBot = height - TileEntityCraneController.bridgeDepth(span);
-        double floor = yBot - 2.0D + 0.06D;
-        double cabZ = gauge - (RIGID_TOP_Z + 1.1D);
-        LepGeo.box(t, 0.0D, floor + 0.7D, cabZ, 0.75D, 0.7D, 0.8D);
+        double base = RAIL_TOP + 0.4D;
+        double yc = yBot - CAB_FLOOR_BELOW;
+        double fc = (yc - base) / (yBot - base);
+        double hzHere = lerp(RIGID_FOOT_Z, rigidTopZ(height), fc);
+        double cabZ = gauge - (hzHere + CAB_HZ + 0.1D);
+        LepGeo.box(t, CAB_X, yc + 0.06D + CAB_HY, cabZ, CAB_HX, CAB_HY, CAB_HZ);
+        t.draw();
+    }
+
+    /** Сіра шафа керування всередині ферми, на балці над гнучкою опорою. */
+    private static void buildCabinet(int height, int span) {
+        Tessellator t = Tessellator.instance;
+        t.startDrawingQuads();
+        double gauge = span * 0.5D;
+        double yBot = height - TileEntityCraneController.bridgeDepth(span);
+        LepGeo.box(t, 0.0D, yBot + GIRDER_H + 0.45D, -gauge + 1.2D, 0.33D, 0.45D, 0.9D);
         t.draw();
     }
 
     // ------------------------------------------------------------ рухомі частини
 
-    /**
-     * Візок: рама на верхніх поясах із чотирма ходовими колесами, привід зверху, лебідка всередині ферми
-     * (підвішена на двох підвісках), тож трос і гак виходять через відкритий низ моста.
-     */
+    /** Візок на нижній балці: рама під балкою, щоки по боках балки, лебідка на балці всередині ферми. */
     private static void drawTrolley(int height, int span, double tz) {
         Tessellator t = Tessellator.instance;
         t.startDrawingQuads();
-        double yTop = height;
-        // ходові колеса на верхніх поясах
+        double yBot = height - TileEntityCraneController.bridgeDepth(span);
+        LepGeo.box(t, 0.0D, yBot - 0.15D, tz, GIRDER_HALF + 0.1D, 0.12D, 0.65D);
         for (int p = -1; p <= 1; p += 2) {
-            for (int q = -1; q <= 1; q += 2) {
-                LepGeo.box(t, p * CHORD_X, yTop + 0.12D, tz + q * 0.4D, 0.16D, 0.1D, 0.1D);
-            }
+            LepGeo.box(t, p * (GIRDER_HALF + 0.05D), yBot + GIRDER_H * 0.5D - 0.05D, tz, 0.06D, GIRDER_H * 0.5D + 0.1D, 0.6D);
         }
-        // рама й привід
-        LepGeo.box(t, 0.0D, yTop + 0.3D, tz, 0.95D, 0.08D, 0.55D);
-        LepGeo.box(t, 0.0D, yTop + 0.58D, tz, 0.45D, 0.2D, 0.35D);
-        // підвіски й корпус лебідки всередині ферми
-        for (int p = -1; p <= 1; p += 2) {
-            LepGeo.beam(t, p * 0.45D, yTop + 0.3D, tz - 0.4D, p * 0.45D, yTop - 0.4D, tz - 0.4D, 0.1D);
-            LepGeo.beam(t, p * 0.45D, yTop + 0.3D, tz + 0.4D, p * 0.45D, yTop - 0.4D, tz + 0.4D, 0.1D);
-        }
-        LepGeo.box(t, 0.0D, yTop - 0.62D, tz, 0.5D, 0.35D, 0.45D);
+        LepGeo.box(t, 0.0D, yBot + GIRDER_H + 0.3D, tz, 0.35D, 0.3D, 0.5D);
         t.draw();
     }
 
@@ -405,7 +422,7 @@ public class ModelGantryCrane {
         t.startDrawingQuads();
         double yBot = height - TileEntityCraneController.bridgeDepth(span);
         double hookTop = yBot - hookH;
-        double cableTop = height - 0.97D;
+        double cableTop = yBot - 0.27D;
         // трос
         LepGeo.beam(t, 0.0D, cableTop, tz, 0.0D, hookTop, tz, 0.06D);
         // обойма гака

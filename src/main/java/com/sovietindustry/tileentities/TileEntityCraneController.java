@@ -40,10 +40,10 @@ public class TileEntityCraneController extends TileEntity {
 
     public static final int MIN_HEIGHT = 10;
     public static final int MAX_HEIGHT = 32;
-    public static final int DEFAULT_HEIGHT = 16;
+    public static final int DEFAULT_HEIGHT = 21;
 
-    /** Півдовжина «ніг» жорсткої опори вздовж колії. */
-    public static final double HALF_FOOT = 2.7D;
+    /** Відступ від основи жорсткої опори до її драбини й візків, у блоках. */
+    private static final double FOOT_MARGIN = 0.4D;
     public static final double HOOK_MIN = 1.0D;
 
     public static final double SPEED_S = 0.10D;
@@ -89,9 +89,12 @@ public class TileEntityCraneController extends TileEntity {
 
     // ------------------------------------------------------------ форма моста (спільна для логіки й моделі)
 
-    /** Скільки блоків міст виступає за опору з кожного боку. span це відстань між осями рейок. */
+    /**
+     * Скільки блоків міст виступає за опору з кожного боку (span це відстань між осями рейок). Консоль має
+     * півтори секції повної висоти, далі нижній пояс піднімається під 45° до висоти 0.6 і закінчується майданчиком.
+     */
     public static int cantilever(int span) {
-        return Math.max(2, Math.round(span * 0.175F));
+        return (int) Math.ceil(2.5D * bridgeDepth(span) - 0.6D);
     }
 
     /** Висота ферми моста. Ширший кран має товстішу ферму. */
@@ -109,18 +112,39 @@ public class TileEntityCraneController extends TileEntity {
         return (railPlus - railMinus) * 0.5D;
     }
 
+    /** Півдовжина основи жорсткої опори вздовж колії: чим вище кран, тим ширша піраміда. Спільна з моделлю. */
+    public static double rigidFootX(int height) {
+        return Math.min(5.5D, Math.max(3.1D, 0.2D * height + 0.8D));
+    }
+
+    /** Півширина верху жорсткої опори впоперек колії: опора вгорі ширша, а до коліс звужується. Спільна з моделлю. */
+    public static double rigidTopZ(int height) {
+        return Math.min(2.4D, Math.max(1.0D, 0.09D * height));
+    }
+
+    /** На скільки клітинок убік від рейки опора заходить (верх опори розходиться), для перевірки вільного місця. */
+    public int legReach() {
+        return (int) Math.ceil(rigidTopZ(height) - 0.2D);
+    }
+
+    /** Скільки кран займає вздовж колії від своєї осі в один бік (з драбиною). */
+    public double halfFoot() {
+        return rigidFootX(height) + FOOT_MARGIN;
+    }
+
     // ------------------------------------------------------------ межі руху
 
     public double minS() {
-        return Math.ceil(HALF_FOOT - 0.5D);
+        return Math.ceil(halfFoot() - 0.5D);
     }
 
     public double maxS() {
-        return Math.max(minS(), Math.floor(length - 0.5D - HALF_FOOT));
+        return Math.max(minS(), Math.floor(length - 0.5D - halfFoot()));
     }
 
     public double trolleyRange() {
-        return span() * 0.5D + cantilever(span()) - 1.0D;
+        // візок їздить по поясах повної висоти: від опори ще півтори секції
+        return span() * 0.5D + 1.5D * bridgeDepth(span()) - 0.8D;
     }
 
     public double maxH() {
@@ -186,7 +210,7 @@ public class TileEntityCraneController extends TileEntity {
         if (Math.abs(ds) < 1.0E-6D) return true;
         int sign = ds > 0 ? 1 : -1;
         double next = s + sign * Math.min(Math.abs(ds), SPEED_S);
-        int cell = (int) Math.floor(next + sign * HALF_FOOT + 0.5D);
+        int cell = (int) Math.floor(next + sign * halfFoot() + 0.5D);
         if (cell < 0 || cell >= length) return false;
         return findObstacle(cell) == null;
     }
@@ -273,6 +297,13 @@ public class TileEntityCraneController extends TileEntity {
                 + " free blocks between the rails (the rails themselves are not counted), at least " + MIN_LEN + " blocks long";
         }
 
+        height = (int) clamp(height, MIN_HEIGHT, MAX_HEIGHT);
+        int need = Math.max(MIN_LEN, (int) Math.ceil(2.0D * halfFoot() + 1.0D));
+        if (bestLen < need) {
+            disassemble();
+            return "The track is too short for this crane height: need at least " + need + " blocks of track, found " + bestLen;
+        }
+
         int oldDir = dir;
         int oldLen = length;
         int oldPlus = railPlus;
@@ -282,7 +313,6 @@ public class TileEntityCraneController extends TileEntity {
         length = bestLen;
         railPlus = bestPlus;
         railMinus = bestMinus;
-        height = (int) clamp(height, MIN_HEIGHT, MAX_HEIGHT);
 
         if (full) {
             for (int k = 0; k < length; k++) {
@@ -391,7 +421,7 @@ public class TileEntityCraneController extends TileEntity {
 
         for (int side = -1; side <= 1; side += 2) {
             int lat = side > 0 ? railPlus : -railMinus;
-            for (int off = -1; off <= 1; off++) {
+            for (int off = -legReach(); off <= legReach(); off++) {
                 int rx = bx + lx * (lat + off);
                 int rz = bz + lz * (lat + off);
                 for (int y = yCoord + 1; y <= topCell; y++) {
