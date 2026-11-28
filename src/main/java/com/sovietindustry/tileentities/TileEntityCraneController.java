@@ -426,8 +426,8 @@ public class TileEntityCraneController extends TileEntity {
         int topCell = yCoord + height - 1;
         int depthCells = (int) Math.ceil(bridgeDepth(span()));
         int bottomCell = Math.max(yCoord + 1, yCoord + height - depthCells);
-        int cant = cantilever(span());
-
+        int cant = cantilever(span()) + 2;
+        
         for (int side = -1; side <= 1; side += 2) {
             int lat = side > 0 ? railPlus : -railMinus;
             for (int off = -legReach(); off <= legReach(); off++) {
