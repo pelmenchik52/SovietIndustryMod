@@ -20,12 +20,13 @@ import net.minecraft.util.ResourceLocation;
 /**
  * Козловий кран серії ККС (за фото-референсом).
  *
- * - Опори: А-подібні збоку (без горизонтальних в'язей), а спереду (впоперек колії) — з ґраткою між ногами.
+ * - Опори: А-подібні збоку (без горизонтальних в'язей), спереду (впоперек колії) — з ґраткою між ногами.
  *   Кожна нога спирається на окремий ходовий візок на рейці.
- * - Міст: чиста тригранна ферма; двотаврова балка візка доходить майже до кінця консолі.
- * - Торцеві балкони: винесені за межі трикутної ферми назовні, щоб ферма не заходила всередину балкона.
- * - Виносна галерея: передня доріжка від правого балкона до лівого, кронштейни якої оминають зону руху візка.
- * - Шафа керування: встановлена на лівому торцевому балконі (на рівні проходу), а не на верхньому поясі ферми.
+ * - Драбина: закріплена безпосередньо вздовж передньої ноги жорсткої опори з повноцінною захисною кліткою
+ *   (дуги + вертикальні напрямні), виходить на оглядовий майданчик біля верхнього ригеля опори, а звідти
+ *   коротким маршем зі сходами та поручнями — на виносну галерею моста.
+ * - Міст: чиста тригранна ферма, підкоси передньої галереї впираються безпосередньо у верхню нерухому
+ *   полицю двотаврової балки візка (не заважаючи руху коліс і щок візка).
  */
 @SideOnly(Side.CLIENT)
 public class ModelGantryCrane {
@@ -137,15 +138,15 @@ public class ModelGantryCrane {
         tower(t, gauge, rfx, RIGID_FOOT_Z, RIGID_TOP_X, rtz, base, yBot,
             Math.max(4, (int) Math.round((yBot - base) / 2.2D)), 0.22D);
 
-        // 2. Похила драбина вздовж передньої (+X) грані жорсткої опори з виходом на перехідний місток
+        // 2. Драбина вздовж передньої (+X) ноги жорсткої опори + проміжний майданчик опори + вихід на галерею
         double floor = floorY(yBot);
-        ladder(t, gauge, rfx, RIGID_TOP_X, base, yBot, floor);
+        ladderAndLanding(t, gauge, rfx, RIGID_FOOT_Z, RIGID_TOP_X, rtz, base, yBot, floor);
 
-        // 3. Гнучка опора (-gauge): така сама чиста А-форма збоку та ґратка спереду
+        // 3. Гнучка опора (-gauge)
         tower(t, -gauge, flexFootX(height), FLEX_FOOT_Z, FLEX_TOP_X, flexTopZ(height), base, yBot,
             Math.max(4, (int) Math.round((yBot - base) / 2.5D)), 0.19D);
 
-        // 4. Міст тригранного перерізу + подовжена рейка візка + виносна галерея + винесені назовні балкони
+        // 4. Міст тригранного перерізу + рейка візка + виносна галерея + винесені назовні балкони
         bridge(t, yBot, yTop, depth, gauge, cant);
 
         t.draw();
@@ -206,62 +207,172 @@ public class ModelGantryCrane {
     }
 
     /**
-     * Похила драбина вздовж зовнішньої (+X) грані жорсткої опори.
-     * Верх драбини виходить точно на зовнішній край перехідного містка (topLadderX),
-     * тому гравець піднімається на площадку, а не впирається в неї знизу.
+     * Реалістичний підйом на кран ККС:
+     * 1. Похила драбина закріплена безпосередньо вздовж передньої (+X) лівої (+Z) ноги жорсткої опори
+     *    від низу до оглядового майданчика опори (на рівні yLanding = yBot - 0.85D).
+     * 2. Повноцінна захисна клітка навколо драбини: дуги + 3 вертикальні поздовжні смуги зв'язку.
+     * 3. Проміжний оглядовий майданчик на опорі (навколо обох передніх ніг) з огородженням, на який
+     *    людина виходить з драбини через відкритий люк/проріз.
+     * 4. Короткі похилі сходи з поручнями від цього майданчика вгору на виносну галерею моста (floor).
      */
-    private static void ladder(Tessellator t, double zc, double footX, double topX, double base, double legTop, double floor) {
-        double out = 0.26D;
-        double x0 = footX + out;
-        double x1 = lerp(footX, topX, Math.min(1.0D, (floor - base) / (legTop - base))) + out;
-        double halfW = 0.30D;
+    private static void ladderAndLanding(Tessellator t, double zc, double footX, double footZ,
+                                         double topX, double topZ, double base, double yBot, double floor) {
+        double yLanding = yBot - 0.85D;
+        double fLand = Math.max(0.1D, Math.min(0.95D, (yLanding - base) / (yBot - base)));
+
+        // Координати передньої (+X) правої (+Z) ноги жорсткої опори
+        double legX0 = footX;
+        double legZ0 = zc + footZ;
+        double legX1 = lerp(footX, topX, fLand);
+        double legZ1 = zc + lerp(footZ, topZ, fLand);
+
+        // Драбина йде паралельно нозі з відступом +0.26D по X на кронштейнах
+        double offset = 0.26D;
+        double ladX0 = legX0 + offset;
+        double ladX1 = legX1 + offset;
+        double halfW = 0.26D;
+
+        // Тятиви драбини
+        LepGeo.beam(t, ladX0, base, legZ0 - halfW, ladX1, yLanding, legZ1 - halfW, 0.055D);
+        LepGeo.beam(t, ladX0, base, legZ0 + halfW, ladX1, yLanding, legZ1 + halfW, 0.055D);
+
+        // Сходинки та кронштейни кріплення до ноги опори
+        double climbH = yLanding - base;
+        for (double y = base + 0.35D; y <= yLanding - 0.05D; y += 0.38D) {
+            double f = (y - base) / climbH;
+            double lx = lerp(ladX0, ladX1, f);
+            double lz = lerp(legZ0, legZ1, f);
+            LepGeo.beam(t, lx, y, lz - halfW, lx, y, lz + halfW, 0.04D);
+
+            // Кронштейни до ноги опори кожні ~1.5 м
+            if (((int) Math.round((y - base) / 0.38D)) % 4 == 0) {
+                double colX = lerp(legX0, legX1, f);
+                LepGeo.beam(t, colX, y, lz - halfW, lx, y, lz - halfW, 0.045D);
+                LepGeo.beam(t, colX, y, lz + halfW, lx, y, lz + halfW, 0.045D);
+            }
+        }
+
+        // Повноцінна захисна клітка навколо драбини (починається з висоти 2.1 блока і тягнеться до yLanding + 1.05)
+        double cageStart = Math.min(base + 2.1D, base + climbH * 0.3D);
+        double cageEnd = yLanding + 1.05D;
+        double cageDepth = 0.68D; // глибина дуги за спиною людини (+X)
+        double cageHalfZ = 0.42D;
+
+        for (double y = cageStart; y <= cageEnd; y += 0.75D) {
+            double f = Math.min(1.0D, (y - base) / climbH);
+            double lx = lerp(ladX0, ladX1, f);
+            double lz = lerp(legZ0, legZ1, f);
+            // Дуга захисної клітки (3 сегменти навколо людини)
+            LepGeo.beam(t, lx, y, lz - cageHalfZ, lx + cageDepth, y, lz - cageHalfZ, 0.032D);
+            LepGeo.beam(t, lx + cageDepth, y, lz - cageHalfZ, lx + cageDepth, y, lz + cageHalfZ, 0.032D);
+            LepGeo.beam(t, lx + cageDepth, y, lz + cageHalfZ, lx, y, lz + cageHalfZ, 0.032D);
+        }
+
+        // Поздовжні вертикально-похилі смуги зв'язку клітки (3 смуги: ззаду та по боках дуг)
+        double fStart = (cageStart - base) / climbH;
+        double fEnd = 1.0D;
+        double sx0 = lerp(ladX0, ladX1, fStart);
+        double sz0 = lerp(legZ0, legZ1, fStart);
+        double sx1 = ladX1;
+        double sz1 = legZ1;
+        // Продовження до висоти огородження площадки (yLanding + 1.05D)
+        double dxSlope = (ladX1 - ladX0) / climbH;
+        double dzSlope = (legZ1 - legZ0) / climbH;
+        double sxTop = sx1 + dxSlope * 1.05D;
+        double szTop = sz1 + dzSlope * 1.05D;
+
+        LepGeo.beam(t, sx0 + cageDepth, cageStart, sz0, sxTop + cageDepth, cageEnd, szTop, 0.032D);
+        LepGeo.beam(t, sx0 + cageDepth, cageStart, sz0 - cageHalfZ, sxTop + cageDepth, cageEnd, szTop - cageHalfZ, 0.032D);
+        LepGeo.beam(t, sx0 + cageDepth, cageStart, sz0 + cageHalfZ, sxTop + cageDepth, cageEnd, szTop + cageHalfZ, 0.032D);
+
+        // ------------------------------------------------------------------
+        // Проміжний оглядовий майданчик на опорі на висоті yLanding
+        // ------------------------------------------------------------------
         double walkOuterX = WALKWAY_X + WALKWAY_HALF_W;
+        double landMinX = legX1 - 0.15D;
+        double landMaxX = Math.max(ladX1 + cageDepth + 0.15D, walkOuterX + 0.15D);
+        double landMinZ = zc - topZ - 0.55D;
+        double landMaxZ = legZ1 + cageHalfZ + 0.15D;
 
-        double topLadderX = Math.max(x1, walkOuterX + 0.55D);
+        double landCx = (landMinX + landMaxX) * 0.5D;
+        double landHx = (landMaxX - landMinX) * 0.5D;
+        double landCz = (landMinZ + landMaxZ) * 0.5D;
+        double landHz = (landMaxZ - landMinZ) * 0.5D;
 
-        // Тятиви драбини до рівня підлоги
-        LepGeo.beam(t, x0, base, zc - halfW, topLadderX, floor, zc - halfW, 0.06D);
-        LepGeo.beam(t, x0, base, zc + halfW, topLadderX, floor, zc + halfW, 0.06D);
-
-        // Сходинки
-        double len = floor - base;
-        for (double y = base + 0.35D; y < floor - 0.05D; y += 0.42D) {
-            double f = (y - base) / len;
-            double x = lerp(x0, topLadderX, f);
-            LepGeo.beam(t, x, y, zc - halfW, x, y, zc + halfW, 0.04D);
+        // Настил майданчика опори (залишаємо виріз під вихід з драбини біля ladX1, legZ1)
+        double holeMinX = ladX1 - 0.05D;
+        double holeMinZ = legZ1 - cageHalfZ;
+        // Основна плита ліворуч від отвору драбини (по Z)
+        double mainHz = (holeMinZ - landMinZ) * 0.5D;
+        if (mainHz > 0.05D) {
+            LepGeo.box(t, landCx, yLanding - 0.03D, (landMinZ + holeMinZ) * 0.5D, landHx, 0.035D, mainHz);
+        }
+        // Смуга настилу внутрішніше від драбини (по X, між ногами опори)
+        double stripHx = (holeMinX - landMinX) * 0.5D;
+        double stripHz = (landMaxZ - holeMinZ) * 0.5D;
+        if (stripHx > 0.05D && stripHz > 0.05D) {
+            LepGeo.box(t, (landMinX + holeMinX) * 0.5D, yLanding - 0.03D, (holeMinZ + landMaxZ) * 0.5D, stripHx, 0.035D, stripHz);
         }
 
-        // Захисна клітка за спиною (+X від тятив) до рівня поясу над площадкою
-        for (double y = base + len * 0.62D; y <= floor + 0.95D; y += 0.85D) {
-            double f = Math.min(1.0D, (y - base) / len);
-            double x = lerp(x0, topLadderX, f);
-            LepGeo.beam(t, x, y, zc - 0.42D, x + 0.38D, y, zc - 0.42D, 0.035D);
-            LepGeo.beam(t, x + 0.38D, y, zc - 0.42D, x + 0.38D, y, zc + 0.42D, 0.035D);
-            LepGeo.beam(t, x + 0.38D, y, zc + 0.42D, x, y, zc + 0.42D, 0.035D);
+        // Несучі балки майданчика під настилом (кріпляться до передніх ніг опори)
+        LepGeo.beam(t, landMinX, yLanding - 0.07D, landMinZ, landMaxX, yLanding - 0.07D, landMinZ, 0.06D);
+        LepGeo.beam(t, landMinX, yLanding - 0.07D, holeMinZ, landMaxX, yLanding - 0.07D, holeMinZ, 0.06D);
+        LepGeo.beam(t, landMinX, yLanding - 0.07D, landMaxZ, landMaxX, yLanding - 0.07D, landMaxZ, 0.06D);
+        LepGeo.beam(t, landMaxX, yLanding - 0.07D, landMinZ, landMaxX, yLanding - 0.07D, landMaxZ, 0.06D);
+
+        // Огородження проміжного майданчика опори
+        double lTop = yLanding + 1.05D;
+        double lMid = yLanding + 0.52D;
+        // Зовнішній край (+X)
+        LepGeo.beam(t, landMaxX, lTop, landMinZ, landMaxX, lTop, landMaxZ, 0.045D);
+        LepGeo.beam(t, landMaxX, lMid, landMinZ, landMaxX, lMid, landMaxZ, 0.038D);
+        LepGeo.beam(t, landMaxX, yLanding, landMinZ, landMaxX, lTop, landMinZ, 0.045D);
+        LepGeo.beam(t, landMaxX, yLanding, landMaxZ, landMaxX, lTop, landMaxZ, 0.045D);
+        LepGeo.beam(t, landMaxX, yLanding, holeMinZ, landMaxX, lTop, holeMinZ, 0.045D);
+        // Торцевий край (+Z, за спиною при виході з драбини)
+        LepGeo.beam(t, landMinX, lTop, landMaxZ, landMaxX, lTop, landMaxZ, 0.045D);
+        LepGeo.beam(t, landMinX, lMid, landMaxZ, landMaxX, lMid, landMaxZ, 0.038D);
+        LepGeo.beam(t, landMinX, yLanding, landMaxZ, landMinX, lTop, landMaxZ, 0.045D);
+
+        // ------------------------------------------------------------------
+        // Перехідні сходи з майданчика опори (yLanding) вгору на виносну галерею (floor)
+        // ------------------------------------------------------------------
+        double stairZ = zc;
+        double stairStartZ = landMinZ + 0.45D; // початок підйому на майданчику опори
+        double stairEndZ = zc - 0.40D;         // вихід на рівень галереї (floor)
+        double stairX0 = WALKWAY_X - WALKWAY_HALF_W + 0.08D;
+        double stairX1 = WALKWAY_X + WALKWAY_HALF_W - 0.08D;
+
+        // Косоури сходів від майданчика опори (yLanding, stairStartZ) до настилу галереї (floor, stairEndZ)
+        LepGeo.beam(t, stairX0, yLanding, stairStartZ, stairX0, floor, stairEndZ, 0.055D);
+        LepGeo.beam(t, stairX1, yLanding, stairStartZ, stairX1, floor, stairEndZ, 0.055D);
+
+        // 4 сходинки перехідного маршу
+        int steps = 4;
+        for (int s = 1; s <= steps; s++) {
+            double sf = (double) s / (steps + 1);
+            double sy = lerp(yLanding, floor, sf);
+            double sz = lerp(stairStartZ, stairEndZ, sf);
+            LepGeo.box(t, WALKWAY_X, sy, sz, WALKWAY_HALF_W - 0.08D, 0.025D, 0.11D);
         }
 
-        // Перехідний місток від верху драбини (topLadderX) всередину до галереї (walkOuterX)
-        double midX = (walkOuterX + topLadderX) * 0.5D;
-        double spanX = (topLadderX - walkOuterX) * 0.5D;
-        LepGeo.box(t, midX, floor - 0.03D, zc, spanX, 0.035D, 0.45D);
-
-        // Бічні поручні перехідного містка
-        double railTop = floor + 1.05D;
-        double railMid = floor + 0.52D;
-        for (int s = -1; s <= 1; s += 2) {
-            double zz = zc + s * 0.42D;
-            LepGeo.beam(t, topLadderX, floor, zc + s * halfW, topLadderX, railTop, zz, 0.045D);
-            LepGeo.beam(t, topLadderX, railTop, zz, walkOuterX, railTop, zz, 0.045D);
-            LepGeo.beam(t, topLadderX, railMid, zz, walkOuterX, railMid, zz, 0.035D);
+        // Поручні перехідних сходів
+        for (double sx : new double[] { stairX0, stairX1 }) {
+            LepGeo.beam(t, sx, yLanding, stairStartZ, sx, yLanding + 1.05D, stairStartZ, 0.045D);
+            LepGeo.beam(t, sx, floor, stairEndZ, sx, floor + 1.05D, stairEndZ, 0.045D);
+            LepGeo.beam(t, sx, yLanding + 1.05D, stairStartZ, sx, floor + 1.05D, stairEndZ, 0.045D);
+            LepGeo.beam(t, sx, yLanding + 0.52D, stairStartZ, sx, floor + 0.52D, stairEndZ, 0.035D);
         }
+
+        // Закриття протилежного краю (-Z) майданчика опори до сходів
+        LepGeo.beam(t, landMinX, lTop, landMinZ, stairX0, lTop, landMinZ, 0.045D);
+        LepGeo.beam(t, landMinX, lMid, landMinZ, stairX0, lMid, landMinZ, 0.038D);
+        LepGeo.beam(t, landMinX, yLanding, landMinZ, landMinX, lTop, landMinZ, 0.045D);
+        LepGeo.beam(t, stairX0, yLanding, landMinZ, stairX0, lTop, landMinZ, 0.045D);
     }
 
     /**
-     * Міст крана ККС:
-     * - Тригранна ферма закінчується на +-zEnd (не заходячи в балкон).
-     * - Двотаврова рейка візка іде майже до самого кінця ферми.
-     * - Торцеві балкони винесені назовні за межі ферми.
-     * - Передня виносна галерея йде між балконами, а її підкоси оминають габарит візка.
+     * Міст крана ККС.
      */
     private static void bridge(Tessellator t, double yBot, double yTop, double depth, double hs, int cant) {
         double yg = yBot + GIRDER_H - 0.08D;
@@ -337,42 +448,33 @@ public class ModelGantryCrane {
 
     /**
      * Виносна галерея перед краном (+X) від правого балкона до лівого.
-     * Кронштейни кріпляться строго до переднього нижнього поясу ферми (+BASE_X) і зовнішнього краю
-     * верхньої нерухомої полиці балки (збоку від габариту візка), не заважаючи руху візка.
+     * Похилі підкоси впираються ТОЧНО в зовнішній край верхньої нерухомої полиці двотаврової балки
+     * (braceAnchorX = TRACK_FLANGE_HALF = 0.32D, braceAnchorY = yBot - 0.03D), тому не висять у повітрі
+     * і не заважають візку, який їздить по нижній полиці.
      */
     private static void frontWalkway(Tessellator t, double yBot, double floor, double balcIn, double ladderZ) {
         double railTop = floor + 1.05D;
         double railMid = floor + 0.52D;
         double outerX = WALKWAY_X + WALKWAY_HALF_W;
         double innerX = BASE_X;
-        double braceAnchorX = TRACK_FLANGE_HALF + 0.30D;
+        double braceAnchorX = TRACK_FLANGE_HALF; // точно в бічну грань верхньої полиці балки візка
         double braceAnchorY = yBot - 0.03D;
 
         LepGeo.box(t, WALKWAY_X, floor - 0.03D, 0.0D, WALKWAY_HALF_W, 0.035D, balcIn);
 
         int count = Math.max(4, (int) Math.round((2.0D * balcIn) / 2.2D));
         double dz = (2.0D * balcIn) / count;
-        double gateMin = ladderZ - 0.42D;
-        double gateMax = ladderZ + 0.42D;
 
         for (int i = 0; i <= count; i++) {
             double z = -balcIn + i * dz;
             LepGeo.beam(t, innerX, floor - 0.06D, z, outerX, floor - 0.06D, z, 0.06D);
             LepGeo.beam(t, braceAnchorX, braceAnchorY, z, outerX - 0.06D, floor - 0.06D, z, 0.05D);
-
-            if (z <= gateMin || z >= gateMax) {
-                LepGeo.beam(t, outerX, floor, z, outerX, railTop, z, 0.045D);
-            }
+            LepGeo.beam(t, outerX, floor, z, outerX, railTop, z, 0.045D);
         }
 
-        LepGeo.beam(t, outerX, floor, gateMin, outerX, railTop, gateMin, 0.045D);
-        LepGeo.beam(t, outerX, floor, gateMax, outerX, railTop, gateMax, 0.045D);
-
-        LepGeo.beam(t, outerX, railTop, -balcIn, outerX, railTop, gateMin, 0.05D);
-        LepGeo.beam(t, outerX, railMid, -balcIn, outerX, railMid, gateMin, 0.04D);
-
-        LepGeo.beam(t, outerX, railTop, gateMax, outerX, railTop, balcIn, 0.05D);
-        LepGeo.beam(t, outerX, railMid, gateMax, outerX, railMid, balcIn, 0.04D);
+        // Суцільні поручні вздовж усієї передньої галереї (вхід із перехідних сходів іде знизу через настил біля ladderZ)
+        LepGeo.beam(t, outerX, railTop, -balcIn, outerX, railTop, balcIn, 0.05D);
+        LepGeo.beam(t, outerX, railMid, -balcIn, outerX, railMid, balcIn, 0.04D);
     }
 
     /**
@@ -475,10 +577,6 @@ public class ModelGantryCrane {
 
     // ------------------------------------------------------------ шафа керування
 
-    /**
-     * Електрична шафа керування краном: стоїть на лівому торцевому балконі (-z, біля гнучкої опори)
-     * на рівні підлоги проходу, біля глухої стінки, щоб не заважати проходу з галереї.
-     */
     private static void buildCabinet(int height, int span) {
         Tessellator t = Tessellator.instance;
         t.startDrawingQuads();
@@ -487,7 +585,6 @@ public class ModelGantryCrane {
         double floor = floorY(yBot);
         double zEnd = gauge + TileEntityCraneController.cantilever(span);
 
-        // Координати на лівому балконі (-zEnd .. -(zEnd + BALCONY_DEPTH)), зміщено в бік -X від входу з галереї
         double cabHalfX = 0.70D;
         double cabHalfY = 0.65D;
         double cabHalfZ = 0.42D;
